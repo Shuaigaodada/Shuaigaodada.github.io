@@ -7,18 +7,17 @@
     color: white;
 }
 .background::before{
-    background: transparent url('../bg1.jpg') center center no-repeat;
+    background: transparent url('../bg1.jpg') center center;
     content: "";
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: 200%;
     filter: blur(5px);
     background-size: cover;
     z-index: -1;
 }
-
 .wrapper {
     width: 80%;
     text-align: center;
@@ -91,4 +90,24 @@
 .pic_item {
     width: 10%;
     height: auto;
+}
+a {
+    text-decoration: none;
+    color: inherit;
+    background-color: transparent;
+    outline: none;
+}
+
+.textbox {
+    background: #fff;
+    padding: 1rem;
+    -webkit-box-shadow: 0 4px 6px rgba(0, 0, 0, .3);
+    -moz-box-shadow: 0 4px 6px rgba(0, 0, 0, .3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, .3);
+}
+.textbox > p {
+    font-size: 1rem;
+    text-align: left;
+    line-height: 2em;
+    color: black;
 }
