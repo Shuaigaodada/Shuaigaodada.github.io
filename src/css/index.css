@@ -7,7 +7,7 @@
     color: white;
 }
 .background::before{
-    background: transparent url('../bg1.jpg') center center;
+    background: transparent url('../bg2.jpg') center center;
     content: "";
     position: absolute;
     top: 0;
