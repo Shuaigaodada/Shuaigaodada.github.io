@@ -189,7 +189,7 @@
                 Crit += 0.33;
                 CritMultipler += 33;
             }
-            showUpgradeNotification(`Your Critical Chance +${Crit - origin_Crit}%, Critical multiplier +${CritMultipler - origin_CritMultipler}%`);
+            showUpgradeNotification(`Your Critical Chance +${(Crit - origin_Crit).toFixed(2)}%, Critical multiplier +${(CritMultipler - origin_CritMultipler).toFixed(2)}%`);
             update();
         }
 
