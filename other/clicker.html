@@ -30,6 +30,9 @@
             font-weight: bold;
             font-size: xx-large;
         }
+        #score span {
+            display: block;
+        }
 
         button {
             padding: 10px 20px;
@@ -81,7 +84,10 @@
     </style>
 </head>
 <body>
-    <p id="score"></p>
+    <p id="score">
+        <span id="scoreText">SCORE: </span>
+        <span id="scoreNumber"></span>
+    </p>
     <button type="button" onclick="add_score(1)">!GET SCORE!</button>
 
     <button type="button" id="upgrade_scoreup" onclick="upgrade1()" disabled="false"></button>
@@ -105,6 +111,8 @@
         const ATTRS = "Upgrade Attrs: "
 
         var score_label = document.getElementById("score");
+        let scoreTextSpan = document.getElementById("scoreText");
+        let scoreNumberSpan = document.getElementById("scoreNumber");
         var upgrade_scoreup_button = document.getElementById("upgrade_scoreup");
         var upgrade_auto_button = document.getElementById("upgrade_auto");
         var upgrade_attrs_button = document.getElementById("upgrade_attrs");
@@ -117,8 +125,12 @@
 
         function auto_getscore() {
             if(upgrade_auto_score > 0) {
-                SCORE += upgrade_auto_score;
-                createHit(upgrade_auto_score);
+                let isCritical = Math.random() <= (Crit * 2) / 100;
+                if(isCritical) {
+                    num = Math.floor(upgrade_auto_score * (CritMultipler / 100));
+                } else num = upgrade_auto_score
+                SCORE += num;
+                createHit(num, isCritical);
                 update();
             }
         }
@@ -169,10 +181,12 @@
         }
 
         function init() {
-            score_label.textContent = SCORE_TEXT + SCORE;
+            scoreTextSpan.textContent = SCORE_TEXT;
+            scoreNumberSpan.textContent = SCORE;
             upgrade_scoreup_button.textContent = SCOREUP_TEXT + upgrade_scoreup_need;
             upgrade_auto_button.textContent = AUTO + upgrade_auto_need;
             upgrade_attrs_button.textContent = ATTRS + upgrade_attrs_need;
+            
 
             upgrade_scoreup_button.disabled = true;
             upgrade_auto_button.disabled = true;
@@ -183,7 +197,8 @@
         }        
 
         function update() {
-            score_label.textContent = SCORE_TEXT + SCORE;
+            scoreTextSpan.textContent = SCORE_TEXT;
+            scoreNumberSpan.textContent = SCORE;
             upgrade_scoreup_button.textContent = SCOREUP_TEXT + upgrade_scoreup_need;
             upgrade_auto_button.textContent = AUTO + upgrade_auto_need;
             upgrade_attrs_button.textContent = ATTRS + upgrade_attrs_need;
