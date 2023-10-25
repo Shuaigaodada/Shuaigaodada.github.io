@@ -99,7 +99,8 @@
         var upgrade_scoreup_need = 50;
         var upgrade_auto_need = 200;
         var upgrade_auto_score = 0;
-        var upgrade_auto_speed = 500;
+        var upgrade_auto_speed = 5000;
+        var upgrade_auto_addnum = 55;
         var upgrade_scoreup_num = 0;
         var upgrade_attrs_need = 50;
         var Crit = 0.5;
@@ -146,17 +147,49 @@
         function upgrade2() {
             SCORE -= upgrade_auto_need;
             upgrade_auto_need *= 5;
-            addnum = Math.floor((upgrade_scoreup_num + 1) * 0.5);
-            upgrade_auto_score += addnum;
-            showUpgradeNotification("Auto get score upgrade successful! " + "+" + addnum);
+            upgrade_auto_score += upgrade_auto_addnum;
+            upgrade_auto_speed -= 100;
+            showUpgradeNotification("Auto get score upgrade successful! " + "+" + upgrade_auto_addnum + " +100ms");
+            upgrade_auto_addnum *= 3;
             update();
         }
         function upgrade3() {
             SCORE -= upgrade_attrs_need;
             upgrade_attrs_need = Math.floor(upgrade_attrs_need * 1.5);
-            Crit += 0.5;
-            CritMultipler += 15;
-            showUpgradeNotification("Your Critical Chance +0.5%, Critical multiplier +15%");
+            var origin_Crit = Crit;
+            var origin_CritMultipler = CritMultipler;
+            if(Crit >= 100) {
+                Crit += 0.1;
+                CritMultipler += (Cirt - 100) * 10;
+            } else if(Crit >= 90) {
+                Crit += 0.05;
+                CritMultipler += 35;
+            } else if(Crit >= 80) {
+                Crit += 0.1;
+                CritMultipler += 30;
+            } else if(Crit >= 70) {
+                Crit += 0.15;
+                CritMultipler += 25;
+            } else if(Crit >= 60) {
+                Crit += 0.15;
+                CritMultipler += 20
+            } else if(Crit >= 40) {
+                Crit += 0.2;
+                CritMultipler += 15;
+            } else if(Crit >= 30) {
+                Crit += 0.25;
+                CritMultipler += 20;
+            } else if(Crit >= 20) {
+                Crit += 0.35;
+                CritMultipler += 15;
+            } else if(Crit >= 10) {
+                Crit += 0.55;
+                CritMultipler += 10;
+            } else {
+                Crit += 0.33;
+                CritMultipler += 33;
+            }
+            showUpgradeNotification(`Your Critical Chance +${Crit - origin_Crit}%, Critical multiplier +${CritMultipler - origin_CritMultipler}%`);
             update();
         }
 
