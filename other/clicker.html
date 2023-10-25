@@ -95,14 +95,14 @@
     <button type="button" id="upgrade_auto" onclick="upgrade2()" disabled="false"></button>
     
     <script>
-        var SCORE = 1000;
+        var SCORE = 30;
         var upgrade_scoreup_need = 50;
         var upgrade_auto_need = 200;
-        var threads = {}
+        var threads = [];
         var upgrade_scoreup_num = 0;
         var upgrade_attrs_need = 50;
         var Crit = 0.5;
-        var CritMultipler = 125;
+        var CritMultipler = 115;
 
         const SCORE_TEXT = "SCORE: ";
         const SCOREUP_TEXT = "Upgrade Score: "
@@ -123,11 +123,11 @@
         }
 
         function auto_getscore(num) {
-            let isCritical = Math.random() <= Crit / 100;
+            let isCritical = Math.random() <= (Crit - 0.15) / 100;
             if(isCritical) {
-                num = Math.floor(num * (CritMultipler / 100));
+                num = num * ((CritMultipler * 2) / 100);
             }
-            SCORE += num;
+            SCORE += Math.floor(num);
             createHit(num, isCritical);
             update();
         }
@@ -142,27 +142,29 @@
         }
         function upgrade2() {
             SCORE -= upgrade_auto_need;
-            if(!threads) {
+            if(threads.length <= 0) {
                 timeout = 5000;
-                threads[0] = [setInterval(auto_getscore, timeout, 0), timeout, 0]
+                threads.push([setInterval(auto_getscore, timeout, 1), timeout, 1]);
             } else {
-                var newthread = true;
-                for(thread in threads) {
-                    if(thread[1] <= 100) continue;
-                    else {
-                        newthread = false;
-                        clearInterval(thread[0]);
-                        thread[0] = setInterval(auto_getscore, thread[1] - 100, (thread[2] + 1) * 2);
-                        break;
-                    }
-                }
+                var newthread = false;
+                
+                thread_id = threads.length - 1;
+                clearInterval(threads[thread_id][0]);
+                threads[thread_id][2] = Math.floor((threads[thread_id][2] + 1) * 1.55);
+                threads[thread_id][1] = threads[thread_id][1] - 200;
+                threads[thread_id][0] = setInterval(auto_getscore, threads[thread_id][1], threads[thread_id][2]);
+                if(threads[thread_id][1] <= 500)
+                    newthread = true;
+                console.log(`Thread Info(${thread_id}): id: ${threads[thread_id][0]}, timeout: ${threads[thread_id][1]}, value: ${threads[thread_id][2]}`);
+        
                 if(newthread) {
                     timeout = 6000;
-                    threads[Object.keys(threads).length] = [setInterval(auto_getscore, timeout), timeout, threads[Object.keys(threads).length - 1][2]];
+                    value = Math.floor(threads[threads.length - 1][2] / 2);
+                    threads.push([setInterval(auto_getscore, timeout, value), timeout, value]);
                 }
             }
-            upgrade_auto_need = Math.floor(upgrade_auto_need * 3.2);
-            showUpgradeNotification("Auto get score upgrade successful! " + "+" + threads[Object.keys(threads).length - 1][2] + " +100ms");
+            upgrade_auto_need = Math.floor(upgrade_auto_need * 1.5);
+            showUpgradeNotification("Auto get score upgrade successful! " + "+" + threads[threads.length - 1][2] + " +100ms");
             update();
         }
         function upgrade3() {
@@ -170,24 +172,10 @@
             upgrade_attrs_need = Math.floor(upgrade_attrs_need * 1.5);
             var origin_Crit = Crit;
             var origin_CritMultipler = CritMultipler;
-            if(Crit >= 100) {
-                Crit += 0.1;
-                CritMultipler += (Cirt - 100) * 10;
-            } else if(Crit >= 90) {
-                Crit += 0.05;
-                CritMultipler += 35;
-            } else if(Crit >= 80) {
-                Crit += 0.1;
-                CritMultipler += 30;
-            } else if(Crit >= 70) {
-                Crit += 0.15;
-                CritMultipler += 25;
-            } else if(Crit >= 60) {
-                Crit += 0.15;
-                CritMultipler += 20
-            } else if(Crit >= 40) {
-                Crit += 0.2;
-                CritMultipler += 15;
+            if(Crit >= 40) {
+                Crit += getRandomInt(1, 200) / 100;
+                CritMultipler += (Cirt - 40) * 100;
+                Crit = 40;
             } else if(Crit >= 30) {
                 Crit += 0.25;
                 CritMultipler += 20;
