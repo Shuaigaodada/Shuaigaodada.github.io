@@ -88,7 +88,7 @@
         <span id="scoreText">SCORE: </span>
         <span id="scoreNumber"></span>
     </p>
-    <button type="button" onclick="add_score(1)">!GET SCORE!</button>
+    <button type="button" id="get" onclick="add_score(1)">Get Money</button>
 
     <button type="button" id="upgrade_scoreup" onclick="upgrade1()" disabled="false"></button>
     <button type="button" id="upgrade_attrs" onclick="upgrade3()" disabled="false"></button>
@@ -104,11 +104,13 @@
         var Crit = 0.5;
         var CritMultipler = 115;
 
-        const SCORE_TEXT = "SCORE: ";
-        const SCOREUP_TEXT = "Upgrade Score: "
-        const AUTO = "Auto get score num: "
-        const ATTRS = "Upgrade Attrs: "
+        const GETTER_TEXT = "Get Money: ";
+        const SCORE_TEXT = "MONEY: ";
+        const SCOREUP_TEXT = "Upgrade MONEY: "
+        const AUTO = "upgrade money creater: "
+        const ATTRS = "Upgrade money attr: "
 
+        let getter = document.getElementById("get");
         var score_label = document.getElementById("score");
         let scoreTextSpan = document.getElementById("scoreText");
         let scoreNumberSpan = document.getElementById("scoreNumber");
@@ -172,11 +174,11 @@
             upgrade_attrs_need = Math.floor(upgrade_attrs_need * 1.5);
             var origin_Crit = Crit;
             var origin_CritMultipler = CritMultipler;
-            if(Crit >= 40) {
-                Crit += getRandomInt(1, 200) / 100;
-                CritMultipler += (Cirt - 40) * 100;
-                Crit = 40;
-            } else if(Crit >= 30) {
+            if(Crit >= 30) {
+                Crit += getRandomInt(1, 500) / 100;
+                CritMultipler += (Crit - 30) * 100;
+                Crit = 30;
+            } else if(Crit >= 25) {
                 Crit += 0.25;
                 CritMultipler += 20;
             } else if(Crit >= 20) {
@@ -204,7 +206,7 @@
             
             // 设置提示框的位置
             notification.style.left = "50%";
-            notification.style.top = (rect.top - notification.offsetHeight - 10) + "px"; // 提示框的高度上方，并额外上移10px
+            notification.style.top = (rect.top - notification.offsetHeight - 100) + "px"; // 提示框的高度上方，并额外上移10px
 
             document.body.appendChild(notification);
 
@@ -214,24 +216,16 @@
         }
 
         function init() {
-            scoreTextSpan.textContent = SCORE_TEXT;
-            scoreNumberSpan.textContent = SCORE;
-            upgrade_scoreup_button.textContent = SCOREUP_TEXT + upgrade_scoreup_need;
-            upgrade_auto_button.textContent = AUTO + upgrade_auto_need;
-            upgrade_attrs_button.textContent = ATTRS + upgrade_attrs_need;
-            
-
-            upgrade_scoreup_button.disabled = true;
-            upgrade_auto_button.disabled = true;
-            upgrade_attrs_button.disabled = true;
+            update();
         }        
 
         function update() {
+            getter.textContent = GETTER_TEXT + (1 + upgrade_scoreup_num) + "$";
             scoreTextSpan.textContent = SCORE_TEXT;
-            scoreNumberSpan.textContent = SCORE;
-            upgrade_scoreup_button.textContent = SCOREUP_TEXT + upgrade_scoreup_need;
-            upgrade_auto_button.textContent = AUTO + upgrade_auto_need;
-            upgrade_attrs_button.textContent = ATTRS + upgrade_attrs_need;
+            scoreNumberSpan.textContent = SCORE + "$";
+            upgrade_scoreup_button.textContent = SCOREUP_TEXT + upgrade_scoreup_need + "$";
+            upgrade_auto_button.textContent = AUTO + upgrade_auto_need + "$";
+            upgrade_attrs_button.textContent = ATTRS + upgrade_attrs_need + "$";
 
             upgrade_scoreup_button.disabled = !(SCORE >= upgrade_scoreup_need);
             upgrade_auto_button.disabled = !(SCORE >= upgrade_auto_need);
@@ -241,7 +235,7 @@
         function createHit(num, isCritical=false, offsetX=-225, offsetY=15) {
             // 创建一个新的元素来显示获得的分数
             let floatingText = document.createElement("div");
-            floatingText.textContent = "+" + (num);
+            floatingText.textContent = "+" + num + "$";
             floatingText.classList.add("floatFade");
             
             if(isCritical) {
