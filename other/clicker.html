@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <title>clicker games</title>
+</head>
+<body>
+    <h1 id="score"></h1>
+    <button type="button" onclick="add_score(25)">!GET SCORE!</button>
+    <button type="button" id="upgrade_scoreup" onclick="upgrade1()" disabled="false"></button>
+    <button type="button" id="upgrade_auto" onclick="upgrade2()" disabled="false"></button>
+    <script>
+        var SCORE = 0;
+        var upgrade_scoreup_need = 100;
+        var upgrade_auto_need = 200;
+        var upgrade_auto_score = 0;
+        var upgrade_auto_speed = 3000;
+        var upgrade_scoreup_num = 0;
+
+        const SCORE_TEXT = "SCORE: ";
+        const SCOREUP_TEXT = "Upgrade Score: "
+        const AUTO = "Auto get score num: "
+
+        var score_label = document.getElementById("score");
+        var upgrade_scoreup_button = document.getElementById("upgrade_scoreup");
+        var upgrade_auto_button = document.getElementById("upgrade_auto");
+
+        function auto_getscore() {
+            SCORE += upgrade_auto_score;
+            update();
+            setInterval(auto_getscore, upgrade_auto_speed);
+        }
+
+        function upgrade1() {
+            SCORE -= upgrade_scoreup_need;
+            upgrade_scoreup_need = Math.floor(upgrade_scoreup_need * 1.5);
+            upgrade_scoreup_num += 25;
+            update();
+        }
+        function upgrade2() {
+            SCORE -= upgrade_auto_need;
+            upgrade_auto_need *= 2;
+            upgrade_auto_score = 25;
+            update();
+        }
+
+        function init() {
+            score_label.textContent = SCORE_TEXT + SCORE;
+            upgrade_scoreup_button.textContent = SCOREUP_TEXT + upgrade_scoreup_need;
+            upgrade_auto_button.textContent = AUTO + upgrade_auto_need;
+
+            upgrade_scoreup_button.disabled = true;
+            upgrade_auto_button.disabled = true;
+
+            setInterval(auto_getscore, upgrade_auto_speed);
+            auto_getscore();
+        }        
+
+        function update() {
+            score_label.textContent = SCORE_TEXT + SCORE;
+            upgrade_scoreup_button.textContent = SCOREUP_TEXT + upgrade_scoreup_need;
+            upgrade_auto_button.textContent = AUTO + upgrade_auto_need;
+
+            upgrade_scoreup_button.disabled = !(SCORE >= upgrade_scoreup_need);
+            upgrade_auto_button.disabled = !(SCORE >= upgrade_auto_need);
+        }
+        function add_score(num) {
+            SCORE += num + upgrade_scoreup_num;
+            update();
+        }
+
+        
+        window.onload = init;
+        
+    </script>
+</body>
