@@ -2,54 +2,181 @@
 <head>
     <meta charset="utf-8">
     <title>clicker games</title>
+    <style>
+        body {
+            font-family: "Arial", sans-serif;
+            background-color: #e8f5e9; /* 淡绿色背景色 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            color: #333;
+            -webkit-user-select: none;  /* Safari 3.1+ */
+            -moz-user-select: none;     /* Firefox 2+ */
+            -ms-user-select: none;      /* IE 10+ */
+            user-select: none;          /* 标准的语法 */
+        }
+
+        #score {
+            width: 500px;
+            text-align: center;
+            border: 10px solid rgb(0, 147, 184);
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #ffffff; /* 白色背景 */
+            box-shadow: 3px 3px 15px rgba(0,0,0,0.2); /* 轻微的阴影 */
+            font-weight: bold;
+            font-size: xx-large;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: medium;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px; /* 圆角 */
+            background-color: #009688; /* 深绿色背景色 */
+            color: white; /* 白色文字 */
+            transition: background-color 0.3s; /* 平滑的过渡效果 */
+        }
+
+        button:hover {
+            background-color: #00796b; /* 当鼠标悬停时，变为更深的绿色 */
+        }
+
+        button:disabled {
+            background-color: #B0BEC5; /* 当按钮不可用时，变为灰色 */
+            cursor: not-allowed;
+        }
+        @keyframes floatFade {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-30px); }
+        }
+
+        .floatFade {
+            position: absolute;
+            animation: floatFade 1.5s forwards;
+            font-size: 20px;
+            font-weight: bold;
+            color: #009688;
+        }
+        .criticalHit {
+            color: red;
+        }
+
+        .upgradeNotification {
+            position: absolute;  /* 改为absolute */
+            background-color: #009688;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            animation: floatFade 3s forwards;
+            transform: translateX(-50%);  /* 水平居中 */
+        }
+
+
+    </style>
 </head>
 <body>
-    <h1 id="score"></h1>
-    <button type="button" onclick="add_score(25)">!GET SCORE!</button>
+    <p id="score"></p>
+    <button type="button" onclick="add_score(1)">!GET SCORE!</button>
+
     <button type="button" id="upgrade_scoreup" onclick="upgrade1()" disabled="false"></button>
+    <button type="button" id="upgrade_attrs" onclick="upgrade3()" disabled="false"></button>
     <button type="button" id="upgrade_auto" onclick="upgrade2()" disabled="false"></button>
+    
     <script>
-        var SCORE = 0;
-        var upgrade_scoreup_need = 100;
+        var SCORE = 1000;
+        var upgrade_scoreup_need = 50;
         var upgrade_auto_need = 200;
         var upgrade_auto_score = 0;
-        var upgrade_auto_speed = 3000;
+        var upgrade_auto_speed = 500;
         var upgrade_scoreup_num = 0;
+        var upgrade_attrs_need = 50;
+        var Crit = 0.5;
+        var CritMultipler = 125;
 
         const SCORE_TEXT = "SCORE: ";
         const SCOREUP_TEXT = "Upgrade Score: "
         const AUTO = "Auto get score num: "
+        const ATTRS = "Upgrade Attrs: "
 
         var score_label = document.getElementById("score");
         var upgrade_scoreup_button = document.getElementById("upgrade_scoreup");
         var upgrade_auto_button = document.getElementById("upgrade_auto");
+        var upgrade_attrs_button = document.getElementById("upgrade_attrs");
+        
+        function getRandomInt(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
 
         function auto_getscore() {
-            SCORE += upgrade_auto_score;
-            update();
-            setInterval(auto_getscore, upgrade_auto_speed);
+            if(upgrade_auto_score > 0) {
+                SCORE += upgrade_auto_score;
+                createHit(upgrade_auto_score);
+                update();
+            }
         }
 
         function upgrade1() {
             SCORE -= upgrade_scoreup_need;
-            upgrade_scoreup_need = Math.floor(upgrade_scoreup_need * 1.5);
-            upgrade_scoreup_num += 25;
+            upgrade_scoreup_need = Math.floor(upgrade_scoreup_need * 2.5);
+            addnum = Math.floor((upgrade_scoreup_num + 1) * 1.5);
+            upgrade_scoreup_num += addnum;
+            showUpgradeNotification("Score upgrade successful! " + "+" + addnum);
             update();
         }
         function upgrade2() {
             SCORE -= upgrade_auto_need;
-            upgrade_auto_need *= 2;
-            upgrade_auto_score = 25;
+            upgrade_auto_need *= 5;
+            addnum = Math.floor((upgrade_scoreup_num + 1) * 0.5);
+            upgrade_auto_score += addnum;
+            showUpgradeNotification("Auto get score upgrade successful! " + "+" + addnum);
             update();
+        }
+        function upgrade3() {
+            SCORE -= upgrade_attrs_need;
+            upgrade_attrs_need = Math.floor(upgrade_attrs_need * 1.5);
+            Crit += 0.5;
+            CritMultipler += 15;
+            showUpgradeNotification("Your Critical Chance +0.5%, Critical multiplier +15%");
+            update();
+        }
+
+        function showUpgradeNotification(message) {
+            let notification = document.createElement("div");
+            notification.textContent = message;
+            notification.classList.add("upgradeNotification");
+            
+            // 获取"SCORE: 514"的位置
+            let scoreLabel = document.querySelector("#score");  // 假设"SCORE: 514"的id为"score_label_id"
+            let rect = scoreLabel.getBoundingClientRect();
+            
+            // 设置提示框的位置
+            notification.style.left = "50%";
+            notification.style.top = (rect.top - notification.offsetHeight - 10) + "px"; // 提示框的高度上方，并额外上移10px
+
+            document.body.appendChild(notification);
+
+            setTimeout(function() {
+                document.body.removeChild(notification);
+            }, 3000);  // 3秒后自动移除提示
         }
 
         function init() {
             score_label.textContent = SCORE_TEXT + SCORE;
             upgrade_scoreup_button.textContent = SCOREUP_TEXT + upgrade_scoreup_need;
             upgrade_auto_button.textContent = AUTO + upgrade_auto_need;
+            upgrade_attrs_button.textContent = ATTRS + upgrade_attrs_need;
 
             upgrade_scoreup_button.disabled = true;
             upgrade_auto_button.disabled = true;
+            upgrade_attrs_button.disabled = true;
 
             setInterval(auto_getscore, upgrade_auto_speed);
             auto_getscore();
@@ -59,15 +186,47 @@
             score_label.textContent = SCORE_TEXT + SCORE;
             upgrade_scoreup_button.textContent = SCOREUP_TEXT + upgrade_scoreup_need;
             upgrade_auto_button.textContent = AUTO + upgrade_auto_need;
+            upgrade_attrs_button.textContent = ATTRS + upgrade_attrs_need;
 
             upgrade_scoreup_button.disabled = !(SCORE >= upgrade_scoreup_need);
             upgrade_auto_button.disabled = !(SCORE >= upgrade_auto_need);
-        }
-        function add_score(num) {
-            SCORE += num + upgrade_scoreup_num;
-            update();
+            upgrade_attrs_button.disabled = !(SCORE >= upgrade_attrs_need);
         }
 
+        function createHit(num, isCritical=false, offsetX=-225, offsetY=15) {
+            // 创建一个新的元素来显示获得的分数
+            let floatingText = document.createElement("div");
+            floatingText.textContent = "+" + (num);
+            floatingText.classList.add("floatFade");
+            
+            if(isCritical) {
+                floatingText.classList.add("criticalHit");
+            }
+
+            // 计算初始位置
+            let scoreRect = score_label.getBoundingClientRect();
+            floatingText.style.left = (scoreRect.right + offsetX) + "px";  // 将其置于score_label的右侧，并稍微向左偏移
+            floatingText.style.top = scoreRect.top + offsetY + "px";
+
+            // 将元素添加到页面上
+            document.body.appendChild(floatingText);
+
+            // 在动画完成后，从页面上删除此元素
+            floatingText.addEventListener("animationend", function() {
+                document.body.removeChild(floatingText);
+            });
+        }
+
+        function add_score(num) {
+            num += upgrade_scoreup_num;
+            let isCritical = Math.random() <= Crit / 100;
+            if(isCritical) {
+                num = Math.floor(num * (CritMultipler / 100));
+            }
+            SCORE += num;
+            createHit(num, isCritical);
+            update();
+        }
         
         window.onload = init;
         
