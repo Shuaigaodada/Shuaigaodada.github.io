@@ -102,13 +102,88 @@
         var upgrade_scoreup_num = 0;
         var upgrade_attrs_need = 50;
         var Crit = 0.5;
-        var CritMultipler = 115;
+        var CritMultipler = 125;
+        
+        if (!String.prototype.format) {
+            String.prototype.format = function() {
+                var args = arguments;
+                return this.replace(/{(\d+)}/g, function(match, number) { 
+                return typeof args[number] != 'undefined'
+                    ? args[number]
+                    : match
+                ;
+                });
+            };
+        }
 
-        const GETTER_TEXT = "Get Money: ";
-        const SCORE_TEXT = "MONEY: ";
-        const SCOREUP_TEXT = "Upgrade MONEY: "
-        const AUTO = "upgrade money creater: "
-        const ATTRS = "Upgrade money attr: "
+        var GETTER_TEXT = null;
+        var SCORE_TEXT = null;
+        var SCOREUP_TEXT = null;
+        var AUTO = null;
+        var ATTRS = null;
+        var UPGRADE1_TEXT = null;
+        var UPGRADE2_TEXT = null;
+        var UPGRADE2NEW_TEXT = null;
+        var UPGRADE3_TEXT = null;
+
+        var none = null;
+        var template = {
+            "GETTER": none,
+            "SCORE": none,
+            "SCOREUP": none,
+            "AUTO": none,
+            "ATTRS": none,
+            "UPGRADE1": none,
+            "UPGRADE2": none,
+            "UPGRADE2NEW": none,
+            "UPGRADE3": none
+        }
+        function setup() {
+            t = arguments[0];
+            var index = 1;
+            for(var key in t) {
+                t[key] = arguments[index++];
+            }
+            return t;
+        }
+
+        var english = setup(
+            template,
+            "Make Money: +{0}$",
+            "Money:",
+            "Upgrades make money: {0}$",
+            "Purchase/Upgrade Money Getter: {0}$",
+            "Upgrade money critical chance: {0}$",
+            "Money production upgrade successful! Additional money gained: +{0}$",
+            "Upgrade Money Getter Successful! Get +{0}$ extra money and increase speed by +{1}ms",
+            "Purchase Money Getter Successful! Get +{0}$ extra money.",
+            "Upgrading critical hit rate successfully! critical chance +{0}%, critical multiplier +{1}%",
+        )
+        var chinese = setup(
+            template,
+            "获取金钱: +{0}$",
+            "金钱: ",
+            "升级获取金钱数量: {0}$",
+            "购买/升级 金钱获取器: {0}$",
+            "增加暴击率: {0}$",
+            "升级金钱获取数量成功，每次额外获得 +{0}$",
+            "升级金钱获取器成功！你的获取金钱器获取速度+{1}ms, 获取数量+{0}$",
+            "购买新的金钱获取器成功！你的获取器每次获得+{0}$",
+            "升级暴击率成功！ 暴击率+{0}% 暴击倍率+{1}%"
+        )
+
+        function changeLanguage(targetObject) {
+            GETTER_TEXT = targetObject["GETTER"];
+            SCORE_TEXT = targetObject["SCORE"];
+            SCOREUP_TEXT = targetObject["SCOREUP"];
+            AUTO = targetObject["AUTO"];
+            ATTRS = targetObject["ATTRS"];
+            UPGRADE1_TEXT = targetObject["UPGRADE1"];
+            UPGRADE2_TEXT = targetObject["UPGRADE2"];
+            UPGRADE2NEW_TEXT = targetObject["UPGRADE2NEW"];
+            UPGRADE3_TEXT = targetObject["UPGRADE3"];
+        }
+
 
         let getter = document.getElementById("get");
         var score_label = document.getElementById("score");
@@ -127,10 +202,10 @@
         function auto_getscore(num) {
             let isCritical = Math.random() <= (Crit - 0.15) / 100;
             if(isCritical) {
-                num = num * ((CritMultipler * 2) / 100);
+                num = Math.floor(num * ((CritMultipler * 2) / 100));
             }
-            SCORE += Math.floor(num);
-            createHit(num, isCritical);
+            SCORE += num;
+            createHit(num, isCritical, -235, 45);
             update();
         }
 
@@ -139,11 +214,12 @@
             upgrade_scoreup_need = Math.floor(upgrade_scoreup_need * 2.5);
             addnum = Math.floor((upgrade_scoreup_num + 1) * 1.5);
             upgrade_scoreup_num += addnum;
-            showUpgradeNotification("Score upgrade successful! " + "+" + addnum);
+            showUpgradeNotification(UPGRADE1_TEXT.format(addnum));
             update();
         }
         function upgrade2() {
             SCORE -= upgrade_auto_need;
+            origin_timeout = null;
             if(threads.length <= 0) {
                 timeout = 5000;
                 threads.push([setInterval(auto_getscore, timeout, 1), timeout, 1]);
@@ -153,7 +229,8 @@
                 thread_id = threads.length - 1;
                 clearInterval(threads[thread_id][0]);
                 threads[thread_id][2] = Math.floor((threads[thread_id][2] + 1) * 1.55);
-                threads[thread_id][1] = threads[thread_id][1] - 200;
+                origin_timeout = threads[thread_id][1];
+                threads[thread_id][1] -= 200;
                 threads[thread_id][0] = setInterval(auto_getscore, threads[thread_id][1], threads[thread_id][2]);
                 if(threads[thread_id][1] <= 500)
                     newthread = true;
@@ -166,7 +243,22 @@
                 }
             }
             upgrade_auto_need = Math.floor(upgrade_auto_need * 1.5);
-            showUpgradeNotification("Auto get score upgrade successful! " + "+" + threads[threads.length - 1][2] + " +100ms");
+            if(origin_timeout !== null) {
+                showUpgradeNotification(
+                    UPGRADE2_TEXT.format(
+                            threads[threads.length - 1][2], 
+                            origin_timeout - threads[threads.length - 1][1]
+                        )
+                    );
+            } else {
+                showUpgradeNotification(
+                    UPGRADE2NEW_TEXT.format( 
+                            threads[threads.length - 1][2], 
+                            origin_timeout - threads[threads.length - 1][1]
+                        )
+                    );
+            }
+            
             update();
         }
         function upgrade3() {
@@ -191,7 +283,12 @@
                 Crit += 0.33;
                 CritMultipler += 33;
             }
-            showUpgradeNotification(`Your Critical Chance +${(Crit - origin_Crit).toFixed(2)}%, Critical multiplier +${(CritMultipler - origin_CritMultipler).toFixed(2)}%`);
+            showUpgradeNotification(
+                UPGRADE3_TEXT.format(
+                        (Crit - origin_Crit).toFixed(2),
+                        (CritMultipler - origin_CritMultipler).toFixed(2)
+                    )
+                );
             update();
         }
 
@@ -205,7 +302,7 @@
             let rect = scoreLabel.getBoundingClientRect();
             
             // 设置提示框的位置
-            notification.style.left = "50%";
+            notification.style.left = window.innerWidth / 2 - message.length / 2;
             notification.style.top = (rect.top - notification.offsetHeight - 100) + "px"; // 提示框的高度上方，并额外上移10px
 
             document.body.appendChild(notification);
@@ -216,23 +313,24 @@
         }
 
         function init() {
+            changeLanguage(chinese);
             update();
         }        
 
         function update() {
-            getter.textContent = GETTER_TEXT + (1 + upgrade_scoreup_num) + "$";
+            getter.textContent = GETTER_TEXT.format(1 + upgrade_scoreup_num);
             scoreTextSpan.textContent = SCORE_TEXT;
             scoreNumberSpan.textContent = SCORE + "$";
-            upgrade_scoreup_button.textContent = SCOREUP_TEXT + upgrade_scoreup_need + "$";
-            upgrade_auto_button.textContent = AUTO + upgrade_auto_need + "$";
-            upgrade_attrs_button.textContent = ATTRS + upgrade_attrs_need + "$";
+            upgrade_scoreup_button.textContent = SCOREUP_TEXT.format(upgrade_scoreup_need);
+            upgrade_auto_button.textContent = AUTO.format(upgrade_auto_need);
+            upgrade_attrs_button.textContent = ATTRS.format(upgrade_attrs_need);
 
             upgrade_scoreup_button.disabled = !(SCORE >= upgrade_scoreup_need);
             upgrade_auto_button.disabled = !(SCORE >= upgrade_auto_need);
             upgrade_attrs_button.disabled = !(SCORE >= upgrade_attrs_need);
         }
 
-        function createHit(num, isCritical=false, offsetX=-225, offsetY=15) {
+        function createHit(num, isCritical=false, offsetX=-235, offsetY=80) {
             // 创建一个新的元素来显示获得的分数
             let floatingText = document.createElement("div");
             floatingText.textContent = "+" + num + "$";
@@ -267,7 +365,7 @@
             update();
         }
         
-        window.onload = init;
+        init();
         
     </script>
 </body>
