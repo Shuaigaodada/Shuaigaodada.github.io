@@ -300,8 +300,8 @@
 
         function upgrade1() {
             SCORE -= upgrade_scoreup_need;
-            upgrade_scoreup_need = Math.floor(upgrade_scoreup_need * 2.5);
-            addnum = Math.floor((upgrade_scoreup_num + 1) * 1.5);
+            upgrade_scoreup_need = Math.floor(upgrade_scoreup_need * 3.85);
+            addnum = Math.floor((upgrade_scoreup_num + 1) * 1.65);
             upgrade_scoreup_num += addnum;
             showUpgradeNotification(UPGRADE1_TEXT.format(addnum));
             update();
@@ -317,21 +317,25 @@
                 
                 thread_id = threads.length - 1;
                 clearInterval(threads[thread_id][0]);
-                threads[thread_id][2] = Math.floor((threads[thread_id][2] + 1) * 1.55);
+                threads[thread_id][2] = Math.floor((threads[thread_id][2] + 1) * 1.45);
                 origin_timeout = threads[thread_id][1];
                 threads[thread_id][1] -= 200;
-                threads[thread_id][0] = setInterval(auto_getscore, threads[thread_id][1], threads[thread_id][2]);
-                if(threads[thread_id][1] <= 500)
+                if(threads[thread_id][1] <= 200) {
                     newthread = true;
+                    threads[thread_id][1] = 200;
+                }
+                auto_getscore(threads[thread_id][2]);
+                threads[thread_id][0] = setInterval(auto_getscore, threads[thread_id][1], threads[thread_id][2]);
                 console.log(`Thread Info(${thread_id}): id: ${threads[thread_id][0]}, timeout: ${threads[thread_id][1]}, value: ${threads[thread_id][2]}`);
         
                 if(newthread) {
                     timeout = 6000;
                     value = Math.floor(threads[threads.length - 1][2] / 2);
+                    auto_getscore(value);
                     threads.push([setInterval(auto_getscore, timeout, value), timeout, value]);
                 }
             }
-            upgrade_auto_need = Math.floor(upgrade_auto_need * 1.5);
+            upgrade_auto_need = Math.floor(upgrade_auto_need * 1.05);
             if(origin_timeout !== null) {
                 showUpgradeNotification(
                     UPGRADE2_TEXT.format(
@@ -352,25 +356,25 @@
         }
         function upgrade3() {
             SCORE -= upgrade_attrs_need;
-            upgrade_attrs_need = Math.floor(upgrade_attrs_need * 1.5);
+            upgrade_attrs_need = Math.floor(upgrade_attrs_need * 1.1);
             var origin_Crit = Crit;
             var origin_CritMultipler = CritMultipler;
-            if(Crit >= 30) {
-                Crit += getRandomInt(1, 500) / 100;
-                CritMultipler += (Crit - 30) * 100;
-                Crit = 30;
-            } else if(Crit >= 25) {
-                Crit += 0.25;
-                CritMultipler += 20;
+            if(Crit >= 25) {
+                Crit += getRandomInt(1, 10) / 100;
+                CritMultipler += (Crit - 25) * 100;
+                Crit = 25;
             } else if(Crit >= 20) {
-                Crit += 0.35;
-                CritMultipler += 15;
-            } else if(Crit >= 10) {
-                Crit += 0.55;
+                Crit += 0.05;
                 CritMultipler += 10;
-            } else {
+            } else if(Crit >= 10) {
+                Crit += 0.34;
+                CritMultipler += 5;
+            } else if(Crit >= 5) {
                 Crit += 0.33;
-                CritMultipler += 33;
+                CritMultipler += 2;
+            } else {
+                Crit += 0.033;
+                CritMultipler += 3.3;
             }
             showUpgradeNotification(
                 UPGRADE3_TEXT.format(
