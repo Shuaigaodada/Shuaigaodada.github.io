@@ -79,6 +79,66 @@
             animation: floatFade 3s forwards;
             transform: translateX(-50%);  /* 水平居中 */
         }
+        .player-stats {
+            padding: 10px;
+            border: 1px solid black;
+            margin: 10px 0;
+        }
+
+        .thread-box {
+            width: 300px;
+            border: 1px solid black;
+            padding: 10px;
+            position: relative;
+        }
+
+        .thread-info {
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f3f3f3;
+            position: relative;
+        }
+
+        .filler {
+            height: 100%;
+            background-color: #3498db;
+            width: 0%;
+        }
+
+        #autoGetScore {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 5px;
+        }
+        #translate {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;  /* 确保按钮总是在其他元素上方 */
+        }
+        .user-attribute {
+            width: 180px;  /* 缩小方块的宽度 */
+            height: 80px;  /* 缩小方块的高度 */
+            border: 2px solid #009688;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e8f5e9;  /* 修改背景颜色 */
+            font-weight: bold;
+            font-size: 14px;  /* 根据方块大小调整字体大小 */
+            color: #333;
+            margin: 10px auto;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);  /* 调整阴影效果 */
+        }
 
 
     </style>
@@ -88,10 +148,13 @@
         <span id="scoreText">SCORE: </span>
         <span id="scoreNumber"></span>
     </p>
-    <button type="button" id="get" onclick="add_score(1)">Get Money</button>
 
-    <button type="button" id="upgrade_scoreup" onclick="upgrade1()" disabled="false"></button>
+    <div class="user-attribute", id="attrinfo"></div>
+
+    <button id="translate" onclick="switchLanguage()">切换语言</button>
+    <button type="button" id="get" onclick="add_score(1)"></button>
     <button type="button" id="upgrade_attrs" onclick="upgrade3()" disabled="false"></button>
+    <button type="button" id="upgrade_scoreup" onclick="upgrade1()" disabled="false"></button>
     <button type="button" id="upgrade_auto" onclick="upgrade2()" disabled="false"></button>
     
     <script>
@@ -125,6 +188,9 @@
         var UPGRADE2_TEXT = null;
         var UPGRADE2NEW_TEXT = null;
         var UPGRADE3_TEXT = null;
+        var TRANSLATE = null;
+        var CRIT_TEXT = null;
+        var CRITMUITIPLER_TEXT = null;
 
         var none = null;
         var template = {
@@ -136,10 +202,14 @@
             "UPGRADE1": none,
             "UPGRADE2": none,
             "UPGRADE2NEW": none,
-            "UPGRADE3": none
+            "UPGRADE3": none,
+            "TRANSLATE": none,
+            "CRIT": none,
+            "CRITMUITIPLER": none
         }
         function setup() {
             t = arguments[0];
+            t = Object.assign({}, t);
             var index = 1;
             for(var key in t) {
                 t[key] = arguments[index++];
@@ -147,19 +217,22 @@
             return t;
         }
 
-        var english = setup(
+        const english = setup(
             template,
-            "Make Money: +{0}$",
-            "Money:",
-            "Upgrades make money: {0}$",
-            "Purchase/Upgrade Money Getter: {0}$",
-            "Upgrade money critical chance: {0}$",
-            "Money production upgrade successful! Additional money gained: +{0}$",
-            "Upgrade Money Getter Successful! Get +{0}$ extra money and increase speed by +{1}ms",
-            "Purchase Money Getter Successful! Get +{0}$ extra money.",
-            "Upgrading critical hit rate successfully! critical chance +{0}%, critical multiplier +{1}%",
+            "Gain money: +${0}",
+            "Money: ",
+            "Upgrade money gain amount: ${0}",
+            "Purchase/Upgrade Money Gainer: ${0}",
+            "Increase critical rate: ${0}",
+            "Upgraded money gain amount successfully, now gaining an extra +${0} each time",
+            "Upgraded money gainer successfully! Your gainer's speed is now faster by {1}ms, and gains +${0}",
+            "Purchased a new money gainer successfully! Your gainer now gets +${0} each time",
+            "Upgraded critical rate successfully! Critical rate +{0}% and Critical multiplier +{1}%",
+            "switch language",
+            "Critical hit rate: {0}%",
+            "Critical hit multiplier: {0}%"
         )
-        var chinese = setup(
+        const chinese = setup(
             template,
             "获取金钱: +{0}$",
             "金钱: ",
@@ -169,8 +242,15 @@
             "升级金钱获取数量成功，每次额外获得 +{0}$",
             "升级金钱获取器成功！你的获取金钱器获取速度+{1}ms, 获取数量+{0}$",
             "购买新的金钱获取器成功！你的获取器每次获得+{0}$",
-            "升级暴击率成功！ 暴击率+{0}% 暴击倍率+{1}%"
+            "升级暴击率成功！ 暴击率+{0}% 暴击倍率+{1}%",
+            "切换语言",
+            "暴击率: {0}%",
+            "暴击倍率: {0}%"
         )
+        var crl = chinese;
+        function switchLanguage() {
+            changeLanguage(crl === chinese ? english : chinese);
+        }
 
         function changeLanguage(targetObject) {
             GETTER_TEXT = targetObject["GETTER"];
@@ -182,17 +262,26 @@
             UPGRADE2_TEXT = targetObject["UPGRADE2"];
             UPGRADE2NEW_TEXT = targetObject["UPGRADE2NEW"];
             UPGRADE3_TEXT = targetObject["UPGRADE3"];
+            TRANSLATE = targetObject["TRANSLATE"];
+            CRIT_TEXT = targetObject["CRIT"];
+            CRITMUITIPLER_TEXT = targetObject["CRITMUITIPLER"];
+            crl = targetObject;
+            update();
         }
 
 
-        let getter = document.getElementById("get");
-        var score_label = document.getElementById("score");
-        let scoreTextSpan = document.getElementById("scoreText");
-        let scoreNumberSpan = document.getElementById("scoreNumber");
-        var upgrade_scoreup_button = document.getElementById("upgrade_scoreup");
-        var upgrade_auto_button = document.getElementById("upgrade_auto");
-        var upgrade_attrs_button = document.getElementById("upgrade_attrs");
-        
+        const getter = document.getElementById("get");
+        const score_label = document.getElementById("score");
+        const scoreTextSpan = document.getElementById("scoreText");
+        const scoreNumberSpan = document.getElementById("scoreNumber");
+        const upgrade_scoreup_button = document.getElementById("upgrade_scoreup");
+        const upgrade_auto_button = document.getElementById("upgrade_auto");
+        const upgrade_attrs_button = document.getElementById("upgrade_attrs");
+        const translate_button = document.getElementById("translate");
+        const attrinfo_label = document.getElementById("attrinfo");
+
+
+
         function getRandomInt(min, max) {
             min = Math.ceil(min);
             max = Math.floor(max);
@@ -202,10 +291,10 @@
         function auto_getscore(num) {
             let isCritical = Math.random() <= (Crit - 0.15) / 100;
             if(isCritical) {
-                num = Math.floor(num * ((CritMultipler * 2) / 100));
+                num = Math.floor(num * ((CritMultipler * 2) / 100) * 10);
             }
             SCORE += num;
-            createHit(num, isCritical, -235, 45);
+            createHit(num, isCritical, -235, 15);
             update();
         }
 
@@ -298,7 +387,7 @@
             notification.classList.add("upgradeNotification");
             
             // 获取"SCORE: 514"的位置
-            let scoreLabel = document.querySelector("#score");  // 假设"SCORE: 514"的id为"score_label_id"
+            let scoreLabel = document.querySelector("#score");
             let rect = scoreLabel.getBoundingClientRect();
             
             // 设置提示框的位置
@@ -324,13 +413,16 @@
             upgrade_scoreup_button.textContent = SCOREUP_TEXT.format(upgrade_scoreup_need);
             upgrade_auto_button.textContent = AUTO.format(upgrade_auto_need);
             upgrade_attrs_button.textContent = ATTRS.format(upgrade_attrs_need);
+            translate_button.textContent = TRANSLATE;
+            attrinfo_label.innerHTML = CRIT_TEXT.format(Crit.toFixed(2)) + "<br>" + CRITMUITIPLER_TEXT.format(Math.floor(CritMultipler));
+            
 
             upgrade_scoreup_button.disabled = !(SCORE >= upgrade_scoreup_need);
             upgrade_auto_button.disabled = !(SCORE >= upgrade_auto_need);
             upgrade_attrs_button.disabled = !(SCORE >= upgrade_attrs_need);
         }
 
-        function createHit(num, isCritical=false, offsetX=-235, offsetY=80) {
+        function createHit(num, isCritical=false, offsetX=-235, offsetY=55) {
             // 创建一个新的元素来显示获得的分数
             let floatingText = document.createElement("div");
             floatingText.textContent = "+" + num + "$";
