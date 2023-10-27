@@ -291,7 +291,7 @@
         function auto_getscore(num) {
             let isCritical = Math.random() <= (Crit - 0.15) / 100;
             if(isCritical) {
-                num = Math.floor(num * ((CritMultipler * 2) / 100) * 10);
+                num = Math.floor(num * ((CritMultipler * 25) / 100) * 10);
             }
             SCORE += num;
             createHit(num, isCritical, -235, 15);
@@ -317,7 +317,7 @@
                 
                 thread_id = threads.length - 1;
                 clearInterval(threads[thread_id][0]);
-                threads[thread_id][2] = Math.floor((threads[thread_id][2] + 1) * 1.45);
+                threads[thread_id][2] = Math.floor((threads[thread_id][2] + 1) * 1.15);
                 origin_timeout = threads[thread_id][1];
                 threads[thread_id][1] -= 200;
                 if(threads[thread_id][1] <= 200) {
@@ -335,7 +335,7 @@
                     threads.push([setInterval(auto_getscore, timeout, value), timeout, value]);
                 }
             }
-            upgrade_auto_need = Math.floor(upgrade_auto_need * 1.05);
+            upgrade_auto_need = Math.floor(upgrade_auto_need * 1.20);
             if(origin_timeout !== null) {
                 showUpgradeNotification(
                     UPGRADE2_TEXT.format(
