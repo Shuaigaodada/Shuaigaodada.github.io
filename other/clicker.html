@@ -311,7 +311,7 @@
             origin_timeout = null;
             if(threads.length <= 0) {
                 timeout = 5000;
-                threads.push([setInterval(auto_getscore, timeout, 1), timeout, 1]);
+                threads.push([setInterval(auto_getscore, timeout, 10), timeout, 10]);
             } else {
                 var newthread = false;
                 
