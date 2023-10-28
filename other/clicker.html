@@ -289,7 +289,7 @@
         }
 
         function auto_getscore(num) {
-            let isCritical = Math.random() <= (Crit - 0.15) / 100;
+            let isCritical = Math.random() <= Crit / 2 / 100;
             if(isCritical) {
                 num = Math.floor(num * ((CritMultipler * 25) / 100));
             }
