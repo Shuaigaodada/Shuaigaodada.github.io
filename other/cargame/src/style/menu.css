@@ -1,0 +1,21 @@
+.ui-button {
+    cursor: pointer; 
+    border: 1px solid #FF6F00; 
+    background-color: transparent; 
+    height: 50px; 
+    width: 200px; 
+    color: #FF6F00; 
+    font-size: 1.5em; 
+    box-shadow: 0 6px 6px rgba(0, 0, 0, 0.6); 
+    position: absolute;
+    left: 45%;
+    top: 60%;
+    font-weight: bold;
+}
+.ui-label {
+    color: #FF6F00;
+    font-size: 52px;
+    position: absolute;
+    top: 30%;
+    left: 38%;
+}

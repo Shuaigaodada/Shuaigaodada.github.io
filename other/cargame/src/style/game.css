@@ -3,14 +3,28 @@
     height: 50%;
     position: absolute;
     top: 22%;
+    left: 0px;
+    margin: 0px;
+    padding: 0px;
 }
 .overlay-text {
     position: absolute;
     top: 25%;
-    left: 35%; 
+    left: 35%;
+    text-align: center;
     font-size: 400%; 
     color: red;
 }
+
+.info-text {
+    position: absolute;
+    top: 34.5%;
+    left: 44%;
+    text-align: center;
+    font-size: 400%;
+    color: red;
+}
+
 #restart {
     position: absolute;
     font-size: 200%;
