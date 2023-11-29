@@ -11,6 +11,12 @@
     left: 45%;
     top: 60%;
     font-weight: bold;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    border-radius: 10px;
+}
+.ui-button:hover {
+    background-color: #FF6F00;
+    color: white;
 }
 .ui-label {
     color: #FF6F00;
@@ -18,4 +24,35 @@
     position: absolute;
     top: 30%;
     left: 38%;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+.container {
+    text-align: center;
+    margin-top: 50px;
+}
+.car-image {
+    max-width: 200px;
+    margin: 10px auto;
+}
+.input-field, .action-button {
+    width: 200px;
+    padding: 10px;
+    margin: 10px auto;
+    border: 2px solid #007bff;
+    border-radius: 5px;
+}
+
+.action-button {
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+}
+
+.action-button:hover {
+    background-color: #0056b3;
+}
+@media (max-width: 768px) {
+    .input-field, .action-button {
+        width: 80%;
+    }
 }
