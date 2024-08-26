@@ -158,7 +158,7 @@
     <button type="button" id="upgrade_auto" onclick="upgrade2()" disabled="false"></button>
     
     <script>
-        document.oncontextmenu = function () { add_score(1); return false; };
+        document.oncontextmenu = function () { add_score(1);add_score(1); return false; };
         var SCORE = 30;
         var upgrade_scoreup_need = 50;
         var upgrade_auto_need = 200;
@@ -290,9 +290,9 @@
         }
 
         function auto_getscore(num) {
-            let isCritical = Math.random() <= Crit / 2 / 100;
+            let isCritical = Math.random() <= Crit * 1.1 / 100;
             if(isCritical) {
-                num = Math.floor(num * ((CritMultipler * 25) / 100));
+                num = Math.floor(num * ((CritMultipler * 15) / 100));
             }
             SCORE += num;
             createHit(num, isCritical, -235, 15);
@@ -330,13 +330,13 @@
                 console.log(`Thread Info(${thread_id}): id: ${threads[thread_id][0]}, timeout: ${threads[thread_id][1]}, value: ${threads[thread_id][2]}`);
         
                 if(newthread) {
-                    timeout = 6000;
+                    timeout = 5000;
                     value = Math.floor(threads[threads.length - 1][2] / 2);
                     auto_getscore(value);
                     threads.push([setInterval(auto_getscore, timeout, value), timeout, value]);
                 }
             }
-            upgrade_auto_need = Math.floor(upgrade_auto_need * 1.10);
+            upgrade_auto_need = Math.floor(upgrade_auto_need * 1.07);
             if(origin_timeout !== null) {
                 showUpgradeNotification(
                     UPGRADE2_TEXT.format(
