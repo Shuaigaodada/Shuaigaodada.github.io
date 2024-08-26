@@ -162,8 +162,10 @@
         var SCORE = 30;
         var upgrade_scoreup_need = 50;
         var upgrade_auto_need = 200;
+        const subms = 300
         var threads = [];
         var upgrade_scoreup_num = 0;
+        var money_gainer = 10;
         var upgrade_attrs_need = 50;
         var Crit = 0.5;
         var CritMultipler = 125;
@@ -311,32 +313,29 @@
             SCORE -= upgrade_auto_need;
             origin_timeout = null;
             if(threads.length <= 0) {
-                timeout = 5000;
-                threads.push([setInterval(auto_getscore, timeout, 10), timeout, 10]);
+                timeout = 1600;
+                threads.push([setInterval(auto_getscore, timeout, (1 + money_gainer) * 88), timeout, (1 + money_gainer) * 88]);
             } else {
                 var newthread = false;
-                
                 thread_id = threads.length - 1;
                 clearInterval(threads[thread_id][0]);
-                threads[thread_id][2] = Math.floor((threads[thread_id][2] + 1) * 1.99);
                 origin_timeout = threads[thread_id][1];
-                threads[thread_id][1] -= 200;
-                if(threads[thread_id][1] <= 200) {
+                threads[thread_id][1] -= subms;
+                if(threads[thread_id][1] <= subms) {
                     newthread = true;
-                    threads[thread_id][1] = 50;
+                    threads[thread_id][1] = subms;
                 }
-                auto_getscore(threads[thread_id][2]);
                 threads[thread_id][0] = setInterval(auto_getscore, threads[thread_id][1], threads[thread_id][2]);
                 console.log(`Thread Info(${thread_id}): id: ${threads[thread_id][0]}, timeout: ${threads[thread_id][1]}, value: ${threads[thread_id][2]}`);
         
                 if(newthread) {
-                    timeout = 5000;
-                    value = Math.floor(threads[threads.length - 1][2] / 2);
-                    auto_getscore(value);
+                    timeout = 1500;
+                    money_gainer = Math.floor(money_gainer * 18);
+                    value = (1 + money_gainer) * 88;
                     threads.push([setInterval(auto_getscore, timeout, value), timeout, value]);
                 }
             }
-            upgrade_auto_need = Math.floor(upgrade_auto_need * 1.10);
+            upgrade_auto_need = Math.floor(upgrade_auto_need * 2.88);
             if(origin_timeout !== null) {
                 showUpgradeNotification(
                     UPGRADE2_TEXT.format(
