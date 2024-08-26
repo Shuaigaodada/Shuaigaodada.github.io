@@ -318,7 +318,7 @@
                 
                 thread_id = threads.length - 1;
                 clearInterval(threads[thread_id][0]);
-                threads[thread_id][2] = Math.floor((threads[thread_id][2] + 1) * 1.33);
+                threads[thread_id][2] = Math.floor((threads[thread_id][2] + 1) * 1.5);
                 origin_timeout = threads[thread_id][1];
                 threads[thread_id][1] -= 200;
                 if(threads[thread_id][1] <= 200) {
