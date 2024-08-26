@@ -158,7 +158,7 @@
     <button type="button" id="upgrade_auto" onclick="upgrade2()" disabled="false"></button>
     
     <script>
-        document.oncontextmenu = function () { return false; };
+        document.oncontextmenu = function () { add_score(1); return false; };
         var SCORE = 30;
         var upgrade_scoreup_need = 50;
         var upgrade_auto_need = 200;
