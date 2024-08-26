@@ -290,7 +290,7 @@
         }
 
         function auto_getscore(num) {
-            let isCritical = Math.random() <= Crit * 1.1 / 100;
+            let isCritical = Math.random() <= Crit / 100;
             if(isCritical) {
                 num = Math.floor(num * ((CritMultipler * 15) / 100));
             }
@@ -318,12 +318,12 @@
                 
                 thread_id = threads.length - 1;
                 clearInterval(threads[thread_id][0]);
-                threads[thread_id][2] = Math.floor((threads[thread_id][2] + 1) * 1.15);
+                threads[thread_id][2] = Math.floor((threads[thread_id][2] + 1) * 1.33);
                 origin_timeout = threads[thread_id][1];
                 threads[thread_id][1] -= 200;
                 if(threads[thread_id][1] <= 200) {
                     newthread = true;
-                    threads[thread_id][1] = 200;
+                    threads[thread_id][1] = 50;
                 }
                 auto_getscore(threads[thread_id][2]);
                 threads[thread_id][0] = setInterval(auto_getscore, threads[thread_id][1], threads[thread_id][2]);
@@ -336,7 +336,7 @@
                     threads.push([setInterval(auto_getscore, timeout, value), timeout, value]);
                 }
             }
-            upgrade_auto_need = Math.floor(upgrade_auto_need * 1.07);
+            upgrade_auto_need = Math.floor(upgrade_auto_need * 1.2);
             if(origin_timeout !== null) {
                 showUpgradeNotification(
                     UPGRADE2_TEXT.format(
