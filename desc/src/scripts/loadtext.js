@@ -2,7 +2,7 @@ function initwebsite() {
     setIndexContent();
 }
 function setIndexContent() {
-    setText("./src/file/FHS_content.txt", "FHS-content");
+    setText("./src/FHS_content.txt", "FHS-content");
 }
 function setText(path, id) {
     fetch(path)
