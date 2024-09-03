@@ -197,21 +197,21 @@ class SNAKE {
     level_up() {
         if (this.body.length <= 10) {
             SNAKE_BODY_COLOR = SNAKE_BODY_COLOR_DEFUALT;
-        // } else if (this.body.length <= 20) {
+        // } else if (this.body.length >= 20) {
         //     SNAKE_BODY_COLOR = "#49d100";
-        // } else if (this.body.length <= 40) {
+        // } else if (this.body.length >= 40) {
         //     SNAKE_BODY_COLOR = "#59ff00";
-        // } else if (this.body.length <= 60) {
+        // } else if (this.body.length >= 60) {
         //     SNAKE_BODY_COLOR = "#b3ff00";
-        // } else if (this.body.length <= 80) {
+        // } else if (this.body.length >= 80) {
         //     SNAKE_BODY_COLOR = "#00ff80";
-        // } else if (this.body.length <= 110) {
+        // } else if (this.body.length >= 110) {
         //     SNAKE_BODY_COLOR = "#7202c7";
-        // } else if (this.body.length <= 140) {
+        // } else if (this.body.length >= 140) {
         //     SNAKE_BODY_COLOR = "#039e06"
-        // } else if (this.body.length <= 200) {
+        // } else if (this.body.length >= 200) {
         //     SNAKE_BODY_COLOR = "error";
-        } else if (this.body.length <= 300) {
+        } else if (this.body.length >= 300) {
             SNAKE_BODY_COLOR = "rainbow";
         }
     }
