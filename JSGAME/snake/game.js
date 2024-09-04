@@ -69,6 +69,7 @@ var colors = [
     "#0000FF",
     "#00FF00",
     "#FFFF00",
+    "#FF7F00"
 ];
 var gradientColors = generateGradientColors(colors, 199);
 
@@ -214,7 +215,7 @@ class SNAKE {
         // } else if (this.body.length >= 300) {
         //     SNAKE_BODY_COLOR = "rainbow";
         // }
-        if(this.body.length >= 150) {
+        if(this.body.length >= 300) {
             SNAKE_BODY_COLOR = "rainbow";
         } else {
             SNAKE_BODY_COLOR = SNAKE_BODY_COLOR_DEFUALT;
@@ -277,22 +278,22 @@ class SNAKE {
         let lock_dire = true;
 
 
-        if (event.key === "w") {
+        if (event.key === "w" || event.key === "ArrowUp" || event.key === "W") {
             if (this.direction[1] === 1) return;
             if (this.direction[0] === 0 && this.direction[1] === -1)
                 lock_dire = false;
             this.direction = [0, -1];
-        } else if (event.key === "s") {
+        } else if (event.key === "s" || event.key === "ArrowDown" || event.key === "S") {
             if (this.direction[1] === -1) return;
             if (this.direction[0] === 0 && this.direction[1] === 1)
                 lock_dire = false;
             this.direction = [0, 1];
-        } else if (event.key === "a") {
+        } else if (event.key === "a" || event.key === "ArrowLeft" || event.key === "A") {
             if (this.direction[0] === 1) return;
             if (this.direction[0] === -1 && this.direction[1] === 0)
                 lock_dire = false;
             this.direction = [-1, 0];
-        } else if (event.key === "d") {
+        } else if (event.key === "d" || event.key === "ArrowRight" || event.key === "D") {
             if (this.direction[0] === -1) return;
             if (this.direction[0] === 1 && this.direction[1] === 0)
                 lock_dire = false;
@@ -340,13 +341,136 @@ function over_game() {
     clearInterval(MOVE_ID);
     window.removeEventListener("keydown", init_game);
     MOVE_ID = undefined;
-    alert("Game Over");
-    SCORE = 0;
-    map.apples = [];
-    init_game();
-    add_score(-SCORE)
+    
+    const ctx = map.ctx;
+    ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(50, 50, 700, 500);
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "64px Arial";
+    ctx.fillText("游戏结束", 280, 200);
+
+    // 绘制分数
+    ctx.font = "20px Arial";
+    ctx.fillText("分数: " + SCORE, 380, 280);
+
+    // 绘制重新开始按钮
+    ctx.font = "16px Arial";
+    ctx.fillStyle = "#00796b";
+    ctx.fillRect(360, 360, 100, 30);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText("重新开始", 379, 380);
+
+    gameCanvas.addEventListener('click', function(event) {
+        var rect = gameCanvas.getBoundingClientRect();
+        var x = event.clientX - rect.left;
+        var y = event.clientY - rect.top;
+
+        if(x >= 360 && x <= 460 && y >= 360 && y <= 390) {
+            // 重新开始
+            SCORE = 0;
+            map.apples = [];
+            init_game();
+            add_score(-SCORE)
+            return;
+        } else {
+            over_game();
+        }
+    }, {once: true});
+
+    
 }
 
+function settingMenu() {
+    const ctx = map.ctx;
+    ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(50, 50, 700, 500);
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "24px Arial";
+    ctx.fillText("设置界面", 350, 100);
+
+    ctx.font = "20px Arial";
+    ctx.fillText("苹果数量: ", 100, 200);
+    // 绘制“-”按钮
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText("-", 270, 205);
+
+    // 绘制“+”按钮
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText("+", 330, 205);
+
+    // 绘制当前苹果数量
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText(APPLE_COUNT, 300, 205);
+
+    ctx.fillText("增长长度: ", 100, 250);
+
+    // 绘制“-”按钮
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText("-", 270, 255);
+    
+    // 绘制“+”按钮
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText("+", 330, 255);
+
+    // 绘制当前增长长度
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText(ADD_LENGTH, 300, 255);
+
+    // 绘制保存按钮
+    ctx.font = "16px Arial";
+    ctx.fillStyle = "#00796b";
+    ctx.fillRect(360, 360, 70, 30);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText("保存", 379, 380);
+
+
+    // 添加事件监听器以处理按钮点击
+    gameCanvas.addEventListener('click', function(event) {
+        var rect = gameCanvas.getBoundingClientRect();
+        var x = event.clientX - rect.left;
+        var y = event.clientY - rect.top;
+
+        // 检查点击是否在“-”按钮内
+        if(x >= 260 && x <= 290 && y >= 180 && y <= 210) {
+            if(APPLE_COUNT > 1)
+                APPLE_COUNT--;
+        }
+
+        // 检查点击是否在“+”按钮内
+        if(x >= 320 && x <= 350 && y >= 180 && y <= 210) {
+            if(APPLE_COUNT < 12)
+                APPLE_COUNT++;
+        }
+
+        // 检查点击是否在“-”按钮内
+        if(x >= 260 && x <= 290 && y >= 230 && y <= 260) {
+            if (ADD_LENGTH > 1)
+                ADD_LENGTH--;
+        }
+
+        // 检查点击是否在“+”按钮内
+        if(x >= 320 && x <= 350 && y >= 230 && y <= 260) {
+            if (ADD_LENGTH < 33)
+                ADD_LENGTH++;
+        }
+
+        if(x >= 360 && x <= 430 && y >= 360 && y <= 390) {
+            // 保存设置
+            ADD_LENGTH = ADD_LENGTH;
+            APPLE_COUNT = APPLE_COUNT;
+            init_game();
+            return;
+        }
+
+
+        settingMenu(); // 重新绘制设置界面
+    }, {once: true});
+
+}
 
 
 const map = new Map(20, 20);

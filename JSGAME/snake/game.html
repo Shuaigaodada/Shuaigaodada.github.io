@@ -39,6 +39,7 @@
             background-color: #009688; /* 深绿色背景色 */
             color: white; /* 白色文字 */
             transition: background-color 0.3s; /* 平滑的过渡效果 */
+            user-select: none; /* 禁止选中文本 */
         }
 
         button:hover {
@@ -49,6 +50,9 @@
             background-color: #B0BEC5; /* 当按钮不可用时，变为灰色 */
             cursor: not-allowed;
         }
+        h3 {
+            user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -57,7 +61,7 @@
     </canvas>
     <div class="controls">
         <h3>Score: <span id="score">0</span></h3>
-        <button type="button" onclick="add_apple()">Add Apple</button>
+        <button type="button" onclick="settingMenu()">设置</button>
     </div>
     <script src="./game.js"></script>
 </body>
