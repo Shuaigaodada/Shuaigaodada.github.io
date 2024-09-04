@@ -62,16 +62,16 @@ var colors = [
     "#FF7F00", // Orange
     "#FFFF00", // Yellow
     "#00FF00", // Green
+    "#00FFFF", // Cyan
     "#0000FF", // Blue
-    "#4B0082", // Indigo
     "#8B00FF",  // Violet
-    "#4B0082",
     "#0000FF",
+    "#00FFFF",
     "#00FF00",
     "#FFFF00",
-    "#FF7F00"
+    "#FF7F00",
 ];
-var gradientColors = generateGradientColors(colors, 199);
+var gradientColors = generateGradientColors(colors, 222);
 
 // using Map class to draw and split map
 // using map.fill() to fill a block
@@ -310,10 +310,6 @@ function add_score(sn = 1) {
     SCORE += sn;
     let score = document.getElementById("score");
     score.innerHTML = SCORE;
-}
-
-function add_apple() {
-    map.create_apple();
 }
 
 function init_game() {
