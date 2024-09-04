@@ -215,7 +215,7 @@ class SNAKE {
         // } else if (this.body.length >= 300) {
         //     SNAKE_BODY_COLOR = "rainbow";
         // }
-        if(this.body.length >= 300) {
+        if(this.body.length >= 100) {
             SNAKE_BODY_COLOR = "rainbow";
         } else {
             SNAKE_BODY_COLOR = SNAKE_BODY_COLOR_DEFUALT;
