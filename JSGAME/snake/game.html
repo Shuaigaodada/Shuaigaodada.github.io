@@ -4,18 +4,61 @@
     <meta charset="utf-8">
     <title>Snake</title>
     <style>
-        canvas {
-            display: block;
-            margin: 0 auto;
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
             background-color: #000;
         }
-    </style>
 
-    
+        canvas {
+            background-color: #000;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            width: 800px; /* 与canvas宽度一致 */
+            margin-top: 10px;
+        }
+
+        h3 {
+            color: white;
+            margin: 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: medium;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px; /* 圆角 */
+            background-color: #009688; /* 深绿色背景色 */
+            color: white; /* 白色文字 */
+            transition: background-color 0.3s; /* 平滑的过渡效果 */
+        }
+
+        button:hover {
+            background-color: #00796b; /* 当鼠标悬停时，变为更深的绿色 */
+        }
+
+        button:disabled {
+            background-color: #B0BEC5; /* 当按钮不可用时，变为灰色 */
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
     <canvas id="gameCanvas" width="800" height="600">
         Your browser does not support the HTML5 canvas tag.
     </canvas>
+    <div class="controls">
+        <h3>Score: <span id="score">0</span></h3>
+        <button type="button" onclick="add_apple()">Add Apple</button>
+    </div>
     <script src="./game.js"></script>
+</body>
 </html>

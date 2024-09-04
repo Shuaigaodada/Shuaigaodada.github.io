@@ -13,9 +13,9 @@ var SNAKE_BODY_COLOR = SNAKE_BODY_COLOR_DEFUALT;
 const BLOCK_WIDTH = 20;
 const BLOCK_HEIGHT = 20;
 
-const APPLE_COUNT = 1;
+var APPLE_COUNT = 1;
 const SNAKE_SPEED = 90;
-const ADD_LENGTH = 3;
+var ADD_LENGTH = 3;
 
 var MOVE_ID;
 
@@ -214,7 +214,7 @@ class SNAKE {
         // } else if (this.body.length >= 300) {
         //     SNAKE_BODY_COLOR = "rainbow";
         // }
-        if(this.body.length >= 300) {
+        if(this.body.length >= 150) {
             SNAKE_BODY_COLOR = "rainbow";
         } else {
             SNAKE_BODY_COLOR = SNAKE_BODY_COLOR_DEFUALT;
@@ -234,13 +234,6 @@ class SNAKE {
         // eat apple!!
         for (let apple of map.apples) {
             if (this.body[0][0] === apple[0] && this.body[0][1] === apple[1]) {
-                map.create_apple();
-                SCORE += 1;
-
-                let tail = this.body[this.body.length - 1];
-                for (let i = 0; i < ADD_LENGTH; i++)
-                    this.body.push(tail);
-                console.log(SCORE);
                 // destroy apple
                 for (let i = 0; i < map.apples.length; i++) {
                     if (map.apples[i][0] === apple[0] && map.apples[i][1] === apple[1]) {
@@ -248,6 +241,14 @@ class SNAKE {
                         break;
                     }
                 }
+                
+                map.create_apple();
+                add_score();
+
+                let tail = this.body[this.body.length - 1];
+                for (let i = 0; i < ADD_LENGTH; i++)
+                    this.body.push(tail);
+                console.log(SCORE);
             }
         }
 
@@ -304,7 +305,15 @@ class SNAKE {
     }
 }
 
+function add_score(sn = 1) {
+    SCORE += sn;
+    let score = document.getElementById("score");
+    score.innerHTML = SCORE;
+}
 
+function add_apple() {
+    map.create_apple();
+}
 
 function init_game() {
     map.clear();
@@ -331,8 +340,11 @@ function over_game() {
     clearInterval(MOVE_ID);
     window.removeEventListener("keydown", init_game);
     MOVE_ID = undefined;
-    alert("Game Over!");
+    alert("Game Over");
+    SCORE = 0;
+    map.apples = [];
     init_game();
+    add_score(-SCORE)
 }
 
 
