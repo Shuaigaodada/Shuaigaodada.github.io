@@ -120,6 +120,8 @@ class Map {
     }
 
     create_apple() {
+        if(this.apples.length >= APPLE_COUNT) return;
+    
         let pos;
         while (1) {
             // we need to check the apple's position is not in the snake's body
@@ -320,7 +322,7 @@ function init_game() {
     let spawn_pos = map.random_pos();
     snake.body = [spawn_pos];
     snake.direction = [0, 0];
-
+    snake.cant_change_dire = false;
     snake.draw();
 
     for (let i = 0; i < APPLE_COUNT; i++)
