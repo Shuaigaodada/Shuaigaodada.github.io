@@ -18,6 +18,8 @@ const SNAKE_SPEED = 90;
 var ADD_LENGTH = 3;
 
 var MOVE_ID;
+const settingButton = document.getElementById("settingButton");
+
 
 
 function interpolateColor(color1, color2, factor) {
@@ -325,16 +327,18 @@ function init_game() {
         map.create_apple();
 
     window.addEventListener("keydown", (event) => {
-        if (MOVE_ID === undefined) {
+        if(MOVE_ID === undefined) {
             MOVE_ID = setInterval(() => {
                 snake.update();
             }, SNAKE_SPEED);
+            settingButton.disabled = true;
         }
         snake.keyEvent(event);
     });
 }
 function over_game() {
     clearInterval(MOVE_ID);
+    settingButton.disabled = false;
     window.removeEventListener("keydown", init_game);
     MOVE_ID = undefined;
     
