@@ -1,14 +1,14 @@
 var SCORE = 0;
 var gameCanvas = document.getElementById("gameCanvas");
 
-const SNAKE_HEAD_COLOR_DEFUALT = "#60d136";
-const SNAKE_BODY_COLOR_DEFUALT = "green";
+const SNAKE_HEAD_COLOR_DEFAULT = "#60d136";
+const SNAKE_BODY_COLOR_DEFAULT = "green";
 const FOOD_COLOR = "red";
 const MAP_COLOR = "#171717";
 const WHEN_CANT_CHANGE_DIRE_COLOR = "#26ffd4";
 
-var SNAKE_HEAD_COLOR = SNAKE_HEAD_COLOR_DEFUALT;
-var SNAKE_BODY_COLOR = SNAKE_BODY_COLOR_DEFUALT;
+var SNAKE_HEAD_COLOR = SNAKE_HEAD_COLOR_DEFAULT;
+var SNAKE_BODY_COLOR = SNAKE_BODY_COLOR_DEFAULT;
 
 const BLOCK_WIDTH = 20;
 const BLOCK_HEIGHT = 20;
@@ -187,7 +187,7 @@ class SNAKE {
         if (this.cant_change_dire) {
             SNAKE_HEAD_COLOR = WHEN_CANT_CHANGE_DIRE_COLOR;
         } else {
-            SNAKE_HEAD_COLOR = SNAKE_HEAD_COLOR_DEFUALT;
+            SNAKE_HEAD_COLOR = SNAKE_HEAD_COLOR_DEFAULT;
         }
         this.cant_change_dire = false;
 
@@ -201,7 +201,7 @@ class SNAKE {
 
     level_up() {
         // if (this.body.length <= 10) {
-        //     SNAKE_BODY_COLOR = SNAKE_BODY_COLOR_DEFUALT;
+        //     SNAKE_BODY_COLOR = SNAKE_BODY_COLOR_DEFAULT;
         // } else if (this.body.length >= 20) {
         //     SNAKE_BODY_COLOR = "#49d100";
         // } else if (this.body.length >= 40) {
@@ -222,7 +222,7 @@ class SNAKE {
         if(this.body.length >= 100) {
             SNAKE_BODY_COLOR = "rainbow";
         } else {
-            SNAKE_BODY_COLOR = SNAKE_BODY_COLOR_DEFUALT;
+            SNAKE_BODY_COLOR = SNAKE_BODY_COLOR_DEFAULT;
         }
     }
 
@@ -316,32 +316,43 @@ function add_score(sn = 1) {
     score.innerHTML = SCORE;
 }
 
+function MoveEvent(event) {
+    if(MOVE_ID === undefined) {
+        MOVE_ID = setInterval(() => {
+            snake.update();
+        }, SNAKE_SPEED);
+        settingButton.disabled = true;
+    }
+    snake.keyEvent(event);
+}
+
 function init_game() {
+
+    SCORE = 0;
+    add_score(-SCORE);
+
     map.clear();
-    map.draw();
+    map.apples = [];
+    
     let spawn_pos = map.random_pos();
     snake.body = [spawn_pos];
     snake.direction = [0, 0];
     snake.cant_change_dire = false;
+    SNAKE_HEAD_COLOR = SNAKE_HEAD_COLOR_DEFAULT;
+    
+    map.draw();
     snake.draw();
 
     for (let i = 0; i < APPLE_COUNT; i++)
         map.create_apple();
 
-    window.addEventListener("keydown", (event) => {
-        if(MOVE_ID === undefined) {
-            MOVE_ID = setInterval(() => {
-                snake.update();
-            }, SNAKE_SPEED);
-            settingButton.disabled = true;
-        }
-        snake.keyEvent(event);
-    });
+    window.addEventListener("keydown", MoveEvent);
 }
 function over_game() {
+    window.removeEventListener("keydown", MoveEvent);
+
     clearInterval(MOVE_ID);
     settingButton.disabled = false;
-    window.removeEventListener("keydown", init_game);
     MOVE_ID = undefined;
     
     const ctx = map.ctx;
@@ -371,20 +382,18 @@ function over_game() {
 
         if(x >= 360 && x <= 460 && y >= 360 && y <= 390) {
             // 重新开始
-            SCORE = 0;
-            map.apples = [];
             init_game();
-            add_score(-SCORE)
+            gameCanvas.removeEventListener('click', arguments.callee);
             return;
-        } else {
-            over_game();
-        }
+        } else over_game();
     }, {once: true});
 
     
 }
 
 function settingMenu() {
+    window.removeEventListener("keydown", MoveEvent);
+
     const ctx = map.ctx;
     ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
     ctx.fillStyle = "#000";
