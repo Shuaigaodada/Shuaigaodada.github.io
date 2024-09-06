@@ -63,16 +63,16 @@ class Animation extends OBJECT {
     constructor(imgs, speed = 10) {
         super();
         const origin_imgs = imgs;
-        this.imgs = [];
+        this.frames = [];
+        this.curframe = 0;
         this.index = 0;
-        this.frame = 0;
         
         this.speed = speed;
         for(let image of origin_imgs) {
             engine.preload(image).then(
                 img => { 
                     console.log(`Preload image: ${img.src}`)
-                    this.imgs.push(img);
+                    this.frames.push(img);
                 }
             )
         }
@@ -80,15 +80,15 @@ class Animation extends OBJECT {
     }
 
     update() {
-        this.frame++;
-        if(this.frame >= this.speed) {
-            this.frame = 0;
-            this.index++;
-            if(this.index >= this.imgs.length) {
-                this.index = 0;
+        this.index++;
+        if(this.index >= this.speed) {
+            this.index = 0;
+            this.curframe++;
+            if(this.curframe >= this.frames.length) {
+                this.curframe = 0;
             }
         }
-        engine.ctx.drawImage(this.imgs[this.index], this.x, this.y, this.width, this.height);
+        engine.ctx.drawImage(this.frames[this.curframe], this.x, this.y, this.width, this.height);
     }
 }
 
