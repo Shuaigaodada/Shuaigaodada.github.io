@@ -4,9 +4,31 @@
     <meta charset="utf-8">
     <title>Plant vs. Zombie</title>
     <link rel="stylesheet" href="./assets/src/styles/canvas.css">
-    <script src="./assets/src/game.js"></script>
+    <!-- <script src="./assets/src/scripts/debug.js"></script> -->
+    <script src="./assets/src/scripts/gameEngine.js"></script>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <canvas id="gameCanvas"></canvas>
+    <!-- <div id="logContainer"></div> -->
+    <script>
+        const gameEngine = new GameEngine(1200, 600);
+        
+        // gameEngine.preload("./assets/images/Background/background1.jpg")
+        // .then(
+        //     img => {
+        //         gameEngine.ctx.drawImage(img, 0, 0, gameEngine.canvas.width, gameEngine.canvas.height);
+        //     }
+        // )
+
+        anim_pic = [];
+        basepath = "./assets/images/Zombies/Zombie/Move1/Zombie2_";
+        for(let i = 1; i <= 31; i++) {
+            anim_pic.push(basepath + i + ".png");
+        }
+        var animation = new Animation(anim_pic);
+        animation.update();
+
+
+    </script>
 </body>
 </html>
