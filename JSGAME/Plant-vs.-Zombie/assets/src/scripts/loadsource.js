@@ -13,7 +13,7 @@ const FONTS = [
     new FontFace("ARIBL0", "url(./assets/Font/ARIBL0.ttf)"),
     new FontFace("G_ari_bd", "url(./assets/Font/G_ari_bd.TTF)"),
     new FontFace("G_ari_i", "url(./assets/Font/G_ari_i.TTF)"),
-    new FontFace("GEO_AI__", "url(./assets/Font/GEO_AI_.TTF)")
+    new FontFace("GEO_AI__", "url(./assets/Font/GEO_AI__.TTF)")
 ];
 const LOADINGPAGES = [
     join(BACKGROUND, "titlescreen.jpg"),
