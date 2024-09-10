@@ -66,7 +66,7 @@ class PreloadPages {
         this.total += PRELOADIMAGES.length;
 
         // load font and images
-        // this.load_font();
+        this.load_font();
         this.load();
     }
 
@@ -89,7 +89,7 @@ class PreloadPages {
         generator.generate("Peashooter", "Peashooter_", 1, 13);
         const PeashooterPath = generator.path;
 
-        this.animation_arts.push(ZombiePath, PeashooterPath);
+        this.animations_arts.push(ZombiePath, PeashooterPath);
     }
 
     loadpageProgress(progress) {
