@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Plant vs. Zombie</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: row; /* 改为横向排列 */
+            align-items: center; /* 垂直居中 */
+            justify-content: center; /* 水平居中 */
+            height: 100vh;
+            margin: 0;
+            background-color: #000;
+        }
+
+        canvas {
+            background-color: #000;
+            border: 1px solid #fff;
+            margin-right: 10px; /* 添加右边距 */
+        }
+
+        #logContainer {
+            width: 300px; /* 调整宽度以适应布局 */
+            height: 600px; /* 调整高度以匹配画布高度 */
+            overflow-y: auto;
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #fff;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+    </style>
+    
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        var _engine;
+        class GameEngine {
+            constructor(width, height) {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.canvas.width = width;
+                this.canvas.height = height;
+
+                this.width = width;
+                this.height = height;
+
+                this.preimg = [];
+                this.objects = [];
+
+                // game loop
+                this.update = null;
+
+                this.fps = 60;
+
+                _engine = this;
+            }
+
+            engine_update() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                for(let object of this.objects) {
+                    object.update();
+                }
+
+                for(let object of this.objects) {
+                    if(object.visible && object.image !== null) {
+                        this.draw(object.image, object.x, object.y, object.width, object.height);
+                    }
+                }
+
+                if(this.update) {
+                    this.update();
+                }
+
+
+            }
+
+            /*
+            * @param {string} imgsrc
+            * @return {Promise<HTMLImageElement>} 
+            */
+            preload(imgsrc) {
+                return new Promise((resolve, reject) => {
+                    const image = new Image();
+                    image.src = imgsrc;
+                    image.onload = () => {
+                        this.preimg.push(image);
+                        resolve(image);
+                    };
+                    image.onerror = () => reject(new Error(`Failed to load image: src=${imgsrc}`));
+                });
+            }
+
+            draw(img, x, y, width, height) {
+                if(typeof img === 'string') {
+                    let imgsrc = img;
+                    for(let i = 0; i < this.preimg.length; i++) {
+                        let filename = this.preimg[i].src.split('/').pop();
+                        if(filename === imgsrc) {
+                            img = this.preimg[i];
+                            break;
+                        }
+                    }
+
+                }
+                // still string means not loaded
+                if(typeof img === 'string') {
+                    console.error(`Image not loaded: ${img}`);
+                    return;
+                }
+                // 如果图片已经加载，立即进行绘制
+                this.ctx.drawImage(img, x, y, width, height);
+            }
+
+            getImage(name) {
+                for(let i = 0; i < this.preimg.length; i++) {
+                    let filename = this.preimg[i].src.split('/').pop();
+                    if(filename === name) {
+                        return this.preimg[i];
+                    }
+                }
+                return null;
+            }
+
+            start() {
+                setInterval(() => {
+                    this.engine_update();
+                }, 1000 / this.fps);
+            }
+        }
+
+        class OBJECT {
+            constructor(image = null, width = 100, height = 100, visible = true) {
+                this.name = null;
+                this.x = 0;
+                this.y = 0;
+                this.image = image;
+                this.width = width;
+                this.height = height;
+                this.visible = visible;
+                _engine.objects.push(this);
+            }
+
+            static create(imgName, x, y, width, height) {
+                let image = _engine.getImage(imgName);
+                if(image === null)
+                    console.log(`Image not loaded: ${imgName}`);
+                    // if image not loaded, return null image object
+                let object = new OBJECT(image, width, height);
+                object.setPosition(x, y);
+                return object;
+            }
+            static destory(object) {
+                let index = _engine.objects.indexOf(object);
+                if(index !== -1){
+                    _engine.objects.splice(index, 1);
+                } else {
+                    console.warn("Object not found");
+                }
+            }
+            static destoryWithName(name) {
+                if(name === null) { 
+                    console.error("Name is null"); 
+                    return; 
+                }
+                for(let i = 0; i < _engine.objects.length; i++) {
+                    if(_engine.objects[i].name === name) {
+                        _engine.objects.splice(i, 1);
+                        return;
+                    }
+                }
+            }
+            update() {} // abstract method
+            setPosition(x, y) {
+                this.x = x;
+                this.y = y;
+            }
+        }
+
+        class Animation extends OBJECT {
+            constructor(imgs, speed = 10) {
+                super();
+                this.frames = new Array(imgs.length); // 保持顺序的数组
+                this.curframe = 0;
+                this.index = 0;
+                this.speed = speed;
+                
+                imgs.forEach((imageSrc, i) => {
+                    _engine.preload(imageSrc).then(
+                        img => {
+                            console.log(`Preloaded image: ${img.src}`);
+                            this.frames[i] = img; // 将图片放到正确的索引位置
+                        }
+                    ).catch(err => console.error(err));
+                });
+                
+                // {condition: function, anim: Animation, valueName: string}
+                this.next = [];
+            }
+
+            update() {
+                this.index++;
+                if(this.index >= this.speed) {
+                    this.index = 0;
+                    this.curframe++;
+                    if(this.curframe >= this.frames.length) {
+                        this.curframe = 0;
+                    }
+                }  
+                if(this.curframe === undefined) {
+                    console.error("curframe is undefined");
+                    return;
+                };      
+                this.image = this.frames[this.curframe];
+            }
+        }
+
+        class Animator extends OBJECT {
+            constructor(engine, animations) {
+                super();
+                // {name: Animation}
+                this.animations = animations;
+
+                this.current = null;
+                this.enter = null;
+                // {anim: Animation, condition: function, valueName: string}
+                this.exit = null;
+
+                // {name: value}
+                this.values = {};
+
+            }
+
+            connect(anim1, anim2, valueName, initValue, condition) {
+                anim1.next.push({"anim": anim2, "condition": condition, [valueName]: initValue});
+                this.values.push({[valueName]: initValue});
+            }
+
+            setValue(valuenName, value) {
+                this.values[valuenName] = value;
+            }
+            getValue(valuenName) {
+                return this.values[valuenName];
+            }
+
+            update() {
+                if(!this.enter) return;
+                if(!this.current) this.current = this.enter;
+
+                for(let next of this.current.next) {
+                    if(next.condition(this.values[next.valueName])) {
+                        this.current = next.anim;
+                        return this.update();
+                    }
+                }
+
+                if(this.exit && this.exit.condition(this.values[this.exit.valueName])) {
+                    this.current = this.exit.anim;
+                    return this.update();
+                }
+
+                this.current.update();
+            }
+
+            getFrameLength() {
+                let sum = 0;
+                for(let anim in this.animations)
+                    sum += anim.frames.length;
+                return sum;
+            }
+        }
+
+
+        class CollisionBox {
+            constructor(x, y, width, height) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+            }
+
+            isCollideWith(box) {
+                return this.x < box.x + box.width && this.x + this.width > box.x && this.y < box.y + box.height && this.y + this.height > box.y;
+            }
+        }
+
+        class Character extends OBJECT {
+            constructor() {
+                super();
+                this.collisionBox = new CollisionBox(this.x, this.y, this.width, this.height);
+                this.animator = null;
+            }
+
+            setAnimator(animator) {
+                this.animator = animator;
+            }
+
+            update() {
+                this.animator.update();
+            }
+        }
+
+        const engine = new GameEngine(1200, 600);
+        engine.start();
+        engine.preload("./assets/images/Background/background1.jpg");
+        setTimeout(() => {
+            OBJECT.create("background1.jpg", 0, 0, 1200, 600);
+        }, 1000);
+    </script>
+</body>
+</html>

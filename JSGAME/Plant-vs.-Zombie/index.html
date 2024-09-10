@@ -3,32 +3,43 @@
 <head>
     <meta charset="utf-8">
     <title>Plant vs. Zombie</title>
-    <link rel="stylesheet" href="./assets/src/styles/canvas.css">
-    <!-- <script src="./assets/src/scripts/debug.js"></script> -->
-    <script src="./assets/src/scripts/gameEngine.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: row; /* 改为横向排列 */
+            align-items: center; /* 垂直居中 */
+            justify-content: center; /* 水平居中 */
+            height: 100vh;
+            margin: 0;
+            background-color: #000;
+        }
+
+        canvas {
+            background-color: #000;
+            border: 1px solid #fff;
+            margin-right: 10px; /* 添加右边距 */
+        }
+
+        #logContainer {
+            width: 300px; /* 调整宽度以适应布局 */
+            height: 600px; /* 调整高度以匹配画布高度 */
+            overflow-y: auto;
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #fff;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+    </style>    
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
-    <!-- <div id="logContainer"></div> -->
-    <script>
-        const gameEngine = new GameEngine(1200, 600);
-        
-        // gameEngine.preload("./assets/images/Background/background1.jpg")
-        // .then(
-        //     img => {
-        //         gameEngine.ctx.drawImage(img, 0, 0, gameEngine.canvas.width, gameEngine.canvas.height);
-        //     }
-        // )
-
-        anim_pic = [];
-        basepath = "./assets/images/Zombies/Zombie/Move1/Zombie2_";
-        for(let i = 1; i <= 31; i++) {
-            anim_pic.push(basepath + i + ".png");
-        }
-        var animation = new Animation(anim_pic);
-        animation.update();
-
-
-    </script>
+    <!-- <script src="./assets/src/scripts/preload.js"></script>
+    <script src="./assets/src/scripts/gameEngine.js"></script>
+    <script src="./assets/src/scripts/game.js"></script> -->
+    <script src="https://verbose-memory-6xg9gxq77wxhpqg-5509.app.github.dev/JSGAME/Plant-vs.-Zombie/assets/src/scripts/loadsource.js"></script>
+    <script src="https://verbose-memory-6xg9gxq77wxhpqg-5509.app.github.dev/JSGAME/Plant-vs.-Zombie/assets/src/scripts/preload.js"></script>
+    <script src="https://verbose-memory-6xg9gxq77wxhpqg-5509.app.github.dev/JSGAME/Plant-vs.-Zombie/assets/src/scripts/gameEngine.js"></script>
+    <script src="https://verbose-memory-6xg9gxq77wxhpqg-5509.app.github.dev/JSGAME/Plant-vs.-Zombie/assets/src/scripts/game.js"></script>
 </body>
-</html>
+</html>`
