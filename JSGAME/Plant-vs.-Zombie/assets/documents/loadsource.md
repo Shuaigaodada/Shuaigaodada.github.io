@@ -162,7 +162,8 @@ const PRELOADIMAGES = [
     join(CARD, "card_threepeashooter2.png"),
     join(CARD, "card_wallnut.png"),
     join(CARD, "card_wallnut2.png")
-]```
+]
+```
 
 `PRELOADIMAGES` 常量定义了需要预加载的所有游戏图片资源。图片资源包括背景、卡片等。每个路径使用 `join` 函数拼接生成。
 
