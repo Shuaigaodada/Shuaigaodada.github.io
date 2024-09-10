@@ -1,6 +1,17 @@
-const engine = new GameEngine(1200, 600);
+class Game extends GameEngine {
+    constructor(width, height) {
+        super(width, height);
+        this.start();
+        new PreloadPages().startLoad(() => {
+            // TODO: del test code
+            this.clear();
+            new Level(72, 98);
+        });
+    }
 
-engine.start();
-new PreloadPages().startLoad();
+}
+window.onload = function() {
+    const game = new Game(1200, 600);
 
+}
 

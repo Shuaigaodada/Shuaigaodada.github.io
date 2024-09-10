@@ -19,8 +19,43 @@ class GameEngine {
 
         this.fps = 60;
 
-        _engine = this;
+        // bind event
+        this.__mouseDown__ = this.__mouseDown__.bind(this);
+        this.__mouseUp__ = this.__mouseUp__.bind(this);
+        this.__mouseMove__ = this.__mouseMove__.bind(this);
+
+        this.canvas.addEventListener('mousedown', this.__mouseDown__);
+        this.canvas.addEventListener('mouseup', this.__mouseUp__);
+        this.canvas.addEventListener('mousemove', this.__mouseMove__);
+
+        _engine = this;        
     }
+
+    __mouseDown__(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        let mouseX = event.clientX - rect.left;
+        let mouseY = event.clientY - rect.top;
+        for(let object of this.objects) {
+            object.onMouseDown(mouseX, mouseY);
+        }
+    }
+    __mouseUp__(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        let mouseX = event.clientX - rect.left;
+        let mouseY = event.clientY - rect.top;
+        for(let object of this.objects) {
+            object.onMouseUp(mouseX, mouseY);
+        }
+    }
+    __mouseMove__(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        let mouseX = event.clientX - rect.left;
+        let mouseY = event.clientY - rect.top;
+        for(let object of this.objects) {
+            object.onMouseMove(mouseX, mouseY);
+        }
+    }
+    
 
     engine_update() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -55,6 +90,7 @@ class GameEngine {
     }
 
     draw(object) {
+        if(!object.image && !object.text) return;
         if(object.image === null && object.text !== null) {
             this.ctx.font = object.style.font;
             this.ctx.fillStyle = object.style.color;
@@ -189,6 +225,10 @@ class OBJECT {
     }
 
     update() {} // abstract method
+    onMouseDown() {} // abstract method
+    onMouseUp() {} // abstract method
+    onMouseMove() {} // abstract method
+
     setPosition(x, y) {
         this.x = x;
         this.y = y;
@@ -297,11 +337,11 @@ class Button extends OBJECT {
         this.callback = callback;
     }
 
-    onClick(x, y) {
-        if(this.clickBox.isClicked(x, y)) {
-            this.callback();
-        }
+    onMouseDown(x, y) {
+        this.clickBox.isCollideWithPoint(x, y) && this.callback && this.callback();
     }
 }
+
+
 
 

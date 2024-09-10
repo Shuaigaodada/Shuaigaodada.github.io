@@ -41,7 +41,7 @@ class PreloadPages {
         this.start_x = 450;
     }
     
-    async startLoad() {
+    async startLoad(callback) {
         // wait load page source done
         await Promise.all(LOADINGPAGES.map(src => _engine.preload(src)));
         
@@ -67,11 +67,11 @@ class PreloadPages {
 
         // load font and images
         this.load_font();
-        this.load();
+        this.load(callback);
     }
 
     create_loading_page() {
-        this.titlescreenObject = OBJECT.create("titlescreen.jpg", 0, 0, engine.canvas.width, engine.canvas.height);
+        this.titlescreenObject = OBJECT.create("titlescreen.jpg", 0, 0, _engine.width, _engine.height);
         this.PvZ_LogoObject = OBJECT.create("PvZ_Logo.png", 220, 0, 800, 140);
         this.LoadBar_dirtObject = OBJECT.create("LoadBar_dirt.png", 450, 480, 300, 40);
         this.LoadBar_grassObject = OBJECT.create("LoadBar_grass.png", 450, 470, 290, 20);
@@ -98,16 +98,22 @@ class PreloadPages {
         this.LoadBar_grassObject.setSlider(progress);
     }
 
-    async load() {
+    async load(callback) {
         await this.loadImages(PRELOADIMAGES);
         for(let arts of this.animations_arts) {
             await this.loadAnimation(arts);
         }
 
         this.SodRollCapObject.visible = false;
-        this.goMenuButton = new Button(null, 558, 503, 300, 50, () => {});
-        this.goMenuButton.text = "开始游戏";
-        this.goMenuButton.style = {"font": "16px Arialn", "color": "yellow"};
+        
+        this.goMenuText = new OBJECT(null, 450, 450);
+        this.goMenuText.text = "开始游戏";
+        this.goMenuText.style = {"font": "16px Arialn", "color": "yellow"};
+        this.goMenuText.setPosition(565, 503);
+
+        this.goMenuButton = new Button(null, 450, 480, 290, 40, callback);
+        this.goMenuButton.visible = false;
+        
     }
 
     async loadImages(images) {
@@ -124,7 +130,7 @@ class PreloadPages {
         const promises = [];
         for(let i = 0; i < animation_arts.length; i++) {
             for (let j = 0; j < animation_arts[i].length; j++) {
-                const promise = engine.preload(animation_arts[i][j])
+                const promise = _engine.preload(animation_arts[i][j])
                 .then(() => { this.loadpageProgress(++this.loaded / this.total); });
                 promises.push(promise);
             }
