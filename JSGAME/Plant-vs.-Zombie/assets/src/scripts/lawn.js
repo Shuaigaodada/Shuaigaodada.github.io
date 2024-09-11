@@ -1,6 +1,6 @@
 const __levelStartX = 218;
 const __levelStartY = 80;
-class Level {
+class DaytimeLawn {
     constructor(width, height) {
         this.mapObject = null;
 
@@ -29,11 +29,15 @@ class Level {
     }
 
     test() {
-        const Peashooter = OBJECT.create("Peashooter_1.png", 0, 0, 60, 60);
+        
         // get block center position
         const [x, y] = this.center(0, 0, 60, 60);
         
+        const Peashooter = _engine.__animations["Peashooter"];
+        Peashooter.draw(60, 60);
         Peashooter.setPosition(x, y);
+
+        _engine.playAudio("bgm1.mp3");
     }
 
     center(x, y, width, height) {

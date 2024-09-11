@@ -5,7 +5,7 @@ class Game extends GameEngine {
         new PreloadPages().startLoad(() => {
             // TODO: del test code
             this.clear();
-            new Level(72, 98);
+            new DaytimeLawn(72, 98);
         });
     }
 

@@ -9,7 +9,9 @@ class GameEngine {
         this.width = width;
         this.height = height;
 
-        this.preimg = [];
+        this.__images = [];
+        this.__audios = {};
+        this.__animations = {};
         this.objects = [];
 
         this.__levels = {};
@@ -75,12 +77,25 @@ class GameEngine {
             const image = new Image();
             image.src = imgsrc;
             image.onload = () => {
-                this.preimg.push(image);
+                this.__images.push(image);
                 resolve(image);
             };
             image.onerror = () => reject(new Error(`Failed to load image: src=${imgsrc}`));
         });
     }
+
+    preloadAudio(name, src) {
+        return new Promise((resolve, reject) => {
+            const audio = new Audio(src);
+            audio.oncanplaythrough = () => { this.__audios[name] = audio; resolve(audio); };
+            audio.onerror = () => reject(new Error(`Failed to load audio: src=${src}`));
+        });
+    }
+
+    playAudio(name)  { this.__audios[name].play(); }
+    pauseAudio(name) { this.__audios[name].pause(); }
+    setAudioVolume(name, volume) { this.__audios[name].volume = volume; }
+    setAudioLoop(name, loop) { this.__audios[name].loop = loop; }
 
     save_level(name) {
         this.__levels[name] = this.objects;
@@ -114,10 +129,10 @@ class GameEngine {
     }
 
     getImage(name) {
-        for(let i = 0; i < this.preimg.length; i++) {
-            let filename = this.preimg[i].src.split('/').pop();
+        for(let i = 0; i < this.__images.length; i++) {
+            let filename = this.__images[i].src.split('/').pop();
             if(filename === name) {
-                return this.preimg[i];
+                return this.__images[i];
             }
         }
         return null;
@@ -235,13 +250,13 @@ class OBJECT {
     }
 }
 
-class Animation extends OBJECT {
-    constructor(imgs, speed = 10, callback = null) {
-        super();
+class Animation {
+    constructor(name, imgs, speed = 10, callback = null) {
         this.frames = new Array(imgs.length); // 保持顺序的数组
         this.curframe = 0;
         this.index = 0;
         this.speed = speed;
+        this.__object__ = null;
         
         imgs.forEach((imageSrc, i) => {
             _engine.preload(imageSrc).then(
@@ -254,23 +269,32 @@ class Animation extends OBJECT {
         
         // {condition: function, anim: Animation, valueName: string}
         this.next = [];
+        _engine.__animations[name] = this;
     }
 
-    update() {
-        this.index++;
-        if(this.index >= this.speed) {
-            this.index = 0;
-            this.curframe++;
-            if(this.curframe >= this.frames.length) {
-                this.curframe = 0;
-            }
-        }  
-        if(this.curframe === undefined) {
-            console.error("curframe is undefined");
-            return;
-        };      
-        this.image = this.frames[this.curframe];
+    draw(width, height, visible = true) {
+        this.__object__ = new OBJECT(this.frames[0], width, height, visible);
+        this.__object__.update = function() {
+            this.index++;
+            if(this.index >= this.speed) {
+                this.index = 0;
+                this.curframe++;
+                if(this.curframe >= this.frames.length) {
+                    this.curframe = 0;
+                }
+            }  
+            if(this.curframe === undefined) {
+                console.error("curframe is undefined");
+                return;
+            };
+            this.image = this.frames[this.curframe];
+        }
     }
+
+    setPosition(x, y) {
+        this.__object__.setPosition(x, y);
+    }
+
 }
 
 class Animator extends OBJECT {

@@ -63,7 +63,7 @@ class PreloadPages {
         // get total number of images
         for(let arts of this.animations_arts)
             this.total += PathGenerator.getLength(arts);
-        this.total += PRELOADIMAGES.length;
+        this.total += PRELOADIMAGES.length + AUDIOSOURCE.length;
 
         // load font and images
         this.load_font();
@@ -89,7 +89,8 @@ class PreloadPages {
         generator.generate("Peashooter", "Peashooter_", 1, 13);
         const PeashooterPath = generator.path;
 
-        this.animations_arts.push(ZombiePath, PeashooterPath);
+        this.animations_arts["Zombie"] = ZombiePath;
+        this.animations_arts["Peashooter"] = PeashooterPath;
     }
 
     loadpageProgress(progress) {
@@ -100,9 +101,11 @@ class PreloadPages {
 
     async load(callback) {
         await this.loadImages(PRELOADIMAGES);
-        for(let arts of this.animations_arts) {
+        for(let arts of Object.keys(this.animations_arts)) {
             await this.loadAnimation(arts);
         }
+        await this.loadAudio();
+
 
         this.SodRollCapObject.visible = false;
         
@@ -116,6 +119,15 @@ class PreloadPages {
         
     }
 
+    async loadAudio() {
+        const promises = [];
+        for(let i = 0; i < AUDIOSOURCE.length; i++) {
+            const promise = _engine.preloadAudio(AUDIOSOURCE[i].split('/').pop(), AUDIOSOURCE[i])
+            .then(() => { this.loadpageProgress(++this.loaded / this.total); });
+            promises.push(promise);
+        }
+    }
+
     async loadImages(images) {
         const promises = [];
         for(let i = 0; i < images.length; i++) {
@@ -126,15 +138,15 @@ class PreloadPages {
         await Promise.all(promises);
     }
 
-    async loadAnimation(animation_arts) {
+    async loadAnimation(name) {
         const promises = [];
-        for(let i = 0; i < animation_arts.length; i++) {
-            for (let j = 0; j < animation_arts[i].length; j++) {
-                const promise = _engine.preload(animation_arts[i][j])
-                .then(() => { this.loadpageProgress(++this.loaded / this.total); });
+        for(let j = 0; j < this.animations_arts[name].length; j++) {
+            const promise = new Animation(name, this.animations_arts[name][j], 10, () => { 
+                this.loadpageProgress(++this.loaded / this.total); 
+            });
                 promises.push(promise);
-            }
         }
+        
         await Promise.all(promises);
     }
 

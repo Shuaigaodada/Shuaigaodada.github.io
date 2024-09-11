@@ -3,6 +3,8 @@ const CARD = "./assets/images/Card";
 const UI = "./assets/images/UI";
 const ZombieRootPath = "./assets/images/Zombies/Zombie";
 const PeashooterRootPath = "./assets/images/Plants";
+const AudioMusicPath = "./assets/audios/Music";
+const AudioSoundPath = "./assets/audios/Sound";
 
 
 function join(a, b) { return a + "/" + b; }
@@ -66,3 +68,48 @@ const PRELOADIMAGES = [
     join(CARD, "card_wallnut.png"),
     join(CARD, "card_wallnut2.png")
 ];
+
+const AUDIOSOURCE = [
+    join(AudioMusicPath, "bgm1.mp3"),
+    join(AudioMusicPath, "bgm2.mp3"),
+    join(AudioMusicPath, "bgm3.mp3"),
+    join(AudioMusicPath, "bgm4.mp3"),
+    join(AudioMusicPath, "bgm5.mp3"),
+    join(AudioMusicPath, "ThemeSong.mp3"),
+
+    join(AudioSoundPath, "awooga.ogg"),
+    join(AudioSoundPath, "bungee_scream.ogg"),
+    join(AudioSoundPath, "buttonclick.ogg"),
+    join(AudioSoundPath, "cherrybomb.ogg"),
+    join(AudioSoundPath, "chomp.ogg"),
+    join(AudioSoundPath, "chompsoft.ogg"),
+    join(AudioSoundPath, "coffee.ogg"),
+    join(AudioSoundPath, "doomshroom.ogg"),
+    join(AudioSoundPath, "finalwave.ogg"),
+    join(AudioSoundPath, "firepea.ogg"),
+    join(AudioSoundPath, "frozen.ogg"),
+    join(AudioSoundPath, "groan.ogg"),
+    join(AudioSoundPath, "hugewave.ogg"),
+    join(AudioSoundPath, "jalapeno.ogg"),
+    join(AudioSoundPath, "kernelpult2.ogg"),
+    join(AudioSoundPath, "lawnmower.ogg"),
+    join(AudioSoundPath, "losemusic.ogg"),
+    join(AudioSoundPath, "newspaper_rarrgh.ogg"),
+    join(AudioSoundPath, "newspaper_rip.ogg"),
+    join(AudioSoundPath, "pause.ogg"),
+    join(AudioSoundPath, "plant.ogg"),
+    join(AudioSoundPath, "points.ogg"),
+    join(AudioSoundPath, "potato_mine.ogg"),
+    join(AudioSoundPath, "readysetplant.ogg"),
+    join(AudioSoundPath, "seedlift.ogg"),
+    join(AudioSoundPath, "shieldhit.ogg"),
+    join(AudioSoundPath, "shoot.mp3"),
+    join(AudioSoundPath, "shovel.ogg"),
+    join(AudioSoundPath, "siren.ogg"),
+    join(AudioSoundPath, "snow_pea_sparkles.ogg"),
+    join(AudioSoundPath, "squash_hmm 1.ogg"),
+    join(AudioSoundPath, "squash_hmm.ogg"),
+    join(AudioSoundPath, "squash_hmm2.ogg"),
+    join(AudioSoundPath, "tap.ogg"),
+    join(AudioSoundPath, "winmusic.ogg")
+]
