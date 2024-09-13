@@ -101,9 +101,10 @@ class PreloadPages {
 
     async load(callback) {
         await this.loadImages(PRELOADIMAGES);
-        for(let arts of Object.keys(this.animations_arts)) {
-            await this.loadAnimation(arts);
-        }
+
+        for(let _class of Object.keys(this.animations_arts)) 
+            await this.loadAnimation(_class);
+        
         await this.loadAudio();
 
 
@@ -138,10 +139,12 @@ class PreloadPages {
         await Promise.all(promises);
     }
 
-    async loadAnimation(name) {
+    async loadAnimation(_class) {
         const promises = [];
-        for(let j = 0; j < this.animations_arts[name].length; j++) {
-            const promise = new Animation(name, this.animations_arts[name][j], 10, () => { 
+        for(let j = 0; j < this.animations_arts[_class].length; j++) {
+            var namePath = this.animations_arts[_class][j][0].split('/');
+            var name = namePath[namePath.length - 2]
+            const promise = new Animation(_class, name, this.animations_arts[_class][j], 10, () => { 
                 this.loadpageProgress(++this.loaded / this.total); 
             });
                 promises.push(promise);

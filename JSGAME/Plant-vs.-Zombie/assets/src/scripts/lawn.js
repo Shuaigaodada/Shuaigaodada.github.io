@@ -11,7 +11,9 @@ class DaytimeLawn {
         this.height = height;
 
         this.createMap();
-        this.test();
+        // this.test();
+        this.startTips();
+
     }
 
     createMap() {
@@ -28,14 +30,37 @@ class DaytimeLawn {
         console.log(this.map);  
     }
 
+    startTips() {
+        setTimeout(() => {
+            new OBJECT("StartSet.png", 600, 200)
+        }, 10)
+    }
+
     test() {
         
         // get block center position
-        const [x, y] = this.center(0, 0, 60, 60);
+        const [x, y] = this.center(7, 0, 115, 115);
         
-        const Peashooter = _engine.__animations["Peashooter"];
-        Peashooter.draw(60, 60);
-        Peashooter.setPosition(x, y);
+        // const Peashooter = _engine.__animations["Peashooter"][0];
+        // Peashooter.speed = 8;
+        // Peashooter.draw(60, 60);
+        // Peashooter.setPosition(x, y);
+
+        const Zombie = _engine.__animations["Zombie"]["Move1"];
+        Zombie.speed = 6;
+        Zombie.draw(115, 115);
+        Zombie.setPosition(x, y - 20);
+
+        Zombie.moveSpeed = 9;
+        Zombie.moveFrame = 0;
+        Zombie.update = function() {
+            // this.moveFrame++;
+            // if(this.moveFrame >= this.moveSpeed) {
+                this.__object__.x -= 0.15;
+            //     this.moveFrame = 0;
+            // }
+        }
+        
 
         _engine.playAudio("bgm1.mp3");
     }

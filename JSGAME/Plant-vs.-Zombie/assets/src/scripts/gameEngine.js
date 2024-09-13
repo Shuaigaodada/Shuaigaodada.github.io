@@ -251,7 +251,7 @@ class OBJECT {
 }
 
 class Animation {
-    constructor(name, imgs, speed = 10, callback = null) {
+    constructor(_class, name, imgs, speed = 10, callback = null) {
         this.frames = new Array(imgs.length); // 保持顺序的数组
         this.curframe = 0;
         this.index = 0;
@@ -269,12 +269,16 @@ class Animation {
         
         // {condition: function, anim: Animation, valueName: string}
         this.next = [];
-        _engine.__animations[name] = this;
+        
+        if(_engine.__animations[_class] === undefined) {
+            _engine.__animations[_class] = {};
+        }
+        _engine.__animations[_class][name] = this;
     }
 
     draw(width, height, visible = true) {
         this.__object__ = new OBJECT(this.frames[0], width, height, visible);
-        this.__object__.update = function() {
+        this.__object__.update = () => {
             this.index++;
             if(this.index >= this.speed) {
                 this.index = 0;
@@ -287,9 +291,13 @@ class Animation {
                 console.error("curframe is undefined");
                 return;
             };
-            this.image = this.frames[this.curframe];
+            this.__object__.image = this.frames[this.curframe];
+
+            this.update();
         }
     }
+
+    update() { }
 
     setPosition(x, y) {
         this.__object__.setPosition(x, y);

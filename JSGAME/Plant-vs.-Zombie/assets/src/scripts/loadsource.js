@@ -66,7 +66,11 @@ const PRELOADIMAGES = [
     join(CARD, "card_threepeashooter.png"),
     join(CARD, "card_threepeashooter2.png"),
     join(CARD, "card_wallnut.png"),
-    join(CARD, "card_wallnut2.png")
+    join(CARD, "card_wallnut2.png"),
+
+    join(UI, "StartSet.png"),
+    join(UI, "StartReady.png"),
+    join(UI, "StartPlant.png"),
 ];
 
 const AUDIOSOURCE = [
