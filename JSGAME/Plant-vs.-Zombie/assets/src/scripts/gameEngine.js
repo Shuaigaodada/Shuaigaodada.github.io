@@ -211,6 +211,13 @@ class OBJECT {
         object.visible = visible;
         return object;
     }
+
+    findImage() {
+        if(typeof this.image === "string") {
+            this.image = _engine.getImage(this.image);
+        }
+    }
+
     static destory(object) {
         let index = _engine.objects.indexOf(object);
         if(index !== -1){
