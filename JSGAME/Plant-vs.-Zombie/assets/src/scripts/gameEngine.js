@@ -20,6 +20,8 @@ class GameEngine {
         this.update = null;
 
         this.fps = 60;
+        this.__time = 0.0;
+        this.deltaTime = 0.0;
 
         // bind event
         this.__mouseDown__ = this.__mouseDown__.bind(this);
@@ -69,6 +71,9 @@ class GameEngine {
             if(object.visible) this.draw(object);
         }
 
+        this.deltaTime = (Date.now() - this.__time) / 1000;
+        this.__time = Date.now();
+
         this.update && this.update()
     }
 
@@ -104,6 +109,10 @@ class GameEngine {
         this.objects = this.__levels[name];
     }
 
+    async sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
     draw(object) {
         if(!object.image && !object.text) return;
         if(object.image === null && object.text !== null) {
@@ -114,6 +123,9 @@ class GameEngine {
         }
 
         this.ctx.save();
+
+         // 设置透明度
+        this.ctx.globalAlpha = object.opacity !== undefined ? object.opacity : 1;
 
         // slider
         this.ctx.beginPath();
@@ -180,7 +192,11 @@ class OBJECT {
         this.height = height;
         this.visible = visible;
         this.order = -1; // -1 mean no order
+        this.opacity = 1; // 默认不透明
         _engine.objects.push(this);
+    }
+    setOpacity(opacity) {
+        this.opacity = opacity;
     }
 
     setOrder(order) {

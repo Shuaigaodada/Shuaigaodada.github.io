@@ -5,13 +5,13 @@ class Game extends GameEngine {
         new PreloadPages().startLoad(() => {
             // TODO: del test code
             this.clear();
-            new DaytimeLawn(72, 98);
+            new DaytimeLawn(73, 101);
         });
     }
 
 }
 window.onload = function() {
-    const game = new Game(1200, 600);
+    const game = new Game(900, 600);
 
 }
 

@@ -1,5 +1,4 @@
-var rollcap_x = 440;
-var grass_x = 450;
+var rollcap_x = 300;
 
 class PathGenerator {
     constructor() {
@@ -37,8 +36,8 @@ class PreloadPages {
         this.animations_arts = [];
         this.loaded = 0;
         this.total = 0;
-        this.final_x = 715;
-        this.start_x = 450;
+        this.final_x = 575;
+        this.start_x = 300;
     }
     
     async startLoad(callback) {
@@ -61,8 +60,8 @@ class PreloadPages {
         this.generate_path();
 
         // get total number of images
-        for(let arts of this.animations_arts)
-            this.total += PathGenerator.getLength(arts);
+        for(let _class of Object.keys(this.animations_arts))
+            this.total += PathGenerator.getLength(this.animations_arts[_class]);
         this.total += PRELOADIMAGES.length + AUDIOSOURCE.length;
 
         // load font and images
@@ -72,10 +71,10 @@ class PreloadPages {
 
     create_loading_page() {
         this.titlescreenObject = OBJECT.create("titlescreen.jpg", 0, 0, _engine.width, _engine.height);
-        this.PvZ_LogoObject = OBJECT.create("PvZ_Logo.png", 220, 0, 800, 140);
-        this.LoadBar_dirtObject = OBJECT.create("LoadBar_dirt.png", 450, 480, 300, 40);
-        this.LoadBar_grassObject = OBJECT.create("LoadBar_grass.png", 450, 470, 290, 20);
-        this.SodRollCapObject = OBJECT.create("SodRollCap.png", rollcap_x, 453, 40, 35);  
+        this.PvZ_LogoObject = OBJECT.create("PvZ_Logo.png", 120, 20, 700, 100);
+        this.LoadBar_dirtObject = OBJECT.create("LoadBar_dirt.png", 310, 480, 300, 40);
+        this.LoadBar_grassObject = OBJECT.create("LoadBar_grass.png", 310, 470, 290, 20);
+        this.SodRollCapObject = OBJECT.create("SodRollCap.png", rollcap_x, 452, 40, 35); 
     }
 
     generate_path() {
@@ -113,9 +112,9 @@ class PreloadPages {
         this.goMenuText = new OBJECT(null, 450, 450);
         this.goMenuText.text = "开始游戏";
         this.goMenuText.style = {"font": "16px Arialn", "color": "yellow"};
-        this.goMenuText.setPosition(565, 503);
+        this.goMenuText.setPosition(429, 504);
 
-        this.goMenuButton = new Button(null, 450, 480, 290, 40, callback);
+        this.goMenuButton = new Button(_engine.getImage("card_bk.jpg"), 305, 480, 290, 40, callback);
         this.goMenuButton.visible = false;
         
     }
@@ -127,6 +126,7 @@ class PreloadPages {
             .then(() => { this.loadpageProgress(++this.loaded / this.total); });
             promises.push(promise);
         }
+        await Promise.all(promises);
     }
 
     async loadImages(images) {
@@ -147,7 +147,7 @@ class PreloadPages {
             const promise = new Animation(_class, name, this.animations_arts[_class][j], 10, () => { 
                 this.loadpageProgress(++this.loaded / this.total); 
             });
-                promises.push(promise);
+            promises.push(promise);
         }
         
         await Promise.all(promises);
