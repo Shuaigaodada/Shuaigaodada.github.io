@@ -31,9 +31,8 @@ class DaytimeLawn {
     }
 
     startTips() {
-        setTimeout(() => {
-            new OBJECT("StartSet.png", 600, 200)
-        }, 10)
+        // _engine.clear();
+        OBJECT.create("StartSet.png", 0, 0, 300, 300);
     }
 
     test() {
