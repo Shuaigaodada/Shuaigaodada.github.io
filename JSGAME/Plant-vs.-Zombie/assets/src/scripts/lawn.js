@@ -25,7 +25,7 @@ class DaytimeLawn {
             this.map.push([]);
             for(let j = 0; j <= 8; j++) {
                 const block = new OBJECT(_engine.getImage("card_bk.jpg"), this.width, this.height);
-                block.setOpacity(0.1);
+                block.setOpacity(0);
                 block.x = __MapStartX + this.width * j + __MapSpace * j;
                 block.y = __MapStartY + this.height * i + __MapSpace * i;
                 this.map[i].push(block);
@@ -54,7 +54,7 @@ class DaytimeLawn {
         // get block center position
         const [x, y] = this.center(0, 2, 60, 60);
         
-        const Peashooter = _engine.__animations["Peashooter"][0];
+        const Peashooter = _engine.__animations["Peashooter"]["Peashooter"];
         Peashooter.speed = 8;
         Peashooter.draw(60, 60);
         Peashooter.setPosition(x, y);
