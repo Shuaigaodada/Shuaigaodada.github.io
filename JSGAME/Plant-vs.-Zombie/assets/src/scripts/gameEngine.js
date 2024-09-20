@@ -18,6 +18,7 @@ class GameEngine {
 
         // game loop
         this.update = null;
+        this.__updateEvent = [];
 
         this.fps = 60;
         this.__time = 0.0;
@@ -33,6 +34,14 @@ class GameEngine {
         this.canvas.addEventListener('mousemove', this.__mouseMove__);
 
         _engine = this;        
+    }
+
+    addUpdateEvent(callback) {
+        this.__updateEvent.push(callback);
+    }
+
+    getAnimation(_class, name) {
+        return this.__animations[_class][name];
     }
 
     __mouseDown__(event) {
@@ -74,6 +83,9 @@ class GameEngine {
         this.deltaTime = (Date.now() - this.__time) / 1000;
         this.__time = Date.now();
 
+        for(let event of this.__updateEvent) {
+            event();
+        }
         this.update && this.update()
     }
 
@@ -176,6 +188,14 @@ class CollisionBox {
     isCollideWithPoint(x, y) {
         return this.x < x && this.x + this.width > x && this.y < y && this.y + this.height > y;
     }
+
+    onCollideWith(callback) {
+        for(let object of _engine.objects) {
+            if(this.isCollideWith(object.collisionBox)) {
+                callback(object);
+            }
+        }
+    }
 }
 
 class OBJECT {
@@ -183,6 +203,7 @@ class OBJECT {
         this.name = null;
         this.x = 0;
         this.y = 0;
+        this.tag = "";
         this.image = image;
         this.text = null; // if has image, dont draw text
         this.style = {"font": "30px Arial", "color": "black"}; 
@@ -195,6 +216,11 @@ class OBJECT {
         this.opacity = 1; // 默认不透明
         _engine.objects.push(this);
     }
+
+    createCollisionBox() {
+        this.collisionBox = new CollisionBox(this.x, this.y, this.width, this.height);
+    }
+
     setOpacity(opacity) {
         this.opacity = opacity;
     }
@@ -297,6 +323,8 @@ class Animation {
             _engine.__animations[_class] = {};
         }
         _engine.__animations[_class][name] = this;
+
+        this.loop = true;
     }
 
     draw(width, height, visible = true) {
@@ -307,7 +335,8 @@ class Animation {
                 this.index = 0;
                 this.curframe++;
                 if(this.curframe >= this.frames.length) {
-                    this.curframe = 0;
+                    if(this.loop) this.curframe = 0;
+                    else this.curframe = this.frames.length - 1;
                 }
             }  
             if(this.curframe === undefined) {
@@ -329,18 +358,24 @@ class Animation {
 }
 
 class Animator extends OBJECT {
-    constructor(animations) {
-        super();
+    constructor(animations, x, y, w, h, v) {
+        super(null, w, h, v);
+
+        this.x = x;
+        this.y = y;
         // {name: Animation}
         this.animations = animations;
 
         this.current = null;
         this.enter = null;
-        // {anim: Animation, condition: function, valueName: string}
+        // {anim: Animation, condition: function, valueName: string, callback: function}
         this.exit = null;
 
         // {name: value}
         this.values = {};
+
+        this.__animationChanged = true;
+        _engine.addUpdateEvent(() => { this.update(); });
 
     }
 
@@ -358,21 +393,33 @@ class Animator extends OBJECT {
 
     update() {
         if(!this.enter) return;
-        if(!this.current) this.current = this.enter;
+        if(!this.current) {
+            this.current = this.enter;
+            this.__animationChanged = true;
+        }
 
         for(let next of this.current.next) {
             if(next.condition(this.values[next.valueName])) {
+                this.current.curframe = 0;
+                this.current.index = 0;
+                this.current.__object__.image = this.current.frames[0];
                 this.current = next.anim;
+                this.__animationChanged = true;
                 return this.update();
             }
         }
 
         if(this.exit && this.exit.condition(this.values[this.exit.valueName])) {
             this.current = this.exit.anim;
-            return this.update();
+            this.exit.callback && this.exit.callback();
         }
 
-        this.current.update();
+        if(this.__animationChanged) {
+            this.current.draw(this.width, this.height, this.visible);
+            this.current.setPosition(this.x, this.y);
+            this.__animationChanged = false;
+        }
+        
     }
 
     getFrameLength() {

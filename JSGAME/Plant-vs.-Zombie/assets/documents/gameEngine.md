@@ -1,5 +1,3 @@
-# 游戏引擎使用文档
-
 本游戏引擎提供了多种用于创建和管理2D游戏对象的功能。本文将介绍所有的类和函数，帮助开发者快速上手使用，并附带示例代码。
 
 ## GameEngine 类
@@ -13,14 +11,38 @@
 - `width`: 画布的宽度
 - `height`: 画布的高度
 
+### 隐藏属性
+#### ``` _engine: GameEngine ```
+这是一个不对外开放的全局`engine`类，用于在没有创建engine的文件中使用已经创建的engine，类似于单例，每当创建新的`GameEngine`时都会覆盖_engine
+
+#### ``` _engine.__images: Array[ImageObject] ```
+这是一个储存所有预加载图片的列表
+
+#### ``` _engine.__audios: Dictionary[String, AudioObject] ```
+这是一个储存所有预加载音频的列表，储存为`AudioName: AudioObject`
+
+#### ``` _engine.__animations: Dictionary[String, Dictionary[String, AnimationObject]] ```
+这是一个储存所有动画的类，储存为
+`AnimationClasses: {AnimationName: AnimationObject}`
+这个类是代表着一个角色的类，而Animation的名称则就是动作名称, 下面是个示例
+```javascript
+/*
+images
+-> MyRole
+--> Walk
+---> images1.jpg
+*/
+new Animation(
+"MyRole", "Walk", ["images1.jpg", ...] // full path
+);
+```
+
 ### 方法
 
-#### ```engine_update()```
-
+#### ``` engine_update() ```
 更新游戏画布并绘制所有可见对象。
 
-#### ```preload(imgsrc)```
-
+#### ``` preload(imgsrc) ```
 预加载图片资源。
 
 - `imgsrc`: 图片的路径，返回一个 Promise，加载成功后返回图片对象。
@@ -34,26 +56,22 @@ engine.preload('assets/player.png').then(img => {
 });
 ```
 
-#### ```save_level(name)```
-
+#### ``` save_level(name) ```
 保存当前关卡的所有对象。
 
 - `name`: 关卡名称。
 
-#### ```load_level(name)```
-
+#### ``` load_level(name) ```
 加载之前保存的关卡对象。
 
 - `name`: 关卡名称。
 
-#### ```draw(object)```
-
+#### ``` draw(object) ```
 绘制游戏对象。如果对象是图片，按照指定位置和旋转角度绘制；如果是文本，则绘制文本。
 
 - `object`: 需要绘制的对象。
 
-#### ```getImage(name)```
-
+#### ``` getImage(name) ```
 根据图片名称获取已经预加载的图片。
 
 - `name`: 图片的名称（不包含路径），返回图片对象。
@@ -69,8 +87,7 @@ if (image) {
 }
 ```
 
-#### ```start()```
-
+#### ``` start() ```
 开始游戏引擎并以固定帧率刷新画布内容。
 
 示例：
@@ -79,8 +96,7 @@ if (image) {
 engine.start();
 ```
 
-#### ```clear()```
-
+#### ``` clear() ```
 清空当前画布上的所有对象。
 
 ---
@@ -100,14 +116,12 @@ engine.start();
 
 ### 方法
 
-#### ```isCollideWith(box)```
-
+#### ``` isCollideWith(box) ```
 检查当前碰撞箱是否与另一个碰撞箱发生碰撞。
 
 - `box`: 另一个碰撞箱对象，返回布尔值。
 
-#### ```isCollideWithPoint(x, y)```
-
+#### ``` isCollideWithPoint(x, y) ```
 检查一个点是否在当前碰撞箱内。
 
 - `x`: 点的 x 坐标
@@ -138,20 +152,17 @@ console.log('Collision:', box1.isCollideWith(box2));
 
 ### 方法
 
-#### ```setOrder(order)```
-
+#### ``` setOrder(order) ```
 设置对象的绘制顺序。
 
 - `order`: 绘制顺序的值。
 
-#### ```setSlider(slider)```
-
+#### ``` setSlider(slider) ```
 设置对象的滑动比例，影响对象绘制时的宽度缩放比例。
 
 - `slider`: 滑动比例（0 到 1 之间的浮点数）。
 
-#### ```setPosition(x, y)```
-
+#### ``` setPosition(x, y) ```
 设置对象的位置。
 
 - `x`: 对象的 x 坐标
@@ -164,12 +175,10 @@ let player = new OBJECT(engine.getImage('player.png'), 100, 100);
 player.setPosition(200, 300);
 ```
 
-#### ```update()```
-
+#### ``` update() ```
 该方法是一个抽象方法，用户可以重写此方法来定义对象的更新逻辑。
 
-#### ```destory()```
-
+#### ``` destory() ```
 删除当前对象。
 
 示例：
@@ -180,8 +189,7 @@ player.destory();
 
 ### 静态方法
 
-#### ```create(imgName, x, y, width, height, visible = true)```
-
+#### ``` create(imgName, x, y, width, height, visible = true) ```
 创建一个新的游戏对象。
 
 - `imgName`: 图片名称
@@ -191,14 +199,12 @@ player.destory();
 - `height`: 对象的高度
 - `visible`: 是否可见，默认为 `true`
 
-#### ```destory(object)```
-
+#### ``` destory(object) ```
 删除指定对象。
 
 - `object`: 需要删除的对象。
 
-#### ```destoryWithName(name)```
-
+#### ``` destoryWithName(name) ```
 根据对象名称删除对象。
 
 - `name`: 对象的名称。
@@ -217,19 +223,24 @@ player.destory();
 - `speed`: 动画的速度，值越大动画越慢
 - `callback`: 动画加载完成后的回调函数
 
-### 方法
-
-#### ```update()```
-
-更新当前帧并切换到下一帧。
-
 示例：
 
 ```javascript
-let anim = new Animation(['frame1.png', 'frame2.png'], 5);
-engine.objects.push(anim);
-engine.start();
+let anim = new Animation("AnimationClasses", "AnimationName", ['frame1.png', 'frame2.png']);
+anim.draw();
 ```
+
+
+### 方法
+
+#### ``` update() ```
+每一帧都会调用这个函数，Animation本身不是Object，它的内部会有一个叫做`__object__`的属性来创建OBJECT，此函数会做的像是
+```javascript
+anim.__object__ = anim.update;
+```
+
+#### ``` draw(width, height, visible = true) ```
+真正绘制动画到场景，并且创建OBJECT，每帧检查index是否超过speed，如果是则增加curframe，且每帧都替换OBJECT.image并调用update方法
 
 ---
 
@@ -245,8 +256,7 @@ engine.start();
 
 ### 方法
 
-#### ```connect(anim1, anim2, valueName, initValue, condition)```
-
+#### ``` connect(anim1, anim2, valueName, initValue, condition) ```
 连接两个动画，并设置切换条件。
 
 - `anim1`: 第一个动画
@@ -255,21 +265,18 @@ engine.start();
 - `initValue`: 初始值
 - `condition`: 切换条件的函数
 
-#### ```setValue(valueName, value)```
-
+#### ``` setValue(valueName, value) ```
 设置指定的值。
 
 - `valueName`: 值的名称
 - `value`: 值的内容
 
-#### ```getValue(valueName)```
-
+#### ``` getValue(valueName) ```
 获取指定的值。
 
 - `valueName`: 值的名称
 
-#### ```update()```
-
+#### ``` update() ```
 更新当前动画状态并根据条件切换动画。
 
 示例：
@@ -304,8 +311,7 @@ engine.objects.push(animator);
 
 ### 方法
 
-#### ```onClick(x, y)```
-
+#### ``` onClick(x, y) ```
 检测点击事件，如果点击位置在按钮的碰撞箱内，则触发回调。
 
 - `x`: 点击的 x 坐标

@@ -1,6 +1,7 @@
 const BACKGROUND = "./assets/images/Background";
 const CARD = "./assets/images/Card";
 const UI = "./assets/images/UI";
+const EFFECT = "./assets/images/Effect";
 const ZombieRootPath = "./assets/images/Zombies/Zombie";
 const PeashooterRootPath = "./assets/images/Plants";
 const AudioMusicPath = "./assets/audios/Music";
@@ -71,6 +72,9 @@ const PRELOADIMAGES = [
     join(UI, "StartSet.png"),
     join(UI, "StartReady.png"),
     join(UI, "StartPlant.png"),
+
+    join(EFFECT, "PeaBullet.png"),
+    join(EFFECT, "PeaBulletHit.png"),
 ];
 
 const AUDIOSOURCE = [
