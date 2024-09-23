@@ -21,11 +21,28 @@ class Zombie {
         this.animator.destory();
         _engine.removeEvent(`Zombie${this.id} - update`);
     }
+
+    static Spawn = [
+        {x: 0, y: 0},
+        {x: 0, y: 0},
+        {x: 0, y: 0},
+        {x: 0, y: 0},
+        {x: 0, y: 0}
+    ]
 }
 
 class NormalZombie {
     constructor(x, y, w, h) {
-        let animator = new Animator([], x, y, w, h);
+        let animator = new Animator([
+            _engine.getAnimation("Zombie", "Move1"),
+            _engine.getAnimation("Zombie", "Move2"),
+            _engine.getAnimation("Zombie", "Back"),
+            _engine.getAnimation("Zombie", "Die"),
+            _engine.getAnimation("Zombie", "Eat"),
+            _engine.getAnimation("Zombie", "LostHead"),
+            _engine.getAnimation("Zombie", "LostHeadEat"),
+            _engine.getAnimation("Zombie", "LostHeadMove")
+        ], x, y, w, h);
         animator.enter = _engine.getAnimation("Zombie", "Move1");
         super("NormalZombie", animator);
     }
