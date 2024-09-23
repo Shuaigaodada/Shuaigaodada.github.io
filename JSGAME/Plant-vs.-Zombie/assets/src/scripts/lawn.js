@@ -17,13 +17,13 @@ class DaytimeLawn {
     }
 
     start() {
-        _engine.playAudio("bgm1.mp3", true);
+        // _engine.playAudio("bgm1.mp3", true);
         // const anim = _engine.getAnimation("Peashooter", "Peashooter");
         // anim.draw(100, 100);
         // anim.__object__.x = this.center(0, 0, 100, 100)[0];
         // anim.__object__.y = this.center(0, 0, 100, 100)[1];
         
-        var [x, y] = this.center(0, 0, 60, 60);
+        var [x, y] = this.center(0, 1, 60, 60);
 
         const peashooter = new Peashooter(x, y, 60, 60);
         
@@ -41,6 +41,12 @@ class DaytimeLawn {
                 block.setOpacity(0.0);
                 block.x = __MapStartX + this.width * j + __MapSpace * j;
                 block.y = __MapStartY + this.height * i + __MapSpace * i;
+
+                if(j === 6) {
+                    block.setOpacity(0.5);
+                    block.createCollisionBox();
+                    block.tag = "Zombie";
+                }
                 this.map[i].push(block);
             }
         }
