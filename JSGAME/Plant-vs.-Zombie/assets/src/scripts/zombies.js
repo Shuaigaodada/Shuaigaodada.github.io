@@ -29,6 +29,10 @@ class Zombie {
         {x: 0, y: 0},
         {x: 0, y: 0}
     ]
+
+    __showSpawn() {
+        OBJECT.create("card_bk.jpg", Zombie.Spawn.x, Zombie.Spawn.y, 100, 100);
+    }
 }
 
 class NormalZombie {
@@ -53,6 +57,8 @@ class NormalZombie {
         this.moving = true;
 
         _engine.registerEvent(`zombie${this.id} - update`, () => {this.update();})
+
+        this.__showSpawn();
     }
 
     update() {

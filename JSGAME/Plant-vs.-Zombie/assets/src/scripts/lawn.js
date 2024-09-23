@@ -26,7 +26,7 @@ class DaytimeLawn {
         var [x, y] = this.center(0, 1, 60, 60);
 
         const peashooter = new Peashooter(x, y, 60, 60);
-        
+        const zombie = new NormalZombie(100, 100, 60, 60);
     }
 
     createMap() {
