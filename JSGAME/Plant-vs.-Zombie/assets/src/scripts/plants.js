@@ -2,6 +2,10 @@ class Plant {
     static _idCounter = 0; // 静态变量，用于生成唯一ID
     constructor(name, animator) {
         this.name = name;
+
+        /**
+         * @type {Animator}
+         */
         this.animator = animator;
 
         this.health = 0;
@@ -40,6 +44,9 @@ class Peashooter extends Plant {
         this.AttackRange = true;
         this.timer = 0;
         _engine.registerEvent(`Plant${this.id} - update` , () => {this.update();});
+
+        this.animator.createCollisionBox();
+        this.animator.tag = "Plant";
     }
 
     setAttackRange(status) {

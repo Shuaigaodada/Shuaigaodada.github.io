@@ -41,12 +41,13 @@ class DaytimeLawn {
                 block.setOpacity(0.0);
                 block.x = __MapStartX + this.width * j + __MapSpace * j;
                 block.y = __MapStartY + this.height * i + __MapSpace * i;
-
-                if(j === 6) {
-                    block.setOpacity(0.5);
-                    block.createCollisionBox();
-                    block.tag = "Zombie";
-                }
+                block.createCollisionBox();
+                block.tag = "Floor";
+                
+                // block.collisionBox.debug.show();
+                // if(j === 6)
+                //     block.tag = "Zombie";
+                
                 this.map[i].push(block);
             }
         }
