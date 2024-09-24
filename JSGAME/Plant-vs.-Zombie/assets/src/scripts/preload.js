@@ -1,3 +1,4 @@
+console.log("Preload loaded");
 var rollcap_x = 300;
 
 class PathGenerator {

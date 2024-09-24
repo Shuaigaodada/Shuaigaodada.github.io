@@ -119,12 +119,12 @@ class GameEngine {
     engine_update() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
-        for(let object of this.objects)
-            object.update();
-
+        this.objects.sort((a, b) => a.order - b.order);
         for(let object of this.objects) {
+            object.update && object.update();
             if(object.visible) this.draw(object);
         }
+            
 
         this.deltaTime = (Date.now() - this.__time) / 1000;
         this.__time = Date.now();
@@ -169,8 +169,14 @@ class GameEngine {
     /**
      * 播放音频
      * @param {string} name - 音频的名称
+     * @param {function} callback - 音频播放结束后的回调函数
      */
-    playAudio(name)  { this.__audios[name].play(); }
+    playAudio(name, callback, time)  {
+        this.__audios[name].play();
+        if(callback && !time) this.__audios[name].onended = callback;
+        if(callback && time) setTimeout(callback, time);
+    }
+
 
     /**
      * 暂停音频
@@ -312,6 +318,7 @@ class CollisionBox {
         this.__drawed_box = false;
         this.__hided_box = false;
         this.id = CollisionBox._generateUniqueId(); // 为每个实例生成唯一ID
+        this.show();
     }
 
     hide() {
@@ -565,22 +572,26 @@ class CircleCollisionBox extends CollisionBox {
 class OBJECT {
     static OBJECT_ID = 0; // 静态变量，用于生成唯一ID
     constructor(image = null, width = 100, height = 100, visible = true) {
-        this.name = null;
-        this._x = 0;
-        this._y = 0;
-        this.tag = "";
-        this.image = image;
-        this.text = null; // if has image, dont draw text
-        this.style = {"font": "30px Arial", "color": "black"}; 
-        this.rotation = 0;
-        this.slider = 1;
-        this.width = width;
-        this.height = height;
-        this.visible = visible;
-        this.order = -1; // -1 mean no order
+        this.name = null; // 对象的名称
+        this._x = 0; // 对象的 x 坐标
+        this._y = 0; // 对象的 y 坐标
+        this.tag = ""; // 对象的标签
+        this.image = image; // 对象的图像
+        this.text = null; // 对象的文本， null 表示没有文本
+        this.style = {"font": "30px Arial", "color": "black"}; // 文本样式 
+        this.rotation = 0; // 旋转角度
+        this.slider = 1; // 滑动效果比例
+        this.width = width; // 对象的宽度
+        this.height = height; // 对象的高度
+        this.visible = visible; // 对象是否可见
         this.opacity = 1; // 默认不透明
         this.collisionBox = null; // CollisionBox
+        this.childs = []; // 子对象
+        this.parent = null; // 父对象
         this.id = OBJECT.OBJECT_ID++; // 为每个实例生成唯一ID
+        this.order = _engine.objects.length; // 绘制顺序
+        this.offsetX = 0;
+        this.offsetY = 0;
         _engine.objects.push(this);
     }
 
@@ -605,6 +616,8 @@ class OBJECT {
         if(this.collisionBox) { 
             this.collisionBox.x = this._x + (this.collisionBox.offsetX || 0); 
         }
+        for(let child of this.childs) 
+            child.x = x + child.offsetX;
     }
 
     /**
@@ -616,6 +629,19 @@ class OBJECT {
         if(this.collisionBox) {
             this.collisionBox.y = this._y + (this.collisionBox.offsetY || 0);
         }
+        for(let child of this.childs) 
+            child.y = y + child.offsetY;
+    }
+
+    /**
+     * 设置对象的位置
+     * @param {OBJECT} - 子对象
+     */
+    setChild(child) {
+        child.parent = this;
+        child.x = this.x + child.offsetX;
+        child.y = this.y + child.offsetY;
+        this.childs.push(child);
     }
 
     /**
@@ -809,6 +835,14 @@ class Animation {
     }
 
     /**
+     * 销毁动画对象 
+     * @returns {void}
+     */
+    destory() {
+        this.__object__ && this.__object__.destory();
+    }
+    
+    /**
      * 绘制动画帧
      * @param {number} width - 动画对象的宽度
      * @param {number} height - 动画对象的高度
@@ -816,6 +850,7 @@ class Animation {
      */
     draw(width, height, visible = true) {
         this.__object__ = new OBJECT(this.frames[0], width, height, visible);
+        this.__object__.tag = "animation";
         this.__object__.update = () => {
             this.index++;
             if(this.index >= this.speed) {
@@ -870,6 +905,7 @@ class Animator extends OBJECT {
         // {name: Animation}
         this.animations = animations;
 
+        // should be a Name!!
         this.current = null;
         this.enter = null;
         // {anim: Animation, condition: function, valueName: string, callback: function}
@@ -879,21 +915,21 @@ class Animator extends OBJECT {
         this.values = {};
 
         this.__animationChanged = true;
-        _engine.registerEvent(`Animator${this.id}`, () => { this.update(); });
+        _engine.registerEvent(`Animator${this.id}`, () => { this.__animator_update(); });
 
     }
 
     /**
      * 连接两个动画，并设置切换条件
-     * @param {Animation} anim1 - 起始动画
-     * @param {Animation} anim2 - 目标动画
+     * @param {string} anim1 - 起始动画
+     * @param {string} anim2 - 目标动画
      * @param {string} valueName - 连接条件的变量名
      * @param {any} initValue - 连接条件的初始值
      * @param {function} condition - 动画切换条件
      */
     connect(anim1, anim2, valueName, initValue, condition) {
-        anim1.next.push({"anim": anim2, "condition": condition, [valueName]: initValue});
-        this.values.push({[valueName]: initValue});
+        this.animations[anim1].next.push({"anim": this.animations[anim2], "condition": condition, [valueName]: initValue});
+        this.values[valueName] = initValue;
     }
 
     /**
@@ -917,21 +953,24 @@ class Animator extends OBJECT {
     /**
      * 更新动画状态并处理动画切换
      */
-    update() {
-        if(!this.enter) return;
+    __animator_update() {
         if(!this.current) {
-            this.current = this.enter;
+            this.current = this.animations[this.enter];
             this.__animationChanged = true;
+            if(!this.current) console.error("Enter animation not found");
         }
+
+        this.current.__object__ && !this.current.__object__.parent && 
+            this.setChild(this.current.__object__);
 
         for(let next of this.current.next) {
             if(next.condition(this.values[next.valueName])) {
-                this.current.curframe = 0;
-                this.current.index = 0;
-                this.current.__object__.image = this.current.frames[0];
+                this.current.__object__.destory();
+                let ratio = this.current.curframe / this.current.frames.length;
                 this.current = next.anim;
+                this.current.curframe = Math.floor(ratio * this.current.frames.length);
                 this.__animationChanged = true;
-                return this.update();
+                return this.__animator_update();
             }
         }
 
@@ -956,6 +995,18 @@ class Animator extends OBJECT {
         for(let anim in this.animations)
             sum += anim.frames.length;
         return sum;
+    }
+
+    /**
+     * 销毁动画控制器
+     * @returns {void}
+     */
+    destory() {
+        for(let anim of Object.values(this.animations)) {
+            anim.destory && anim.destory();
+        }
+        _engine.removeEvent(`Animator${this.id}`);
+        super.destory();
     }
 }
 

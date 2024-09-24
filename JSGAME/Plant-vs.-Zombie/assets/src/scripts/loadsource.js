@@ -1,3 +1,4 @@
+console.log("Loadsource loaded");
 const BACKGROUND = "./assets/images/Background";
 const CARD = "./assets/images/Card";
 const UI = "./assets/images/UI";

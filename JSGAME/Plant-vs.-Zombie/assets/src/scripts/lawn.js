@@ -1,3 +1,4 @@
+console.log("Lawn loaded");
 const __MapStartX = 100;
 const __MapStartY = 85;
 const __MapSpace = 5;
@@ -7,26 +8,30 @@ class DaytimeLawn {
 
         // map data [row][col]
         this.map = [];
+        this.plants = [];
 
         this.width = width;
         this.height = height;
 
-        this.createMap();
-        // this.test();
-        this.startTips(() => {this.start();});
+        this.createMap();    
     }
 
     start() {
-        // _engine.playAudio("bgm1.mp3", true);
-        // const anim = _engine.getAnimation("Peashooter", "Peashooter");
-        // anim.draw(100, 100);
-        // anim.__object__.x = this.center(0, 0, 100, 100)[0];
-        // anim.__object__.y = this.center(0, 0, 100, 100)[1];
-        
-        var [x, y] = this.center(0, 1, 60, 60);
+        this.startTips(() => {this.startGame();});
+    }
 
-        const peashooter = new Peashooter(x, y, 60, 60);
-        const zombie = new NormalZombie(100, 100, 60, 60);
+    startGame() {
+        _engine.setAudioLoop("bgm1.mp3", true);
+        _engine.setAudioVolume("bgm1.mp3", 0.5);
+        _engine.playAudio("bgm1.mp3");
+        this.plant(Peashooter, 0, 1);
+        const zombie = new NormalZombie(1);
+        
+    }
+
+    plant(plants, x, y) {
+        const plant = new plants(this.center(x, y, plants.width, plants.height), y + 1);
+        this.plants[y][x] = plant;
     }
 
     createMap() {
@@ -36,32 +41,43 @@ class DaytimeLawn {
         // block.y = __levelStartY ;
         for(let i = 0; i < 5; i++) {
             this.map.push([]);
+            this.plants.push([]);
             for(let j = 0; j <= 8; j++) {
                 const block = new OBJECT(_engine.getImage("card_bk.jpg"), this.width, this.height);
                 block.setOpacity(0.0);
                 block.x = __MapStartX + this.width * j + __MapSpace * j;
                 block.y = __MapStartY + this.height * i + __MapSpace * i;
-                block.createCollisionBox();
                 block.tag = "Floor";
                 
                 // block.collisionBox.debug.show();
                 // if(j === 6)
                 //     block.tag = "Zombie";
+                if(j === 8) {
+                    block.createCollisionBox();
+                    block.collisionBox.debug.show();
+                    block.collisionBox.onCollisionEnter = function(other) {
+                        if(other.tag === "Zombie") {
+                            GameManager.AddZombieLine(i + 1);
+                        }
+                    }
+                }
                 
                 this.map[i].push(block);
+                this.plants[i].push(null);
             }
         }
     }
 
     async startTips(callback) {
+        _engine.playAudio("readysetplant.ogg");
         const [x, y] = [250, 190];
         const width = 400;
         const height = 200;
         const startSet = OBJECT.create("StartSet.png", x, y, width, height);
-        await _engine.sleep(1000);
+        await _engine.sleep(500);
         startSet.destory();
         const startReady = OBJECT.create("StartReady.png", x, y, width, height);
-        await _engine.sleep(1000);
+        await _engine.sleep(500);
         startReady.destory();
         const startPlant = OBJECT.create("StartPlant.png", x, y, width, height);
         await _engine.sleep(1000);

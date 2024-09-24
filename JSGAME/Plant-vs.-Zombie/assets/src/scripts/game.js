@@ -1,3 +1,4 @@
+console.log("Game loaded");
 class Game extends GameEngine {
     constructor(width, height) {
         super(width, height);
@@ -5,7 +6,8 @@ class Game extends GameEngine {
         new PreloadPages().startLoad(() => {
             // TODO: del test code
             this.clear();
-            new DaytimeLawn(73, 101);
+            const lawn = new DaytimeLawn(73, 101);
+            lawn.start();
         });
     }
 
