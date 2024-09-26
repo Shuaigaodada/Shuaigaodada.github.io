@@ -145,7 +145,7 @@ class PreloadPages {
         for(let j = 0; j < this.animations_arts[_class].length; j++) {
             var namePath = this.animations_arts[_class][j][0].split('/');
             var name = namePath[namePath.length - 2]
-            const promise = new Animation(_class, name, this.animations_arts[_class][j], 10, () => { 
+            const promise = new PreloadAnimation(_class, name, this.animations_arts[_class][j], () => { 
                 this.loadpageProgress(++this.loaded / this.total); 
             });
             promises.push(promise);

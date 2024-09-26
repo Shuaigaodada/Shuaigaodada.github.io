@@ -70,8 +70,8 @@ class GameEngine {
      * @param {string} name - 动画的名称
      * @returns {Animation} - 动画对象
      */
-    getAnimation(_class, name) {
-        return this.__animations[_class][name];
+    getAnimation(_class, name, speed = 10) {
+        return this.__animations[_class][name].animation(speed);
     }
 
     /**
@@ -681,30 +681,33 @@ class OBJECT {
     }
 
     /**
-     * 设置对象的透明度
+     * 设置对象的透明度，这个函数会递归设置子对象的透明度- 
      * @param {number} opacity - 新的透明度值 (0-1)
      */
     setOpacity(opacity) {
         this.opacity = opacity;
+        for(let child of this.childs) {
+            child.setOpacity(opacity);
+        }
     }
 
     /**
-     * 设置对象的绘制顺序
+     * 设置对象的绘制顺序 - 弃用
      * @param {number} order - 新的绘制顺序值
      */
-    setOrder(order) {
-        this.order = order;
-        this.destory()
-        // insert object to _engine.objects use order
-        for(let i = 0; i < _engine.objects.length; i++) {
-            if(_engine.objects[i].order > order) {
-                _engine.objects.splice(i, 0, this);
-                return;
-            }
-        }
-        // if not found, push to the end
-        _engine.objects.push(this);
-    }
+    // setOrder(order) {
+    //     this.order = order;
+    //     this.destory()
+    //     // insert object to _engine.objects use order
+    //     for(let i = 0; i < _engine.objects.length; i++) {
+    //         if(_engine.objects[i].order > order) {
+    //             _engine.objects.splice(i, 0, this);
+    //             return;
+    //         }
+    //     }
+    //     // if not found, push to the end
+    //     _engine.objects.push(this);
+    // }
 
     /**
      * 设置对象的滑动效果比例
@@ -798,6 +801,29 @@ class OBJECT {
 }
 
 
+class PreloadAnimation {
+    constructor(_class, name, imgs, callback) {
+        this.frames = new Array(imgs.length);
+        imgs.forEach((imageSrc, i) => {
+            _engine.preload(imageSrc).then(
+                img => {
+                    this.frames[i] = img;
+                    callback && callback();
+                }
+            ).catch(err => console.error(err));
+        });
+
+        if(_engine.__animations[_class] === undefined) {
+            _engine.__animations[_class] = {};
+        }
+        _engine.__animations[_class][name] = this;
+    }
+
+    animation(speed) {
+        return new Animation(this.frames, speed);
+    }
+}
+
 /**
  * 动画类，处理对象的动画效果
  * @param {string} _class - 动画所属的类名
@@ -807,33 +833,23 @@ class OBJECT {
  * @param {function|null} callback - 动画加载完成后的回调函数
  */
 class Animation {
-    constructor(_class, name, imgs, speed = 10, callback = null) {
-        this.frames = new Array(imgs.length); // 保持顺序的数组
+    constructor(frames, speed = 10) {
+        this.frames = frames
         this.curframe = 0;
         this.index = 0;
         this.speed = speed;
         this.__object__ = null;
-        
-        imgs.forEach((imageSrc, i) => {
-            _engine.preload(imageSrc).then(
-                img => {
-                    this.frames[i] = img; // 将图片放到正确的索引位置
-                    callback && callback();
-                }
-            ).catch(err => console.error(err));
-        });
-        
+
         // {condition: function, anim: Animation, valueName: string}
         this.next = [];
-        
-        if(_engine.__animations[_class] === undefined) {
-            _engine.__animations[_class] = {};
-        }
-        _engine.__animations[_class][name] = this;
 
         this.loop = true;
+        this.event = {};
     }
 
+    addEvent(frameIndex, callback) {
+        this.event[frameIndex] = callback;
+    }
     /**
      * 销毁动画对象 
      * @returns {void}
@@ -860,7 +876,12 @@ class Animation {
                     if(this.loop) this.curframe = 0;
                     else this.curframe = this.frames.length - 1;
                 }
-            }  
+            }
+            
+            if(this.curframe in this.event) {
+                this.event[this.curframe]();
+            }
+            
             if(this.curframe === undefined) {
                 console.error("curframe is undefined");
                 return;
@@ -914,6 +935,8 @@ class Animator extends OBJECT {
         // {name: value}
         this.values = {};
 
+        this.excess = false;
+
         this.__animationChanged = true;
         _engine.registerEvent(`Animator${this.id}`, () => { this.__animator_update(); });
 
@@ -926,9 +949,11 @@ class Animator extends OBJECT {
      * @param {string} valueName - 连接条件的变量名
      * @param {any} initValue - 连接条件的初始值
      * @param {function} condition - 动画切换条件
+     * @param {boolean} excess - 是否保留多余的帧
+     * @param {function|null} callback - 动画切换后的回调函数
      */
-    connect(anim1, anim2, valueName, initValue, condition) {
-        this.animations[anim1].next.push({"anim": this.animations[anim2], "condition": condition, [valueName]: initValue});
+    connect(anim1, anim2, valueName, initValue, condition, excess = false, callback = null) {
+        this.animations[anim1].next.push({"anim": this.animations[anim2], "condition": condition, [valueName]: initValue, "excess": excess, "callback": callback});
         this.values[valueName] = initValue;
     }
 
@@ -966,9 +991,14 @@ class Animator extends OBJECT {
         for(let next of this.current.next) {
             if(next.condition(this.values[next.valueName])) {
                 this.current.__object__.destory();
+                
                 let ratio = this.current.curframe / this.current.frames.length;
                 this.current = next.anim;
-                this.current.curframe = Math.floor(ratio * this.current.frames.length);
+
+                if(next.excess)
+                    this.current.curframe = Math.floor(ratio * this.current.frames.length);
+                next.callback && next.callback();
+
                 this.__animationChanged = true;
                 return this.__animator_update();
             }
