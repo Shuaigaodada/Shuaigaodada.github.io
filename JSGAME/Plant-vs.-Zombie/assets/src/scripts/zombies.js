@@ -39,11 +39,17 @@ class NormalZombie extends Zombie {
             "LostHeadMove": _engine.getAnimation("Zombie", "LostHeadMove")
     }, Zombie.Spawn[line].x, Zombie.Spawn[line].y, NormalZombie.width, NormalZombie.height);
         this.enter = "Move1";
-        this.createCollisionBox(50, 30, -80, -30);
+        this.createCollisionBox(70, 40, -100, -50);
         this.collisionBox.debug.show();
         this.line = line + 1;
+        this.animations["Die"].loop = false;
+        
         this.connect(
-            "Move1", "LostHeadMove", "health", this.health, () => {return this.health <= 60;}
+            "Move1", "LostHeadMove", "health", this.health, () => {return this.health <= 60;}, true,
+            () => {this.headDown();}
+        )
+        this.connect(
+            "LostHeadMove", "Die", "health", this.health, () => {return this.health <= 0;}
         )
     }
 
@@ -51,18 +57,49 @@ class NormalZombie extends Zombie {
         this.speed = 12;
         this.health = 300;
         this.moving = true;
+        this.died = false;
+        this.head = null
+    }
+
+    headDown() {
+        // use Animation just play once
+        this.head = this.animations["LostHead"];
+        const headOffsetX = 45;
+        const headOffsetY = 0;
+        
+        this.head.loop = false;
+        this.head.speed = 5;
+        this.head.draw(105, 165);
+        this.head.setPosition(this.x + headOffsetX, this.y + headOffsetY);
     }
 
     update() {
-
         this.setValue("health", this.health);
-        if(this.health <= 0) {
+        if(this.health <= 0 && !this.died) {
             // this.destory();
             GameManager.SubZombieLine(this.line);
-            
+            this.collisionBox.hide();
+            this.died = true;
             return;
         }
-        if(this.moving) {
+
+        if(this.head && this.head.curframe === this.head.frames.length - 1) {
+            this.head.__object__.setOpacity(this.head.__object__.opacity - _engine.deltaTime);
+        } if(this.head && this.head.__object__.opacity <= 0) {
+            this.head.destory();
+            this.head = null;
+        }
+
+        if(this.died) {
+            if(this.current.curframe === this.current.frames.length - 1) {
+                this.setOpacity(this.opacity - _engine.deltaTime);
+            }
+            if(this.opacity <= 0) {
+                this.destory();
+            }
+        }
+
+        if(this.moving && !this.died) {
             this.move();
         }
             

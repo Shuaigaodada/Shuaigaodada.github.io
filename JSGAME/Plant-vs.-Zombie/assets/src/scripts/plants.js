@@ -29,10 +29,12 @@ class Peashooter extends Plant {
         this.health = 300;
         this.cost = 100;
         this.attack_interval = 1.360;
+        // this.attack_interval = 0.300;
         this.bulletX = this.x + 20;
         this.bulletY = this.y;
         this.bulletDirection = [1, 0];
-        this.bulletSpeed = 250;
+        // this.bulletSpeed = 250;
+        this.bulletSpeed = 10;
         this.bulletDamage = 20;
 
         this.AttackRange = false;
@@ -63,10 +65,12 @@ class Peashooter extends Plant {
         bullet.direction = this.bulletDirection;
         bullet.speed = this.bulletSpeed;
         bullet.damage = this.bulletDamage;
+        bullet.order = 999;
 
         bullet.createCircleCollisionBox(9, 27, 6.5);
+        // bullet.collisionBox.debug.show();
         bullet.collisionBox.onCollisionEnter = function(other) {
-            if(other.tag === "Zombie") {
+            if(other.tag === "Zombie" && !other.died) {
                 other.hurt && other.hurt(bullet.damage);
                 _engine.playAudio("kernelpult2.ogg");
                 bullet.image = _engine.getImage("PeaBulletHit.png");

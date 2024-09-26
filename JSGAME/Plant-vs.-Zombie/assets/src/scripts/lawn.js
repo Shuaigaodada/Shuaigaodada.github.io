@@ -24,8 +24,14 @@ class DaytimeLawn {
         _engine.setAudioLoop("bgm1.mp3", true);
         _engine.setAudioVolume("bgm1.mp3", 0.5);
         _engine.playAudio("bgm1.mp3");
+        // TEST CODE
         this.plant(Peashooter, 0, 1);
-        const zombie = new NormalZombie(1);
+        // this.plant(Peashooter, 1, 1);
+
+        new NormalZombie(1);
+        setInterval(() => {
+            new NormalZombie(1);
+        }, 20000);
         
     }
 
@@ -54,7 +60,7 @@ class DaytimeLawn {
                 //     block.tag = "Zombie";
                 if(j === 8) {
                     block.createCollisionBox();
-                    block.collisionBox.debug.show();
+                    // block.collisionBox.debug.show();
                     block.collisionBox.onCollisionEnter = function(other) {
                         if(other.tag === "Zombie") {
                             GameManager.AddZombieLine(i + 1);
