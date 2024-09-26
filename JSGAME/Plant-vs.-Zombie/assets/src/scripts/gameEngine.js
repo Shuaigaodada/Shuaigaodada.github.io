@@ -1,38 +1,36 @@
 /**
- * 游戏引擎实例，全局唯一
- * @type {GameEngine}
- */
-var _engine;
-
-/**
  * 游戏引擎类，负责管理游戏的整体逻辑、绘制、资源加载等
  * @param {number} width - 画布宽度
  * @param {number} height - 画布高度
  */
 class GameEngine {
-    constructor(width, height) {
-        this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d');
-        this.canvas.width = width;
-        this.canvas.height = height;
-
-        this.width = width;
-        this.height = height;
-
+    constructor() {
         this.__images = [];
         this.__audios = {};
         this.__animations = {};
         this.objects = [];
 
         this.__levels = {};
-
-        // game loop
-        this.update = null;
         this.__updateEvent = {};
 
         this.fps = 60;
         this.__time = 0.0;
         this.deltaTime = 0.0;
+    }
+
+    /**
+     * 初始化引擎
+     * @param {HTMLCanvasElement} canvas - 画布对象
+     * @param {Number} width - 画布的宽度
+     * @param {Number} height - 画布的高度
+     */
+    init(canvas, width, height) {
+        this.canvas = document.getElementById(canvas);
+        this.ctx = this.canvas.getContext("2d");
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.width = width;
+        this.height = height;
 
         // bind event
         this.__mouseDown__ = this.__mouseDown__.bind(this);
@@ -42,10 +40,7 @@ class GameEngine {
         this.canvas.addEventListener('mousedown', this.__mouseDown__);
         this.canvas.addEventListener('mouseup', this.__mouseUp__);
         this.canvas.addEventListener('mousemove', this.__mouseMove__);
-
-        _engine = this;        
     }
-
     /**
      * 注册更新事件
      * @param {string} name - 事件名称
@@ -70,7 +65,7 @@ class GameEngine {
      * @param {string} name - 动画的名称
      * @returns {Animation} - 动画对象
      */
-    getAnimation(_class, name, speed = 10) {
+    getAnimation(_class, name, speed = 1) {
         return this.__animations[_class][name].animation(speed);
     }
 
@@ -116,7 +111,7 @@ class GameEngine {
     /**
      * 游戏引擎更新方法，负责更新游戏逻辑和绘制画面
      */
-    engine_update() {
+    __update() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
         this.objects.sort((a, b) => a.order - b.order);
@@ -132,7 +127,6 @@ class GameEngine {
         for(let eventName of Object.keys(this.__updateEvent)) {
             this.__updateEvent[eventName]();
         }
-        this.update && this.update()
     }
 
     /**
@@ -274,7 +268,7 @@ class GameEngine {
      */
     start() {
         setInterval(() => {
-            this.engine_update();
+            this.__update();
         }, 1000 / this.fps);
     }
 
@@ -347,13 +341,13 @@ class CollisionBox {
      */
     __debug_show() {
         if(this.__drawed_box) {
-            _engine.ctx.save();
-            _engine.ctx.strokeStyle = this.__hided_box ? this.debug.hide_color : this.debug.show_color;
-            _engine.ctx.lineWidth = 1;
-            _engine.ctx.strokeRect(this.x, this.y, this.width, this.height);
-            _engine.ctx.restore();
+            engine.ctx.save();
+            engine.ctx.strokeStyle = this.__hided_box ? this.debug.hide_color : this.debug.show_color;
+            engine.ctx.lineWidth = 1;
+            engine.ctx.strokeRect(this.x, this.y, this.width, this.height);
+            engine.ctx.restore();
         } else {
-            _engine.registerEvent(`box${this.id} - debug show`, () => { this.__debug_show(); });
+            engine.registerEvent(`box${this.id} - debug show`, () => { this.__debug_show(); });
             this.__drawed_box = true;
         }
     }
@@ -363,7 +357,7 @@ class CollisionBox {
      * @returns {void}
      */
     __debug_hide() {
-        _engine.removeEvent(`box${this.id} - debug show`);
+        engine.removeEvent(`box${this.id} - debug show`);
     }
 
     /**
@@ -416,7 +410,7 @@ class CollisionBox {
      * 检测当前碰撞盒是否与其他对象的碰撞盒发生碰撞，并触发相应的碰撞事件
      */
     __collideEvent() {
-        for(let object of _engine.objects) {
+        for(let object of engine.objects) {
             // if(object.collisionBox && object.collisionBox !== this && this.isCollideWith(object.collisionBox)) {
             //     this.onCollisionStay(object);
             // }
@@ -442,7 +436,7 @@ class CollisionBox {
      * 注册碰撞事件
      */
     registerEvent() {
-        _engine.registerEvent(`CollisionBox${this.id} - collistionEvent`, () => { this.__collideEvent(); });
+        engine.registerEvent(`CollisionBox${this.id} - collistionEvent`, () => { this.__collideEvent(); });
     }
 
     /**
@@ -451,7 +445,7 @@ class CollisionBox {
      * @returns {void}
      */
     destory() {
-        _engine.removeEvent(`CollisionBox${this.id} - collistionEvent`);
+        engine.removeEvent(`CollisionBox${this.id} - collistionEvent`);
         if(this.__drawed_box)
             this.debug.hide();
     }
@@ -540,15 +534,15 @@ class CircleCollisionBox extends CollisionBox {
      */
     __debug_show() {
         if (this.__drawed_box) {
-            _engine.ctx.save();
-            _engine.ctx.strokeStyle = this.__hided_box ? this.debug.hide_color : this.debug.show_color;
-            _engine.ctx.lineWidth = 1;
-            _engine.ctx.beginPath();
-            _engine.ctx.arc(this.x + this.radius, this.y + this.radius, this.radius, 0, 2 * Math.PI);
-            _engine.ctx.stroke();
-            _engine.ctx.restore();
+            engine.ctx.save();
+            engine.ctx.strokeStyle = this.__hided_box ? this.debug.hide_color : this.debug.show_color;
+            engine.ctx.lineWidth = 1;
+            engine.ctx.beginPath();
+            engine.ctx.arc(this.x + this.radius, this.y + this.radius, this.radius, 0, 2 * Math.PI);
+            engine.ctx.stroke();
+            engine.ctx.restore();
         } else {
-            _engine.registerEvent(`circle${this.id} - debug show`, () => { this.__debug_show(); });
+            engine.registerEvent(`circle${this.id} - debug show`, () => { this.__debug_show(); });
             this.__drawed_box = true;
         }
     }
@@ -558,7 +552,7 @@ class CircleCollisionBox extends CollisionBox {
      * @returns {void}
      */
     __debug_hide() {
-        _engine.removeEvent(`circle${this.id} - debug show`);
+        engine.removeEvent(`circle${this.id} - debug show`);
     }
 }
 
@@ -589,10 +583,10 @@ class OBJECT {
         this.childs = []; // 子对象
         this.parent = null; // 父对象
         this.id = OBJECT.OBJECT_ID++; // 为每个实例生成唯一ID
-        this.order = _engine.objects.length; // 绘制顺序
+        this.order = engine.objects.length; // 绘制顺序
         this.offsetX = 0;
         this.offsetY = 0;
-        _engine.objects.push(this);
+        engine.objects.push(this);
     }
 
     /**
@@ -698,15 +692,15 @@ class OBJECT {
     // setOrder(order) {
     //     this.order = order;
     //     this.destory()
-    //     // insert object to _engine.objects use order
-    //     for(let i = 0; i < _engine.objects.length; i++) {
-    //         if(_engine.objects[i].order > order) {
-    //             _engine.objects.splice(i, 0, this);
+    //     // insert object to engine.objects use order
+    //     for(let i = 0; i < engine.objects.length; i++) {
+    //         if(engine.objects[i].order > order) {
+    //             engine.objects.splice(i, 0, this);
     //             return;
     //         }
     //     }
     //     // if not found, push to the end
-    //     _engine.objects.push(this);
+    //     engine.objects.push(this);
     // }
 
     /**
@@ -728,7 +722,7 @@ class OBJECT {
      * @returns {OBJECT} - 创建的对象
      */
     static create(imgName, x, y, width, height, visible = true) {
-        let image = _engine.getImage(imgName);
+        let image = engine.getImage(imgName);
         if(image === null)
             console.error(`didn't find image: ${imgName}, please preload it first`);
             // if image not loaded, return null image object
@@ -743,7 +737,7 @@ class OBJECT {
      */
     findImage() {
         if(typeof this.image === "string") {
-            this.image = _engine.getImage(this.image);
+            this.image = engine.getImage(this.image);
         }
     }
 
@@ -752,9 +746,9 @@ class OBJECT {
      * @param {OBJECT} object - 要销毁的对象
      */
     static destory(object) {
-        let index = _engine.objects.indexOf(object);
+        let index = engine.objects.indexOf(object);
         if(index !== -1){
-            _engine.objects.splice(index, 1);
+            engine.objects.splice(index, 1);
         } else {
             console.warn("Object not found");
         }
@@ -770,10 +764,10 @@ class OBJECT {
             console.error("Name is null"); 
             return; 
         }
-        for(let i = 0; i < _engine.objects.length; i++) {
-            if(_engine.objects[i].name === name) {
-                _engine.objects[i].collisionBox && _engine.objects[i].collisionBox.destory();
-                _engine.objects.splice(i, 1);
+        for(let i = 0; i < engine.objects.length; i++) {
+            if(engine.objects[i].name === name) {
+                engine.objects[i].collisionBox && engine.objects[i].collisionBox.destory();
+                engine.objects.splice(i, 1);
                 return;
             }
         }
@@ -805,7 +799,7 @@ class PreloadAnimation {
     constructor(_class, name, imgs, callback) {
         this.frames = new Array(imgs.length);
         imgs.forEach((imageSrc, i) => {
-            _engine.preload(imageSrc).then(
+            engine.preload(imageSrc).then(
                 img => {
                     this.frames[i] = img;
                     callback && callback();
@@ -813,10 +807,10 @@ class PreloadAnimation {
             ).catch(err => console.error(err));
         });
 
-        if(_engine.__animations[_class] === undefined) {
-            _engine.__animations[_class] = {};
+        if(engine.__animations[_class] === undefined) {
+            engine.__animations[_class] = {};
         }
-        _engine.__animations[_class][name] = this;
+        engine.__animations[_class][name] = this;
     }
 
     animation(speed) {
@@ -833,10 +827,10 @@ class PreloadAnimation {
  * @param {function|null} callback - 动画加载完成后的回调函数
  */
 class Animation {
-    constructor(frames, speed = 10) {
+    constructor(frames, speed = 1) {
         this.frames = frames
         this.curframe = 0;
-        this.index = 0;
+        this.framesCount = 0;
         this.speed = speed;
         this.__object__ = null;
 
@@ -864,13 +858,14 @@ class Animation {
      * @param {number} height - 动画对象的高度
      * @param {boolean} visible - 是否可见
      */
-    draw(width, height, visible = true) {
+    create(width, height, visible = true) {
         this.__object__ = new OBJECT(this.frames[0], width, height, visible);
         this.__object__.tag = "animation";
         this.__object__.update = () => {
-            this.index++;
-            if(this.index >= this.speed) {
-                this.index = 0;
+            this.framesCount++;
+            const framesToUpdate = Math.floor(8 / this.speed);
+            if(this.framesCount >= framesToUpdate) {
+                this.framesCount = 0;
                 this.curframe++;
                 if(this.curframe >= this.frames.length) {
                     if(this.loop) this.curframe = 0;
@@ -938,7 +933,7 @@ class Animator extends OBJECT {
         this.excess = false;
 
         this.__animationChanged = true;
-        _engine.registerEvent(`Animator${this.id}`, () => { this.__animator_update(); });
+        engine.registerEvent(`Animator${this.id}`, () => { this.__animator_update(); });
 
     }
 
@@ -1010,7 +1005,7 @@ class Animator extends OBJECT {
         }
 
         if(this.__animationChanged) {
-            this.current.draw(this.width, this.height, this.visible);
+            this.current.create(this.width, this.height, this.visible);
             this.current.setPosition(this.x, this.y);
             this.__animationChanged = false;
         }
@@ -1036,7 +1031,7 @@ class Animator extends OBJECT {
         //     anim.destory();
         // }
         this.current.destory();
-        _engine.removeEvent(`Animator${this.id}`);
+        engine.removeEvent(`Animator${this.id}`);
         super.destory();
     }
 }
@@ -1474,3 +1469,9 @@ class Mathf {
         }
     }
 }
+
+/**
+ * 游戏引擎实例，全局唯一
+ * @type {GameEngine}
+ */
+const engine = new GameEngine();

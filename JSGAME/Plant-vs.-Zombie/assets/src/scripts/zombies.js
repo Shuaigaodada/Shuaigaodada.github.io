@@ -29,14 +29,14 @@ class NormalZombie extends Zombie {
     static height = 125;
     constructor(line) {
         super({
-            "Move1": _engine.getAnimation("Zombie", "Move1"),
-            "Move2": _engine.getAnimation("Zombie", "Move2"),
-            "Back": _engine.getAnimation("Zombie", "Back"),
-            "Die": _engine.getAnimation("Zombie", "Die"),
-            "Eat": _engine.getAnimation("Zombie", "Eat"),
-            "LostHead": _engine.getAnimation("Zombie", "LostHead"),
-            "LostHeadEat": _engine.getAnimation("Zombie", "LostHeadEat"),
-            "LostHeadMove": _engine.getAnimation("Zombie", "LostHeadMove")
+            "Move1": engine.getAnimation("Zombie", "Move1"),
+            "Move2": engine.getAnimation("Zombie", "Move2"),
+            "Back": engine.getAnimation("Zombie", "Back"),
+            "Die": engine.getAnimation("Zombie", "Die"),
+            "Eat": engine.getAnimation("Zombie", "Eat"),
+            "LostHead": engine.getAnimation("Zombie", "LostHead"),
+            "LostHeadEat": engine.getAnimation("Zombie", "LostHeadEat"),
+            "LostHeadMove": engine.getAnimation("Zombie", "LostHeadMove")
     }, Zombie.Spawn[line].x, Zombie.Spawn[line].y, NormalZombie.width, NormalZombie.height);
         this.enter = "Move1";
         this.createCollisionBox(70, 40, -100, -50);
@@ -68,15 +68,14 @@ class NormalZombie extends Zombie {
         const headOffsetY = 0;
         
         this.head.loop = false;
-        this.head.speed = 5;
-        this.head.draw(105, 165);
+        this.head.speed = 1.3;
+        this.head.create(105, 165);
         this.head.setPosition(this.x + headOffsetX, this.y + headOffsetY);
     }
 
     update() {
         this.setValue("health", this.health);
         if(this.health <= 0 && !this.died) {
-            // this.destory();
             GameManager.SubZombieLine(this.line);
             this.collisionBox.hide();
             this.died = true;
@@ -84,7 +83,7 @@ class NormalZombie extends Zombie {
         }
 
         if(this.head && this.head.curframe === this.head.frames.length - 1) {
-            this.head.__object__.setOpacity(this.head.__object__.opacity - _engine.deltaTime);
+            this.head.__object__.setOpacity(this.head.__object__.opacity - engine.deltaTime);
         } if(this.head && this.head.__object__.opacity <= 0) {
             this.head.destory();
             this.head = null;
@@ -92,7 +91,7 @@ class NormalZombie extends Zombie {
 
         if(this.died) {
             if(this.current.curframe === this.current.frames.length - 1) {
-                this.setOpacity(this.opacity - _engine.deltaTime);
+                this.setOpacity(this.current.__object__.opacity - engine.deltaTime);
             }
             if(this.opacity <= 0) {
                 this.destory();
@@ -106,7 +105,7 @@ class NormalZombie extends Zombie {
     }
 
     move() {
-        this.x -= this.speed * _engine.deltaTime;
+        this.x -= this.speed * engine.deltaTime;
     }
 
 }

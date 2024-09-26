@@ -21,9 +21,9 @@ class DaytimeLawn {
     }
 
     startGame() {
-        _engine.setAudioLoop("bgm1.mp3", true);
-        _engine.setAudioVolume("bgm1.mp3", 0.5);
-        _engine.playAudio("bgm1.mp3");
+        engine.setAudioLoop("bgm1.mp3", true);
+        engine.setAudioVolume("bgm1.mp3", 0.5);
+        engine.playAudio("bgm1.mp3");
         // TEST CODE
         this.plant(Peashooter, 0, 1);
         // this.plant(Peashooter, 1, 1);
@@ -41,15 +41,15 @@ class DaytimeLawn {
     }
 
     createMap() {
-        this.mapObject = OBJECT.create("background1.jpg", -150, 0, _engine.width * 1.5, _engine.height * 1.08);
-        // const block = new OBJECT(_engine.getImage("card_bk.jpg"), this.width, this.height);
+        this.mapObject = OBJECT.create("background1.jpg", -150, 0, engine.width * 1.5, engine.height * 1.08);
+        // const block = new OBJECT(engine.getImage("card_bk.jpg"), this.width, this.height);
         // block.x = __levelStartX ;
         // block.y = __levelStartY ;
         for(let i = 0; i < 5; i++) {
             this.map.push([]);
             this.plants.push([]);
             for(let j = 0; j <= 8; j++) {
-                const block = new OBJECT(_engine.getImage("card_bk.jpg"), this.width, this.height);
+                const block = new OBJECT(engine.getImage("card_bk.jpg"), this.width, this.height);
                 block.setOpacity(0.0);
                 block.x = __MapStartX + this.width * j + __MapSpace * j;
                 block.y = __MapStartY + this.height * i + __MapSpace * i;
@@ -75,18 +75,18 @@ class DaytimeLawn {
     }
 
     async startTips(callback) {
-        _engine.playAudio("readysetplant.ogg");
+        engine.playAudio("readysetplant.ogg");
         const [x, y] = [250, 190];
         const width = 400;
         const height = 200;
         const startSet = OBJECT.create("StartSet.png", x, y, width, height);
-        await _engine.sleep(500);
+        await engine.sleep(500);
         startSet.destory();
         const startReady = OBJECT.create("StartReady.png", x, y, width, height);
-        await _engine.sleep(500);
+        await engine.sleep(500);
         startReady.destory();
         const startPlant = OBJECT.create("StartPlant.png", x, y, width, height);
-        await _engine.sleep(1000);
+        await engine.sleep(1000);
         startPlant.destory();
         callback && callback();
     }

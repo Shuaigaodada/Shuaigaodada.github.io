@@ -20,7 +20,7 @@ class Peashooter extends Plant {
     static width = 60;
     static height = 60;
     constructor(position, line) {
-        super({"default": _engine.getAnimation("Peashooter", "Peashooter")}, position[0], position[1], Peashooter.width, Peashooter.height);
+        super({"default": engine.getAnimation("Peashooter", "Peashooter")}, position[0], position[1], Peashooter.width, Peashooter.height);
         this.enter = "default";
         this.line = line;
     }
@@ -42,7 +42,7 @@ class Peashooter extends Plant {
     }
 
     update() {
-        this.timer += _engine.deltaTime;
+        this.timer += engine.deltaTime;
         if(GameManager.GetLineZombies(this.line) > 0) {
             this.AttackRange = true;
         } else {
@@ -55,8 +55,8 @@ class Peashooter extends Plant {
     }
 
     shot() {
-        _engine.setAudioVolume("shoot.mp3", 0.3);
-        _engine.playAudio("shoot.mp3", () => {this.createBullet();}, 400);
+        engine.setAudioVolume("shoot.mp3", 0.3);
+        engine.playAudio("shoot.mp3", () => {this.createBullet();}, 400);
     }
 
     createBullet() {
@@ -72,13 +72,13 @@ class Peashooter extends Plant {
         bullet.collisionBox.onCollisionEnter = function(other) {
             if(other.tag === "Zombie" && !other.died) {
                 other.hurt && other.hurt(bullet.damage);
-                _engine.playAudio("kernelpult2.ogg");
-                bullet.image = _engine.getImage("PeaBulletHit.png");
+                engine.playAudio("kernelpult2.ogg");
+                bullet.image = engine.getImage("PeaBulletHit.png");
                 bullet.width = 50;
                 bullet.height = 45;
                 bullet.collisionBox.hide();
                 bullet.update = function() {
-                    this.setOpacity(this.opacity - _engine.deltaTime);
+                    this.setOpacity(this.opacity - engine.deltaTime);
                     if(this.opacity <= 0) {
                         bullet.image = null;
                         this.destory();
@@ -88,10 +88,10 @@ class Peashooter extends Plant {
         }
         
         bullet.update = function() {
-            this.x += this.speed * this.direction[0] * _engine.deltaTime;
-            // this.y += this.speed * this.direction[1] * _engine.deltaTime;
+            this.x += this.speed * this.direction[0] * engine.deltaTime;
+            // this.y += this.speed * this.direction[1] * engine.deltaTime;
 
-            if(this.x > _engine.width || this.x < 0 || this.y > _engine.height || this.y < 0) {
+            if(this.x > engine.width || this.x < 0 || this.y > engine.height || this.y < 0) {
                 this.destory();
             }
         }

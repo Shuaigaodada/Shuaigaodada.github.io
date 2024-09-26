@@ -1,4 +1,3 @@
-console.log("Preload loaded");
 var rollcap_x = 300;
 
 class PathGenerator {
@@ -43,7 +42,7 @@ class PreloadPages {
     
     async startLoad(callback) {
         // wait load page source done
-        await Promise.all(LOADINGPAGES.map(src => _engine.preload(src)));
+        await Promise.all(LOADINGPAGES.map(src => engine.preload(src)));
         
         // create loading page objects
         this.create_loading_page();
@@ -71,7 +70,7 @@ class PreloadPages {
     }
 
     create_loading_page() {
-        this.titlescreenObject = OBJECT.create("titlescreen.jpg", 0, 0, _engine.width, _engine.height);
+        this.titlescreenObject = OBJECT.create("titlescreen.jpg", 0, 0, engine.width, engine.height);
         this.PvZ_LogoObject = OBJECT.create("PvZ_Logo.png", 120, 20, 700, 100);
         this.LoadBar_dirtObject = OBJECT.create("LoadBar_dirt.png", 310, 480, 300, 40);
         this.LoadBar_grassObject = OBJECT.create("LoadBar_grass.png", 310, 470, 290, 20);
@@ -115,7 +114,7 @@ class PreloadPages {
         this.goMenuText.style = {"font": "16px Arialn", "color": "yellow"};
         this.goMenuText.setPosition(429, 504);
 
-        this.goMenuButton = new Button(_engine.getImage("card_bk.jpg"), 305, 480, 290, 40, callback);
+        this.goMenuButton = new Button(engine.getImage("card_bk.jpg"), 305, 480, 290, 40, callback);
         this.goMenuButton.visible = false;
         
     }
@@ -123,7 +122,7 @@ class PreloadPages {
     async loadAudio() {
         const promises = [];
         for(let i = 0; i < AUDIOSOURCE.length; i++) {
-            const promise = _engine.preloadAudio(AUDIOSOURCE[i].split('/').pop(), AUDIOSOURCE[i])
+            const promise = engine.preloadAudio(AUDIOSOURCE[i].split('/').pop(), AUDIOSOURCE[i])
             .then(() => { this.loadpageProgress(++this.loaded / this.total); });
             promises.push(promise);
         }
@@ -133,7 +132,7 @@ class PreloadPages {
     async loadImages(images) {
         const promises = [];
         for(let i = 0; i < images.length; i++) {
-            const promise = _engine.preload(images[i])
+            const promise = engine.preload(images[i])
             .then(() => { this.loadpageProgress(++this.loaded / this.total); });
             promises.push(promise);
         }
