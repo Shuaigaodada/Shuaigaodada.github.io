@@ -990,7 +990,7 @@ class Animator extends OBJECT {
 
         for(let next of this.current.next) {
             if(next.condition(this.values[next.valueName])) {
-                this.current.__object__.destory();
+                this.current.destory();
                 
                 let ratio = this.current.curframe / this.current.frames.length;
                 this.current = next.anim;
@@ -1032,9 +1032,10 @@ class Animator extends OBJECT {
      * @returns {void}
      */
     destory() {
-        for(let anim of Object.values(this.animations)) {
-            anim.destory && anim.destory();
-        }
+        // for(let anim of Object.values(this.animations)) {
+        //     anim.destory();
+        // }
+        this.current.destory();
         _engine.removeEvent(`Animator${this.id}`);
         super.destory();
     }

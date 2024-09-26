@@ -26,15 +26,15 @@ class Peashooter extends Plant {
     }
 
     initattr() {
-        this.health = 300;
-        this.cost = 100;
-        this.attack_interval = 1.360;
-        // this.attack_interval = 0.300;
         this.bulletX = this.x + 20;
         this.bulletY = this.y;
         this.bulletDirection = [1, 0];
-        // this.bulletSpeed = 250;
-        this.bulletSpeed = 10;
+
+        this.health = 300;
+        this.cost = 100;
+
+        this.attack_interval = 1.360;
+        this.bulletSpeed = 250;
         this.bulletDamage = 20;
 
         this.AttackRange = false;
@@ -89,7 +89,7 @@ class Peashooter extends Plant {
         
         bullet.update = function() {
             this.x += this.speed * this.direction[0] * _engine.deltaTime;
-            this.y += this.speed * this.direction[1] * _engine.deltaTime;
+            // this.y += this.speed * this.direction[1] * _engine.deltaTime;
 
             if(this.x > _engine.width || this.x < 0 || this.y > _engine.height || this.y < 0) {
                 this.destory();
