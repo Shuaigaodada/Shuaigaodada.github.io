@@ -863,6 +863,7 @@ class Animation {
         this.__object__.tag = "animation";
         this.__object__.update = () => {
             this.framesCount++;
+            // 8 帧更新一次
             const framesToUpdate = Math.floor(8 / this.speed);
             if(this.framesCount >= framesToUpdate) {
                 this.framesCount = 0;
