@@ -8,12 +8,21 @@ class Plant extends Animator {
         this.health = 0;
         this.cost = 0;
         this.initattr();
-        this.createCollisionBox();
         this.tag = "Plant";
+        this._timer = 0;
     }
 
     initattr() { }
-    hurt(damage) { this.health -= damage; }
+    hurt(damage) {
+        this._timer += engine.deltaTime;
+        if(this._timer >= 0.5) {
+            this._timer = 0;
+            this.health -= damage;
+            if(this.health <= 0) {
+                this.destory();
+            }
+        }
+    }
 }
 
 class Peashooter extends Plant {
@@ -34,11 +43,15 @@ class Peashooter extends Plant {
         this.cost = 100;
 
         this.attack_interval = 1.360;
+        // this.attack_interval = 1.360;
         this.bulletSpeed = 250;
         this.bulletDamage = 20;
 
         this.AttackRange = false;
         this.timer = 0;
+
+        this.createCollisionBox();
+        // this.collisionBox.debug.show();
     }
 
     update() {
@@ -51,6 +64,21 @@ class Peashooter extends Plant {
         if(this.timer >= this.attack_interval && this.AttackRange) {
             this.shot();
             this.timer = 0;
+            
+            // 自娱自乐代码，记得删除
+            let continueShot = false;
+            let timeCount = 200;
+            while(!continueShot) {
+                if(Mathf.RandomInt(0, 100) <= 10 * GameManager.GetLineZombies(this.line)) {
+                    setTimeout(() => {
+                        this.shot();
+                        this.timer = 0;
+                    }, timeCount);
+                    timeCount += 200;
+                } else {
+                    continueShot = true;
+                }
+            }
         }
     }
 
@@ -95,6 +123,6 @@ class Peashooter extends Plant {
                 this.destory();
             }
         }
-        
     }
+
 }

@@ -6,20 +6,21 @@ class Zombie extends Animator {
          * @type {Animator}
          */
         this.health = 0;
-        this.initattr();
+        this.start();
         this.tag = "Zombie";
     }
 
-    initattr() { }
+    start() { }
     hurt(damage) { this.health -= damage; }
 
 
+    // 出生坐标
     static Spawn = [
-        {x: 1200, y: 60}, // 1200
-        {x: 800, y: 160},
-        {x: 0, y: 0},
-        {x: 0, y: 0},
-        {x: 0, y: 0}
+        {x: 850, y: 65},
+        {x: 850, y: 160},
+        {x: 850, y: 260},
+        {x: 850, y: 365},
+        {x: 850, y: 475}
     ]
 
 }
@@ -37,28 +38,28 @@ class NormalZombie extends Zombie {
             "LostHead": engine.getAnimation("Zombie", "LostHead"),
             "LostHeadEat": engine.getAnimation("Zombie", "LostHeadEat"),
             "LostHeadMove": engine.getAnimation("Zombie", "LostHeadMove")
-    }, Zombie.Spawn[line].x, Zombie.Spawn[line].y, NormalZombie.width, NormalZombie.height);
-        this.enter = "Move1";
-        this.createCollisionBox(70, 40, -100, -50);
-        this.collisionBox.debug.show();
+        }, Zombie.Spawn[line].x, Zombie.Spawn[line].y, NormalZombie.width, NormalZombie.height);
+
         this.line = line + 1;
-        this.animations["Die"].loop = false;
-        
-        this.connect(
-            "Move1", "LostHeadMove", "health", this.health, () => {return this.health <= 60;}, true,
-            () => {this.headDown();}
-        )
-        this.connect(
-            "LostHeadMove", "Die", "health", this.health, () => {return this.health <= 0;}
-        )
+        this.damage = 20;
     }
 
-    initattr() {
+    start() {
         this.speed = 12;
         this.health = 300;
+        this.lostHeadHealth = 60;
         this.moving = true;
         this.died = false;
         this.head = null
+
+        this.enter = "Move1";
+        this.createCollisionBox(60, 45, -90, -50);
+        // this.collisionBox.debug.show();
+        this.animations["Die"].loop = false;
+        this.connectAnimations();
+        this.setCollisionEvent();
+
+        this.setValue("moving", this.moving);
     }
 
     headDown() {
@@ -106,6 +107,61 @@ class NormalZombie extends Zombie {
 
     move() {
         this.x -= this.speed * engine.deltaTime;
+    }
+
+    setCollisionEvent() {
+        this.collisionBox.onCollisionEnter = (other) => {
+            if(other.tag === "Plant") {
+                this.moving = false;
+                this.setValue("moving", this.moving);
+            }
+        }
+        this.collisionBox.onCollisionStay = (other) => {
+            if(other.tag === "Plant") {
+                other.hurt && other.hurt(this.damage);
+            }
+        }
+        this.collisionBox.onCollisionExit = (other) => {
+            console.log("exit");
+            if(other.tag === "Plant") {
+                console.log("call");
+                this.moving = true;
+                this.setValue("moving", this.moving);
+            }
+        }
+    }
+
+    connectAnimations() {
+        this.connect(
+            "Move1", "LostHeadMove", (values) => {return values["health"] <= this.lostHeadHealth;}, true,
+            () => {this.headDown();}
+        )
+        this.connect(
+            "LostHeadMove", "Die", (values) => {return values["health"] <= 0;}
+        )
+        this.connect(
+            "LostHeadMove", "LostHeadEat", (values) => {return values["health"] <= this.lostHeadHealth && !values["moving"];}
+        )
+        this.connect(
+            "LostHeadEat", "LostHeadMove", (values) => {return values["health"] <= this.lostHeadHealth && values["moving"];}
+        )
+        this.connect(
+            "Move1", "Eat", (values) => {
+                return values["health"] > 0 && !values["moving"];
+            }
+        )
+        this.connect(
+            "Eat", "Move1", (values) => {
+                return values["health"] > 0 && values["moving"];
+            }
+        )
+        this.connect(
+            "Eat", "LostHeadEat", (values) => { return values["health"] <= this.lostHeadHealth; }, true,
+            () => {this.headDown();}
+        )
+        this.connect(
+            "LostHeadEat", "Die", (values) => {return values["health"] <= 0;}
+        )
     }
 
 }

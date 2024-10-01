@@ -25,14 +25,33 @@ class DaytimeLawn {
         engine.setAudioVolume("bgm1.mp3", 0.5);
         engine.playAudio("bgm1.mp3");
         // TEST CODE
+        this.plant(Peashooter, 0, 0);
         this.plant(Peashooter, 0, 1);
-        // this.plant(Peashooter, 1, 1);
+        this.plant(Peashooter, 0, 2);
+        this.plant(Peashooter, 0, 3);
+        this.plant(Peashooter, 0, 4);
 
+        new NormalZombie(0);
         new NormalZombie(1);
-        setInterval(() => {
-            new NormalZombie(1);
-        }, 20000);
-        
+        new NormalZombie(2);
+        new NormalZombie(3);
+        new NormalZombie(4);
+
+        let timerCount = 2000;
+        for(let i = 0; i < 100; i++) {
+            setTimeout(() => {
+                new NormalZombie(Mathf.RandomInt(0, 4));
+            }, timerCount * i);
+        }
+        // setInterval(() => {
+        //     let timerCount = 2000;
+        //     for(let i = 0; i < 10; i++) {
+        //         setTimeout(() => {
+        //             new NormalZombie(Mathf.RandomInt(0, 4));
+        //         }, timerCount * i);
+        //     }
+        // }, 10000);
+
     }
 
     plant(plants, x, y) {

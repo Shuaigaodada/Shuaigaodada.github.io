@@ -48,7 +48,7 @@ class PreloadPages {
         this.create_loading_page();
 
         // set grass slider as 0
-        this.LoadBar_grassObject.setSlider(0);
+        this.LoadBar_grassObject.setSliderX(0);
 
         // rotate the SodRollCap
         this.SodRollCapObject.update = function() {
@@ -95,7 +95,7 @@ class PreloadPages {
     loadpageProgress(progress) {
         var current_x = this.start_x + (this.final_x - this.start_x) * progress;
         this.SodRollCapObject.setPosition(current_x, 453);
-        this.LoadBar_grassObject.setSlider(progress);
+        this.LoadBar_grassObject.setSliderX(progress);
     }
 
     async load(callback) {

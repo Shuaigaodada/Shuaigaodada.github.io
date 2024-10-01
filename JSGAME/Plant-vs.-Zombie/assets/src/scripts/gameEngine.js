@@ -237,9 +237,8 @@ class GameEngine {
 
         // slider
         this.ctx.beginPath();
-        this.ctx.rect(object.x, object.y, object.width * object.slider, object.height);
+        this.ctx.rect(object.x, object.y, object.width * object.sliderX, object.height * object.sliderY);
         this.ctx.clip();
-
         // rotation
         this.ctx.translate(object.x + object.width / 2, object.y + object.height / 2);
         this.ctx.rotate(object.rotation * Math.PI / 180);
@@ -410,12 +409,13 @@ class CollisionBox {
      * 检测当前碰撞盒是否与其他对象的碰撞盒发生碰撞，并触发相应的碰撞事件
      */
     __collideEvent() {
-        for(let object of engine.objects) {
-            // if(object.collisionBox && object.collisionBox !== this && this.isCollideWith(object.collisionBox)) {
-            //     this.onCollisionStay(object);
-            // }
+        const destoryedObjects = this.__enterObject.filter(obj => !engine.objects.includes(obj));
+        // 合并摧毁的对象和当前对象
+        const objects = destoryedObjects.concat(engine.objects);
+
+        for(let object of objects) {
             if(object.collisionBox && object.collisionBox !== this) {
-                if(this.isCollideWith(object.collisionBox)) {
+                if(this.isCollideWith(object.collisionBox) && !object.__destoryed) {
                     if(!this.__enterObject.includes(object)) {
                         this.__enterObject.push(object);
                         this.onCollisionEnter(object);
@@ -430,6 +430,7 @@ class CollisionBox {
                 }
             }
         }
+        
     }
 
     /**
@@ -574,7 +575,8 @@ class OBJECT {
         this.text = null; // 对象的文本， null 表示没有文本
         this.style = {"font": "30px Arial", "color": "black"}; // 文本样式 
         this.rotation = 0; // 旋转角度
-        this.slider = 1; // 滑动效果比例
+        this.sliderX = 1; // 水平滑动效果比例
+        this.sliderY = 1; // 垂直滑动效果比例
         this.width = width; // 对象的宽度
         this.height = height; // 对象的高度
         this.visible = visible; // 对象是否可见
@@ -586,6 +588,7 @@ class OBJECT {
         this.order = engine.objects.length; // 绘制顺序
         this.offsetX = 0;
         this.offsetY = 0;
+        this.__destoryed = false;
         engine.objects.push(this);
     }
 
@@ -707,8 +710,17 @@ class OBJECT {
      * 设置对象的滑动效果比例
      * @param {number} slider - 滑动比例 (0-1)
      */
-    setSlider(slider) {
-        this.slider = slider;
+    setSliderX(slider) {
+        this.sliderX = slider;
+    }
+
+    /**
+     * 设置对象的滑动效果比例
+     * @param {number} slider - 滑动比例 (0-1)
+     * @returns {void}
+     */
+    setSliderY(slider) {
+        this.sliderY = slider;
     }
 
     /**
@@ -753,6 +765,7 @@ class OBJECT {
             console.warn("Object not found");
         }
         object.collisionBox && object.collisionBox.destory();
+        object.__destoryed = true;
     }
 
     /**
@@ -942,15 +955,12 @@ class Animator extends OBJECT {
      * 连接两个动画，并设置切换条件
      * @param {string} anim1 - 起始动画
      * @param {string} anim2 - 目标动画
-     * @param {string} valueName - 连接条件的变量名
-     * @param {any} initValue - 连接条件的初始值
-     * @param {function} condition - 动画切换条件
+     * @param {function} condition - 动画切换条件, 返回值为 boolean
      * @param {boolean} excess - 是否保留多余的帧
      * @param {function|null} callback - 动画切换后的回调函数
      */
-    connect(anim1, anim2, valueName, initValue, condition, excess = false, callback = null) {
-        this.animations[anim1].next.push({"anim": this.animations[anim2], "condition": condition, [valueName]: initValue, "excess": excess, "callback": callback});
-        this.values[valueName] = initValue;
+    connect(anim1, anim2, condition, excess = false, callback = null) {
+        this.animations[anim1].next.push({"anim": this.animations[anim2], "condition": condition, "excess": excess, "callback": callback});
     }
 
     /**
@@ -985,7 +995,7 @@ class Animator extends OBJECT {
             this.setChild(this.current.__object__);
 
         for(let next of this.current.next) {
-            if(next.condition(this.values[next.valueName])) {
+            if(next.condition(this.values)) {
                 this.current.destory();
                 
                 let ratio = this.current.curframe / this.current.frames.length;
