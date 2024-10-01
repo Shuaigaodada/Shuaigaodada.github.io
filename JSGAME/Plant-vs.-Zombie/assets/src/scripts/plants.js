@@ -64,21 +64,6 @@ class Peashooter extends Plant {
         if(this.timer >= this.attack_interval && this.AttackRange) {
             this.shot();
             this.timer = 0;
-            
-            // 自娱自乐代码，记得删除
-            let continueShot = false;
-            let timeCount = 200;
-            while(!continueShot) {
-                if(Mathf.RandomInt(0, 100) <= 10 * GameManager.GetLineZombies(this.line)) {
-                    setTimeout(() => {
-                        this.shot();
-                        this.timer = 0;
-                    }, timeCount);
-                    timeCount += 200;
-                } else {
-                    continueShot = true;
-                }
-            }
         }
     }
 
@@ -88,7 +73,7 @@ class Peashooter extends Plant {
     }
 
     createBullet() {
-        const bullet = OBJECT.create("PeaBullet.png", this.bulletX, this.bulletY, 50, 30);
+        const bullet = GameObject.create("PeaBullet.png", this.bulletX, this.bulletY, 50, 30);
 
         bullet.direction = this.bulletDirection;
         bullet.speed = this.bulletSpeed;

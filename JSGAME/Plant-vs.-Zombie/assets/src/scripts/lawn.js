@@ -31,26 +31,12 @@ class DaytimeLawn {
         this.plant(Peashooter, 0, 3);
         this.plant(Peashooter, 0, 4);
 
-        new NormalZombie(0);
-        new NormalZombie(1);
-        new NormalZombie(2);
-        new NormalZombie(3);
-        new NormalZombie(4);
-
-        let timerCount = 2000;
-        for(let i = 0; i < 100; i++) {
+        let timerCount = 5000;
+        for(let i = 0; i < 50; i++) {
             setTimeout(() => {
                 new NormalZombie(Mathf.RandomInt(0, 4));
-            }, timerCount * i);
+            }, timerCount * i * Mathf.RandomInt(2, 10));
         }
-        // setInterval(() => {
-        //     let timerCount = 2000;
-        //     for(let i = 0; i < 10; i++) {
-        //         setTimeout(() => {
-        //             new NormalZombie(Mathf.RandomInt(0, 4));
-        //         }, timerCount * i);
-        //     }
-        // }, 10000);
 
     }
 
@@ -60,15 +46,15 @@ class DaytimeLawn {
     }
 
     createMap() {
-        this.mapObject = OBJECT.create("background1.jpg", -150, 0, engine.width * 1.5, engine.height * 1.08);
-        // const block = new OBJECT(engine.getImage("card_bk.jpg"), this.width, this.height);
+        this.mapObject = GameObject.create("background1.jpg", -150, 0, engine.width * 1.5, engine.height * 1.08);
+        // const block = new GameObject(engine.getImage("card_bk.jpg"), this.width, this.height);
         // block.x = __levelStartX ;
         // block.y = __levelStartY ;
         for(let i = 0; i < 5; i++) {
             this.map.push([]);
             this.plants.push([]);
             for(let j = 0; j <= 8; j++) {
-                const block = new OBJECT(engine.getImage("card_bk.jpg"), this.width, this.height);
+                const block = new GameObject(engine.getImage("card_bk.jpg"), this.width, this.height);
                 block.setOpacity(0.0);
                 block.x = __MapStartX + this.width * j + __MapSpace * j;
                 block.y = __MapStartY + this.height * i + __MapSpace * i;
@@ -98,13 +84,13 @@ class DaytimeLawn {
         const [x, y] = [250, 190];
         const width = 400;
         const height = 200;
-        const startSet = OBJECT.create("StartSet.png", x, y, width, height);
+        const startSet = GameObject.create("StartSet.png", x, y, width, height);
         await engine.sleep(500);
         startSet.destory();
-        const startReady = OBJECT.create("StartReady.png", x, y, width, height);
+        const startReady = GameObject.create("StartReady.png", x, y, width, height);
         await engine.sleep(500);
         startReady.destory();
-        const startPlant = OBJECT.create("StartPlant.png", x, y, width, height);
+        const startPlant = GameObject.create("StartPlant.png", x, y, width, height);
         await engine.sleep(1000);
         startPlant.destory();
         callback && callback();

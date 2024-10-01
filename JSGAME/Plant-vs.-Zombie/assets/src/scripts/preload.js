@@ -70,11 +70,11 @@ class PreloadPages {
     }
 
     create_loading_page() {
-        this.titlescreenObject = OBJECT.create("titlescreen.jpg", 0, 0, engine.width, engine.height);
-        this.PvZ_LogoObject = OBJECT.create("PvZ_Logo.png", 120, 20, 700, 100);
-        this.LoadBar_dirtObject = OBJECT.create("LoadBar_dirt.png", 310, 480, 300, 40);
-        this.LoadBar_grassObject = OBJECT.create("LoadBar_grass.png", 310, 470, 290, 20);
-        this.SodRollCapObject = OBJECT.create("SodRollCap.png", rollcap_x, 452, 40, 35); 
+        this.titlescreenObject = GameObject.create("titlescreen.jpg", 0, 0, engine.width, engine.height);
+        this.PvZ_LogoObject = GameObject.create("PvZ_Logo.png", 120, 20, 700, 100);
+        this.LoadBar_dirtObject = GameObject.create("LoadBar_dirt.png", 310, 480, 300, 40);
+        this.LoadBar_grassObject = GameObject.create("LoadBar_grass.png", 310, 470, 290, 20);
+        this.SodRollCapObject = GameObject.create("SodRollCap.png", rollcap_x, 452, 40, 35); 
     }
 
     generate_path() {
@@ -109,7 +109,7 @@ class PreloadPages {
 
         this.SodRollCapObject.visible = false;
         
-        this.goMenuText = new OBJECT(null, 450, 450);
+        this.goMenuText = new GameObject(null, 450, 450);
         this.goMenuText.text = "开始游戏";
         this.goMenuText.style = {"font": "16px Arialn", "color": "yellow"};
         this.goMenuText.setPosition(429, 504);

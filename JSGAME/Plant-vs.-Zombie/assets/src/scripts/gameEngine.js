@@ -219,7 +219,7 @@ class GameEngine {
 
     /**
      * 绘制对象
-     * @param {OBJECT} object - 需要绘制的对象
+     * @param {GameObject} object - 需要绘制的对象
      */
     draw(object) {
         if(!object.image && !object.text) return;
@@ -453,19 +453,19 @@ class CollisionBox {
 
     /**
      * 当碰撞开始时触发
-     * @param {OBJECT} other - 发生碰撞的另一个对象
+     * @param {GameObject} other - 发生碰撞的另一个对象
      */
     onCollisionEnter(other) {}
 
     /**
      * 当碰撞持续时触发
-     * @param {OBJECT} other - 发生碰撞的另一个对象
+     * @param {GameObject} other - 发生碰撞的另一个对象
      */
     onCollisionStay(other) { }
 
      /**
      * 当碰撞结束时触发
-     * @param {OBJECT} other - 发生碰撞的另一个对象
+     * @param {GameObject} other - 发生碰撞的另一个对象
      */
     onCollisionExit(other) { }
 }
@@ -564,7 +564,7 @@ class CircleCollisionBox extends CollisionBox {
  * @param {number} height - 对象的高度
  * @param {boolean} visible - 对象是否可见
  */
-class OBJECT {
+class GameObject {
     static OBJECT_ID = 0; // 静态变量，用于生成唯一ID
     constructor(image = null, width = 100, height = 100, visible = true) {
         this.name = null; // 对象的名称
@@ -584,7 +584,7 @@ class OBJECT {
         this.collisionBox = null; // CollisionBox
         this.childs = []; // 子对象
         this.parent = null; // 父对象
-        this.id = OBJECT.OBJECT_ID++; // 为每个实例生成唯一ID
+        this.id = GameObject.OBJECT_ID++; // 为每个实例生成唯一ID
         this.order = engine.objects.length; // 绘制顺序
         this.offsetX = 0;
         this.offsetY = 0;
@@ -632,7 +632,7 @@ class OBJECT {
 
     /**
      * 设置对象的位置
-     * @param {OBJECT} - 子对象
+     * @param {GameObject} - 子对象
      */
     setChild(child) {
         child.parent = this;
@@ -689,24 +689,6 @@ class OBJECT {
     }
 
     /**
-     * 设置对象的绘制顺序 - 弃用
-     * @param {number} order - 新的绘制顺序值
-     */
-    // setOrder(order) {
-    //     this.order = order;
-    //     this.destory()
-    //     // insert object to engine.objects use order
-    //     for(let i = 0; i < engine.objects.length; i++) {
-    //         if(engine.objects[i].order > order) {
-    //             engine.objects.splice(i, 0, this);
-    //             return;
-    //         }
-    //     }
-    //     // if not found, push to the end
-    //     engine.objects.push(this);
-    // }
-
-    /**
      * 设置对象的滑动效果比例
      * @param {number} slider - 滑动比例 (0-1)
      */
@@ -731,14 +713,14 @@ class OBJECT {
      * @param {number} width - 对象的宽度
      * @param {number} height - 对象的高度
      * @param {boolean} visible - 是否可见
-     * @returns {OBJECT} - 创建的对象
+     * @returns {GameObject} - 创建的对象
      */
     static create(imgName, x, y, width, height, visible = true) {
         let image = engine.getImage(imgName);
         if(image === null)
             console.error(`didn't find image: ${imgName}, please preload it first`);
             // if image not loaded, return null image object
-        let object = new OBJECT(image, width, height);
+        let object = new GameObject(image, width, height);
         object.setPosition(x, y);
         object.visible = visible;
         return object;
@@ -755,7 +737,7 @@ class OBJECT {
 
     /**
      * 销毁对象
-     * @param {OBJECT} object - 要销毁的对象
+     * @param {GameObject} object - 要销毁的对象
      */
     static destory(object) {
         let index = engine.objects.indexOf(object);
@@ -789,7 +771,31 @@ class OBJECT {
     /**
      * 销毁当前对象
      */
-    destory() { OBJECT.destory(this); }
+    destory() { GameObject.destory(this); }
+    copy() {
+        const deepClone = (obj, seen = new Map()) => {
+            if (obj === null || typeof obj !== "object") {
+                return obj;
+            }
+
+            if (seen.has(obj)) {
+                return seen.get(obj);
+            }
+
+            const clone = Array.isArray(obj) ? [] : Object.create(Object.getPrototypeOf(obj));
+            seen.set(obj, clone);
+
+            for (let key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    clone[key] = deepClone(obj[key], seen);
+                }
+            }
+
+            return clone;
+        };
+
+        return deepClone(this);
+    }
 
     update() {} // 抽象方法，子类需实现
     onMouseDown() {} // 抽象方法，子类需实现
@@ -872,7 +878,7 @@ class Animation {
      * @param {boolean} visible - 是否可见
      */
     create(width, height, visible = true) {
-        this.__object__ = new OBJECT(this.frames[0], width, height, visible);
+        this.__object__ = new GameObject(this.frames[0], width, height, visible);
         this.__object__.tag = "animation";
         this.__object__.update = () => {
             this.framesCount++;
@@ -926,7 +932,7 @@ class Animation {
  * @param {number} h - 高度
  * @param {boolean} v - 是否可见
  */
-class Animator extends OBJECT {
+class Animator extends GameObject {
     constructor(animations, x, y, w, h, v) {
         super(null, w, h, v);
 
@@ -1056,7 +1062,7 @@ class Animator extends OBJECT {
  * @param {number} height - 按钮的高度
  * @param {function} callback - 按钮点击时的回调函数
  */
-class Button extends OBJECT {
+class Button extends GameObject {
     constructor(image, x, y, width, height, callback) {
         super(image, width, height);
         this.x = x;
