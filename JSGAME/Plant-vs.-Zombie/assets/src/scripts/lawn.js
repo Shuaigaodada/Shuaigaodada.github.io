@@ -9,6 +9,7 @@ class DaytimeLawn {
         // map data [row][col]
         this.map = [];
         this.plants = [];
+        
 
         this.width = width;
         this.height = height;
@@ -54,12 +55,12 @@ class DaytimeLawn {
             this.map.push([]);
             this.plants.push([]);
             for(let j = 0; j <= 8; j++) {
-                const block = new GameObject(engine.getImage("card_bk.jpg"), this.width, this.height);
-                block.setOpacity(0.0);
-                block.x = __MapStartX + this.width * j + __MapSpace * j;
-                block.y = __MapStartY + this.height * i + __MapSpace * i;
+                let x = __MapStartX + this.width * j + __MapSpace * j;
+                let y = __MapStartY + this.height * i + __MapSpace * i;
+                const block = new GameObject(engine.getImage("card_bk.jpg"), x, y, this.width, this.height);
                 block.tag = "Floor";
-                
+                block.setOpacity(0.0);
+        
                 // block.collisionBox.debug.show();
                 // if(j === 6)
                 //     block.tag = "Zombie";
@@ -102,5 +103,4 @@ class DaytimeLawn {
         const centerY = block.y + this.height / 2 - height / 2;
         return [centerX, centerY];
     }
-
 }

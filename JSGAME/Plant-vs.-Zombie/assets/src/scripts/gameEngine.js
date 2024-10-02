@@ -1,7 +1,5 @@
 /**
  * 游戏引擎类，负责管理游戏的整体逻辑、绘制、资源加载等
- * @param {number} width - 画布宽度
- * @param {number} height - 画布高度
  */
 class GameEngine {
     constructor() {
@@ -566,10 +564,10 @@ class CircleCollisionBox extends CollisionBox {
  */
 class GameObject {
     static OBJECT_ID = 0; // 静态变量，用于生成唯一ID
-    constructor(image = null, width = 100, height = 100, visible = true) {
+    constructor(image = null, x = 0, y = 0, width = 100, height = 100, visible = true) {
         this.name = null; // 对象的名称
-        this._x = 0; // 对象的 x 坐标
-        this._y = 0; // 对象的 y 坐标
+        this._x = x; // 对象的 x 坐标
+        this._y = y; // 对象的 y 坐标
         this.tag = ""; // 对象的标签
         this.image = image; // 对象的图像
         this.text = null; // 对象的文本， null 表示没有文本
@@ -720,8 +718,7 @@ class GameObject {
         if(image === null)
             console.error(`didn't find image: ${imgName}, please preload it first`);
             // if image not loaded, return null image object
-        let object = new GameObject(image, width, height);
-        object.setPosition(x, y);
+        let object = new GameObject(image, x, y, width, height);
         object.visible = visible;
         return object;
     }

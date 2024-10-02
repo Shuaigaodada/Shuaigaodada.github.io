@@ -109,10 +109,9 @@ class PreloadPages {
 
         this.SodRollCapObject.visible = false;
         
-        this.goMenuText = new GameObject(null, 450, 450);
+        this.goMenuText = new GameObject(null, 429, 504, 450, 450);
         this.goMenuText.text = "开始游戏";
         this.goMenuText.style = {"font": "16px Arialn", "color": "yellow"};
-        this.goMenuText.setPosition(429, 504);
 
         this.goMenuButton = new Button(engine.getImage("card_bk.jpg"), 305, 480, 290, 40, callback);
         this.goMenuButton.visible = false;
