@@ -35,9 +35,11 @@ class GameEngine {
         this.__mouseUp__ = this.__mouseUp__.bind(this);
         this.__mouseMove__ = this.__mouseMove__.bind(this);
 
-        this.canvas.addEventListener('mousedown', this.__mouseDown__);
-        this.canvas.addEventListener('mouseup', this.__mouseUp__);
-        this.canvas.addEventListener('mousemove', this.__mouseMove__);
+        this.canvas.addEventListener("mousedown", this.__mouseDown__);
+        this.canvas.addEventListener("mouseup", this.__mouseUp__);
+        this.canvas.addEventListener("mousemove", this.__mouseMove__);
+        this.canvas.addEventListener("keydown", (e) => {Input.__keyDownHandle(e);})
+        this.canvas.addEventListener("keyup", (e) => {Input.__keyUpHandle(e);})
     }
     /**
      * 注册更新事件
@@ -239,7 +241,7 @@ class GameEngine {
         this.ctx.clip();
         // rotation
         this.ctx.translate(object.x + object.width / 2, object.y + object.height / 2);
-        this.ctx.rotate(object.rotation * Math.PI / 180);
+        this.ctx.rotate(object.rotation * Mathf.PI / 180);
         this.ctx.drawImage(object.image, -object.width / 2, -object.height / 2, object.width, object.height); // 绘制图像
 
         this.ctx.restore();
@@ -275,8 +277,72 @@ class GameEngine {
     clear() {
         this.objects = [];
     }
+
+    
 }
 
+
+class Input {
+    static __NULLKEYDOWN = {meta: null, ctrl: false, shift: false, keyCode: -1};
+    static __NULLKEYUP = {meta: null, ctrl: false, shift: false, keyCode: -1};
+    static __keyDown = Input.__NULLKEYDOWN;
+    static __keyUp = Input.__NULLKEYUP;
+
+    static getKeyDown() {
+        let getKeyDownCheck = function(code) {
+            if(Input.__keyDown.keyCode === code) {
+                Input.__keyDown = Input.__NULLKEYDOWN;
+                return true;
+            } else return false;
+        }
+
+        let getKeyDownWithMeta = function() {
+            let meta = Input.__keyDown;
+            Input.__keyDown = Input.__NULLKEYDOWN;
+            return meta;
+        }
+
+        if(arguments.length === 0) return getKeyDownWithMeta();
+        else if(arguments.length === 1) return getKeyDownCheck(arguments[0]);
+        else return false;
+    }
+
+    static getKeyUp() {
+        let getKeyUpCheck = function(code) {
+            if(Input.__keyUp.keyCode === code) {
+                Input.__keyUp = Input.__NULLKEYUP;
+                return true;
+            } else return false;
+        }
+
+        let getKeyUpWithMeta = function() {
+            let meta = Input.__keyUp;
+            Input.__keyUp = Input.__NULLKEYUP;
+            return meta;
+        }
+
+        if(arguments.length === 0) return getKeyUpWithMeta();
+        else if(arguments.length === 1) return getKeyUpCheck(arguments[0]);
+        else return false;
+    }
+
+    static __keyDownHandle(event) {
+        Input.keyDown.meta = event;
+        Input.keyDown.ctrl = event.ctrlKey;
+        Input.keyDown.shift = event.shiftKey;
+        Input.keyDown.keyCode = event.code;
+    }
+
+    static __keyUpHandle(event) {
+        Input.KeyUp.meta = event;
+        Input.KeyUp.ctrl = event.ctrlKey;
+        Input.KeyUp.shift = event.shiftKey;
+        Input.KeyUp.keyCode = event.keyCode;
+        Input.KeyUp.key = event.code;
+
+    }
+
+}
 
 /**
  * 碰撞盒类，用于处理物体的碰撞检测
@@ -367,9 +433,23 @@ class CollisionBox {
             return this.isCollideWithCircle(box); // 检测与圆形的碰撞
         } else {
             // 方形与方形的碰撞检测
-            return this.x < box.x + box.width && this.x + this.width > box.x &&
-                   this.y < box.y + box.height && this.y + this.height > box.y;
+            return this.isCollideWithLeft(box) && this.isCollideWithRight(box) 
+                                               &&
+                   this.isCollideWithTop(box) && this.isCollideWithBottom(box);
         }
+    }
+
+    isCollideWithLeft(box) {
+        return this.x < box.x + box.width;   
+    }
+    isCollideWithRight(box) {
+        return this.x + this.width > box.x;
+    }
+    isCollideWithTop(box) {
+        return this.y + this.height > box.y;
+    }
+    isCollideWithBottom(box) {
+        return this.y < box.y + box.height;
     }
 
     /**
@@ -378,8 +458,8 @@ class CollisionBox {
      * @returns {boolean} - 是否发生碰撞
      */
     isCollideWithCircle(circle) {
-        let circleDistanceX = Math.abs(circle.x + circle.radius - (this.x + this.width / 2));
-        let circleDistanceY = Math.abs(circle.y + circle.radius - (this.y + this.height / 2));
+        let circleDistanceX = Mathf.Abs(circle.x + circle.radius - (this.x + this.width / 2));
+        let circleDistanceY = Mathf.Abs(circle.y + circle.radius - (this.y + this.height / 2));
 
         if (circleDistanceX > (this.width / 2 + circle.radius)) { return false; }
         if (circleDistanceY > (this.height / 2 + circle.radius)) { return false; }
@@ -466,6 +546,8 @@ class CollisionBox {
      * @param {GameObject} other - 发生碰撞的另一个对象
      */
     onCollisionExit(other) { }
+
+
 }
 
 /**
@@ -493,12 +575,12 @@ class CircleCollisionBox extends CollisionBox {
             // 圆形与圆形的碰撞检测
             let dx = (this.x + this.radius) - (box.x + box.radius);
             let dy = (this.y + this.radius) - (box.y + box.radius);
-            let distance = Math.sqrt(dx * dx + dy * dy);
+            let distance = Mathf.Sqrt(dx * dx + dy * dy);
             return distance < this.radius + box.radius;
         } else if (box instanceof CollisionBox) {
             // 圆形与方形的碰撞检测
-            let circleDistanceX = Math.abs((this.x + this.radius) - (box.x + box.width / 2));
-            let circleDistanceY = Math.abs((this.y + this.radius) - (box.y + box.height / 2));
+            let circleDistanceX = Mathf.Abs((this.x + this.radius) - (box.x + box.width / 2));
+            let circleDistanceY = Mathf.Abs((this.y + this.radius) - (box.y + box.height / 2));
 
             if (circleDistanceX > (box.width / 2 + this.radius)) { return false; }
             if (circleDistanceY > (box.height / 2 + this.radius)) { return false; }
@@ -516,6 +598,22 @@ class CircleCollisionBox extends CollisionBox {
         }
     }
 
+    isCollideWithLeft(box) {
+        return this.x - this.radius < box.x + box.width;
+    }
+
+    isCollideWithRight(box) {
+        return this.x + this.radius > box.x;
+    }
+
+    isCollideWithTop(box) {
+        return this.y - this.radius < box.y + box.height;
+    }
+
+    isCollideWithBottom(box) {
+        return this.y + this.radius > box.y;
+    }
+
     /**
      * 检测圆形是否与某个点发生碰撞
      * @param {number} x - 点的 x 坐标
@@ -525,7 +623,7 @@ class CircleCollisionBox extends CollisionBox {
     isCollideWithPoint(x, y) {
         let dx = (this.x + this.radius) - x;
         let dy = (this.y + this.radius) - y;
-        return Math.sqrt(dx * dx + dy * dy) < this.radius;
+        return Mathf.Sqrt(dx * dx + dy * dy) < this.radius;
     }
 
     /**
@@ -537,7 +635,7 @@ class CircleCollisionBox extends CollisionBox {
             engine.ctx.strokeStyle = this.__hided_box ? this.debug.hide_color : this.debug.show_color;
             engine.ctx.lineWidth = 1;
             engine.ctx.beginPath();
-            engine.ctx.arc(this.x + this.radius, this.y + this.radius, this.radius, 0, 2 * Math.PI);
+            engine.ctx.arc(this.x + this.radius, this.y + this.radius, this.radius, 0, 2 * Mathf.PI);
             engine.ctx.stroke();
             engine.ctx.restore();
         } else {
@@ -587,8 +685,10 @@ class GameObject {
         this.offsetX = 0;
         this.offsetY = 0;
         this.__destoryed = false;
+        
         engine.objects.push(this);
     }
+
 
     /**
      * 获取对象的 x 坐标
@@ -880,7 +980,7 @@ class Animation {
         this.__object__.update = () => {
             this.framesCount++;
             // 8 帧更新一次
-            const framesToUpdate = Math.floor(8 / this.speed);
+            const framesToUpdate = Mathf.Floor(8 / this.speed);
             if(this.framesCount >= framesToUpdate) {
                 this.framesCount = 0;
                 this.curframe++;
@@ -1005,7 +1105,7 @@ class Animator extends GameObject {
                 this.current = next.anim;
 
                 if(next.excess)
-                    this.current.curframe = Math.floor(ratio * this.current.frames.length);
+                    this.current.curframe = Mathf.Floor(ratio * this.current.frames.length);
                 next.callback && next.callback();
 
                 this.__animationChanged = true;
@@ -1080,6 +1180,7 @@ class Button extends GameObject {
 
 
 class Mathf {
+    static PI = Math.PI;
     /**
      * 计算两点之间的距离
      * @param {number} x1 - 第一个点的x坐标
@@ -1402,6 +1503,14 @@ class Mathf {
     }
 
     /**
+     * 计算值的向上取整
+     * @param {number} value - 要计算的值
+     */
+    static Floor(value) {
+        return Math.floor(value);
+    }
+
+    /**
      * 计算值的最大值
      * @param {...number} values - 要计算的值
      * @returns {number} - 最大值
@@ -1482,6 +1591,101 @@ class Mathf {
             return [v[0] / length, v[1] / length];
         }
     }
+}
+
+class KeyCode {
+    static A = 65;
+    static B = 66;
+    static C = 67;
+    static D = 68;
+    static E = 69;
+    static F = 70;
+    static G = 71;
+    static H = 72;
+    static I = 73;
+    static J = 74;
+    static K = 75;
+    static L = 76;
+    static M = 77;
+    static N = 78;
+    static O = 79;
+    static P = 80;
+    static Q = 81;
+    static R = 82;
+    static S = 83;
+    static T = 84;
+    static U = 85;
+    static V = 86;
+    static W = 87;
+    static X = 88;
+    static Y = 89;
+    static Z = 90;
+
+    static Num0 = 48;
+    static Num1 = 49;
+    static Num2 = 50;
+    static Num3 = 51;
+    static Num4 = 52;
+    static Num5 = 53;
+    static Num6 = 54;
+    static Num7 = 55;
+    static Num8 = 56;
+    static Num9 = 57;
+
+    static Space = 32;
+    static Enter = 13;
+    static Tab = 9;
+    static Esc = 27;
+    static Backspace = 8;
+    static CapsLock = 20;
+    static Delete = 46;
+    static End = 35;
+    static Home = 36;
+
+    static ArrowLeft = 37;
+    static ArrowUp = 38;
+    static ArrowRight = 39;
+    static ArrowDown = 40;
+
+    static F1 = 112;
+    static F2 = 113;
+    static F3 = 114;
+    static F4 = 115;
+    static F5 = 116;
+    static F6 = 117;
+    static F7 = 118;
+    static F8 = 119;
+    static F9 = 120;
+    static F10 = 121;
+    static F11 = 122;
+    static F12 = 123;
+
+    static a = 97;
+    static b = 98;
+    static c = 99;
+    static d = 100;
+    static e = 101;
+    static f = 102;
+    static g = 103;
+    static h = 104;
+    static i = 105;
+    static j = 106;
+    static k = 107;
+    static l = 108;
+    static m = 109;
+    static n = 110;
+    static o = 111;
+    static p = 112;
+    static q = 113;
+    static r = 114;
+    static s = 115;
+    static t = 116;
+    static u = 117;
+    static v = 118;
+    static w = 119;
+    static x = 120;
+    static y = 121;
+    static z = 122;
 }
 
 /**
