@@ -365,6 +365,8 @@ class CollisionBox {
         this.offsetWidth = 0;
 
         this.__enterObject = [];
+        this.isTrigger = false;
+        this.parentObject = null;
         this.debug = {
             show: () => {this.__debug_show();},
             hide: () => {this.__debug_hide();},
@@ -506,6 +508,25 @@ class CollisionBox {
                         this.onCollisionExit(object);
                     }
                 }
+            }
+
+            if(this.parentObject.rigidbody) {
+                if(object.collisionBox && object.collisionBox !== this) {
+                    // 碰撞检测, 并根据碰撞方向禁止移动
+                    if(this.isCollideWithLeft(object.collisionBox)) {
+                        this.parentObject.x = object.collisionBox.x + object.collisionBox.width;
+                    }
+                    if(this.isCollideWithRight(object.collisionBox)) {
+                        this.parentObject.x = object.collisionBox.x - this.parentObject.width;
+                    }
+                    if(this.isCollideWithTop(object.collisionBox)) {
+                        this.parentObject.y = object.collisionBox.y + object.collisionBox.height;
+                    }
+                    if(this.isCollideWithBottom(object.collisionBox)) {
+                        this.parentObject.y = object.collisionBox.y - this.parentObject.height;
+                    }
+                }
+                this.parentObject.y -= this.parentObject.gravity + this.parentObject.upForce;
             }
         }
         
@@ -684,7 +705,11 @@ class GameObject {
         this.order = engine.objects.length; // 绘制顺序
         this.offsetX = 0;
         this.offsetY = 0;
+        this.rigidbody = false;
         this.__destoryed = false;
+
+        this.gravity = 1;
+        this.upForce = 0;
         
         engine.objects.push(this);
     }
@@ -752,6 +777,7 @@ class GameObject {
         this.collisionBox.offsetY = offsetY;
         this.collisionBox.offsetHeight = offsetHeight;
         this.collisionBox.offsetWidth = offsetWidth;
+        this.collisionBox.parentObject = this;
     }
 
     /**
@@ -765,6 +791,7 @@ class GameObject {
         this.collisionBox = new CircleCollisionBox(this._x + offsetX, this._y + offsetY, radius);
         this.collisionBox.offsetX = offsetX; // 保存偏移量，便于后续更新时使用
         this.collisionBox.offsetY = offsetY;
+        this.collisionBox.parentObject = this;
     }
 
     /**
