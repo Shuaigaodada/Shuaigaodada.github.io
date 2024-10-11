@@ -3,24 +3,33 @@
  */
 class GameEngine {
     constructor() {
+        /** 已加载图片 私有属性 @type {image[]} */
         this.__images = [];
+        /** 已加载音频 私有属性 @type {audio[]} */
         this.__audios = {};
+        /** 已加载动画 私有属性 @type {Animation[]} */
         this.__animations = {};
+        /** 已创建对象 @type {GameObject[]} */
         this.objects = [];
 
+        /** 已保存场景 @type {Object.<string, GameObject[]>} */
         this.__levels = {};
+        /** 注册的事件 @type {Object.<string, Function>} */
         this.__updateEvent = {};
 
+        /** 刷新频率 @type {number} */
         this.fps = 60;
+        /** 私有时长计数 @type {number} */
         this.__time = 0.0;
+        /** 时长差 @type {number} */
         this.deltaTime = 0.0;
     }
 
     /**
      * 初始化引擎
-     * @param {HTMLCanvasElement} canvas - 画布对象
-     * @param {Number} width - 画布的宽度
-     * @param {Number} height - 画布的高度
+     * @param {string} canvas - 画布对象
+     * @param {number} width - 画布的宽度
+     * @param {number} height - 画布的高度
      */
     init(canvas, width, height) {
         this.canvas = document.getElementById(canvas);
@@ -53,7 +62,6 @@ class GameEngine {
     /**
      * 移除更新事件
      * @param {string} name - 事件名称
-     * @returns {void}
      */
     removeEvent(name) {
         delete this.__updateEvent[name];
@@ -250,7 +258,7 @@ class GameEngine {
     /**
      * 获取预加载的图片
      * @param {string} name - 图片名称
-     * @returns {Image} - 返回找到的图片对象
+     * @returns {image} - 返回找到的图片对象
      */
     getImage(name) {
         for(let i = 0; i < this.__images.length; i++) {
@@ -281,11 +289,17 @@ class GameEngine {
     
 }
 
-
+/**
+ * 输入类，用于处理键盘输入
+ */
 class Input {
+    /** 空KEYDOWN数据 @type {object.<string, any>} */
     static __NULLKEYDOWN = {meta: null, ctrl: false, shift: false, keyCode: -1};
+    /** 空KEYUP数据 @type {object.<string, any>} */
     static __NULLKEYUP = {meta: null, ctrl: false, shift: false, keyCode: -1};
+    /** KEYDOWN数据 @type {object.<string, any>} */
     static __keyDown = Input.__NULLKEYDOWN;
+    /** KEYUP数据 @type {object.<string, any>} */
     static __keyUp = Input.__NULLKEYUP;
 
     static getKeyDown() {
@@ -344,29 +358,42 @@ class Input {
 
 }
 
-/**
- * 碰撞盒类，用于处理物体的碰撞检测
- * @param {number} x - 碰撞盒的 x 坐标
- * @param {number} y - 碰撞盒的 y 坐标
- * @param {number} width - 碰撞盒的宽度
- * @param {number} height - 碰撞盒的高度
- */
+
 class CollisionBox {
     static _idCounter = 0; // 静态变量，用于生成唯一ID
+    /**
+     * 碰撞盒类，用于处理物体的碰撞检测
+     * @param {number} x - 碰撞盒的 x 坐标
+     * @param {number} y - 碰撞盒的 y 坐标
+     * @param {number} width - 碰撞盒的宽度
+     * @param {number} height - 碰撞盒的高度
+     */
     constructor(x, y, width, height) {
+        /** 碰撞箱x轴 @type {number} */
         this.x = x;
+        /** 碰撞箱y轴 @type {number} */
         this.y = y;
+        /** 碰撞箱宽度 @type {number} */
         this.width = width;
+        /** 碰撞箱高度 @type {number} */
         this.height = height;
 
+        /** 碰撞箱x轴偏移 @type {number} */
         this.offsetX = 0;
+        /** 碰撞箱y轴偏移 @type {number} */
         this.offsetY = 0;
+        /** 碰撞箱高度偏移 @type {number} */
         this.offsetHeight = 0;
+        /** 碰撞箱宽度偏移 @type {number} */
         this.offsetWidth = 0;
 
+        /** 进入碰撞箱的对象 @type {GameObject[]} */
         this.__enterObject = [];
+        /** 是否是触发器 @type {boolean} */
         this.isTrigger = false;
+        /** 父对象 @type {GameObject} */
         this.parentObject = null;
+        /** debug组件 @type {object} */
         this.debug = {
             show: () => {this.__debug_show();},
             hide: () => {this.__debug_hide();},
@@ -374,8 +401,11 @@ class CollisionBox {
             hide_color: "red",
         };
 
+        /** 是否绘制碰撞盒 @type {boolean} */
         this.__drawed_box = false;
+        /** 是否隐藏碰撞盒 @type {boolean} */
         this.__hided_box = false;
+        /** 碰撞箱ID @type {number} */
         this.id = CollisionBox._generateUniqueId(); // 为每个实例生成唯一ID
         this.show();
     }
@@ -511,7 +541,7 @@ class CollisionBox {
             }
 
             if(this.parentObject.rigidbody) {
-                if(object.collisionBox && object.collisionBox !== this) {
+                if(object.collisionBox && object.collisionBox !== this && !object.__destoryed && !object.isTrigger) {
                     // 碰撞检测, 并根据碰撞方向禁止移动
                     if(this.isCollideWithLeft(object.collisionBox)) {
                         this.parentObject.x = object.collisionBox.x + object.collisionBox.width;
@@ -526,7 +556,11 @@ class CollisionBox {
                         this.parentObject.y = object.collisionBox.y - this.parentObject.height;
                     }
                 }
-                this.parentObject.y -= this.parentObject.gravity + this.parentObject.upForce;
+                // 重力计算
+                this.parentObject.upForce = Mathf.Clamp(this.parentObject.upForce, 0, this.parentObject.upForce);
+                const GDT = this.parentObject.gravity * engine.deltaTime;
+                this.parentObject.y -= GDT + this.parentObject.upForce;
+                this.parentObject.upForce -= GDT;
             }
         }
         
@@ -674,15 +708,16 @@ class CircleCollisionBox extends CollisionBox {
     }
 }
 
-/**
- * 游戏对象类，表示游戏中的一个对象
- * @param {Image|null} image - 对象的图像
- * @param {number} width - 对象的宽度
- * @param {number} height - 对象的高度
- * @param {boolean} visible - 对象是否可见
- */
+
 class GameObject {
     static OBJECT_ID = 0; // 静态变量，用于生成唯一ID
+    /**
+     * 游戏对象类，表示游戏中的一个对象
+     * @param {Image|null} image - 对象的图像
+     * @param {number} width - 对象的宽度
+     * @param {number} height - 对象的高度
+     * @param {boolean} visible - 对象是否可见
+     */
     constructor(image = null, x = 0, y = 0, width = 100, height = 100, visible = true) {
         this.name = null; // 对象的名称
         this._x = x; // 对象的 x 坐标
@@ -708,7 +743,7 @@ class GameObject {
         this.rigidbody = false;
         this.__destoryed = false;
 
-        this.gravity = 1;
+        this.gravity = 5;
         this.upForce = 0;
         
         engine.objects.push(this);
@@ -937,8 +972,14 @@ class GameObject {
     }
 }
 
-
 class PreloadAnimation {
+    /**
+     * 预加载动画类，用于预加载动画帧
+     * @param {string} _class - 动画所属的类名
+     * @param {string} name - 动画名称
+     * @param {string[]} imgs - 动画帧的图像数组
+     * @param {function|null} callback - 动画加载完成后的回调函数
+     */
     constructor(_class, name, imgs, callback) {
         this.frames = new Array(imgs.length);
         imgs.forEach((imageSrc, i) => {
@@ -961,15 +1002,12 @@ class PreloadAnimation {
     }
 }
 
-/**
- * 动画类，处理对象的动画效果
- * @param {string} _class - 动画所属的类名
- * @param {string} name - 动画名称
- * @param {string[]} imgs - 动画帧的图像数组
- * @param {number} speed - 动画帧切换速度
- * @param {function|null} callback - 动画加载完成后的回调函数
- */
+
 class Animation {
+    /**
+     * 动画类，处理对象的动画效果，你不应该直接实例化这个类，而是使用 PreloadAnimation 类来加载动画，然后通过 engine.getAnimation('classes', 'name').animation() 方法来获取动画对象
+     * @param {Image[]} frames - 动画帧的图像数组
+     */
     constructor(frames, speed = 1) {
         this.frames = frames
         this.curframe = 0;
@@ -984,6 +1022,7 @@ class Animation {
         this.event = {};
     }
 
+    // test function dont use this
     addEvent(frameIndex, callback) {
         this.event[frameIndex] = callback;
     }
@@ -1047,16 +1086,16 @@ class Animation {
 }
 
 
-/**
- * 动画控制器类，用于管理多个动画之间的切换
- * @param {object} animations - 动画对象集合
- * @param {number} x - x 坐标
- * @param {number} y - y 坐标
- * @param {number} w - 宽度
- * @param {number} h - 高度
- * @param {boolean} v - 是否可见
- */
 class Animator extends GameObject {
+    /**
+     * 动画控制器类，用于管理多个动画之间的切换
+     * @param {Animation[]} animations - 动画对象集合
+     * @param {number} x - x 坐标
+     * @param {number} y - y 坐标
+     * @param {number} w - 宽度
+     * @param {number} h - 高度
+     * @param {boolean} v - 是否可见
+     */
     constructor(animations, x, y, w, h, v) {
         super(null, w, h, v);
 
@@ -1177,16 +1216,17 @@ class Animator extends GameObject {
     }
 }
 
-/**
- * 按钮类，用于处理按钮点击事件
- * @param {Image} image - 按钮的图像
- * @param {number} x - x 坐标
- * @param {number} y - y 坐标
- * @param {number} width - 按钮的宽度
- * @param {number} height - 按钮的高度
- * @param {function} callback - 按钮点击时的回调函数
- */
+
 class Button extends GameObject {
+    /**
+     * 按钮类，用于处理按钮点击事件
+     * @param {Image} image - 按钮的图像
+     * @param {number} x - x 坐标
+     * @param {number} y - y 坐标
+     * @param {number} width - 按钮的宽度
+     * @param {number} height - 按钮的高度
+     * @param {function} callback - 按钮点击时的回调函数
+     */
     constructor(image, x, y, width, height, callback) {
         super(image, width, height);
         this.x = x;
@@ -1205,8 +1245,14 @@ class Button extends GameObject {
     }
 }
 
-
+/**
+ * 数学工具类
+ */
 class Mathf {
+    /** 
+     * 数学圆周率常量
+     * @type {number}
+    */
     static PI = Math.PI;
     /**
      * 计算两点之间的距离
@@ -1620,99 +1666,136 @@ class Mathf {
     }
 }
 
+/**
+ * 键盘按键码
+ */
 class KeyCode {
+    /** a键 @type {number} */
     static A = 65;
+    /** b键 @type {number} */
     static B = 66;
+    /** c键 @type {number} */
     static C = 67;
+    /** d键 @type {number} */
     static D = 68;
+    /** e键 @type {number} */
     static E = 69;
+    /** f键 @type {number} */
     static F = 70;
+    /** g键 @type {number} */
     static G = 71;
+    /** h键 @type {number} */
     static H = 72;
+    /** i键 @type {number} */
     static I = 73;
+    /** j键 @type {number} */
     static J = 74;
+    /** k键 @type {number} */
     static K = 75;
+    /** l键 @type {number} */
     static L = 76;
+    /** m键 @type {number} */
     static M = 77;
+    /** n键 @type {number} */
     static N = 78;
+    /** o键 @type {number} */
     static O = 79;
+    /** p键 @type {number} */
     static P = 80;
+    /** q键 @type {number} */
     static Q = 81;
+    /** r键 @type {number} */
     static R = 82;
+    /** s键 @type {number} */
     static S = 83;
+    /** t键 @type {number} */
     static T = 84;
+    /** u键 @type {number} */
     static U = 85;
+    /** v键 @type {number} */
     static V = 86;
+    /** w键 @type {number} */
     static W = 87;
+    /** x键 @type {number} */
     static X = 88;
+    /** y键 @type {number} */
     static Y = 89;
+    /** z键 @type {number} */
     static Z = 90;
 
+    /** 0键 @type {number} */
     static Num0 = 48;
+    /** 1键 @type {number} */
     static Num1 = 49;
+    /** 2键 @type {number} */
     static Num2 = 50;
+    /** 3键 @type {number} */
     static Num3 = 51;
+    /** 4键 @type {number} */
     static Num4 = 52;
+    /** 5键 @type {number} */
     static Num5 = 53;
+    /** 6键 @type {number} */
     static Num6 = 54;
+    /** 7键 @type {number} */
     static Num7 = 55;
+    /** 8键 @type {number} */
     static Num8 = 56;
+    /** 9键 @type {number} */
     static Num9 = 57;
 
+    /** 空格键 @type {number} */
     static Space = 32;
+    /** 回车键 @type {number} */
     static Enter = 13;
+    /** Tab键 @type {number} */
     static Tab = 9;
+    /** Esc键 @type {number} */
     static Esc = 27;
+    /** Backspace键 @type {number} */
     static Backspace = 8;
+    /** CapsLock键 @type {number} */
     static CapsLock = 20;
+    /** Delete键 @type {number} */
     static Delete = 46;
+    /** End键 @type {number} */
     static End = 35;
+    /** Home键 @type {number} */
     static Home = 36;
 
+    /** 左方向键 @type {number} */
     static ArrowLeft = 37;
+    /** 上方向键 @type {number} */
     static ArrowUp = 38;
+    /** 右方向键 @type {number} */
     static ArrowRight = 39;
+    /** 下方向键 @type {number} */
     static ArrowDown = 40;
 
+    /** F1键 @type {number} */
     static F1 = 112;
+    /** F2键 @type {number} */
     static F2 = 113;
+    /** F3键 @type {number} */
     static F3 = 114;
+    /** F4键 @type {number} */
     static F4 = 115;
+    /** F5键 @type {number} */
     static F5 = 116;
+    /** F6键 @type {number} */
     static F6 = 117;
+    /** F7键 @type {number} */
     static F7 = 118;
+    /** F8键 @type {number} */
     static F8 = 119;
+    /** F9键 @type {number} */
     static F9 = 120;
+    /** F10键 @type {number} */
     static F10 = 121;
+    /** F11键 @type {number} */
     static F11 = 122;
+    /** F12键 @type {number} */
     static F12 = 123;
-
-    static a = 97;
-    static b = 98;
-    static c = 99;
-    static d = 100;
-    static e = 101;
-    static f = 102;
-    static g = 103;
-    static h = 104;
-    static i = 105;
-    static j = 106;
-    static k = 107;
-    static l = 108;
-    static m = 109;
-    static n = 110;
-    static o = 111;
-    static p = 112;
-    static q = 113;
-    static r = 114;
-    static s = 115;
-    static t = 116;
-    static u = 117;
-    static v = 118;
-    static w = 119;
-    static x = 120;
-    static y = 121;
-    static z = 122;
 }
 
 /**
