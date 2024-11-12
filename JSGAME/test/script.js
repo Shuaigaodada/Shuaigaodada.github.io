@@ -1,5 +1,5 @@
 engine.init("gameCanvas", 800, 600);
-
+engine.start();
 // load source
 image_path = [
     "Zombie2_1.png", "Zombie2_2.png", "Zombie2_3.png", "Zombie2_4.png", "Zombie2_5.png",
@@ -17,10 +17,27 @@ for(let imgp of image_path) {
     realpath.push(basePath + imgp);
 }
 
-new PreloadAnimation("Zombie", "Move", realpath, start);
-
-function start() {
-    let zombie = new Animation(engine.getAnimation("Zombie", "Move"));
+new PreloadAnimation("Zombie", "Move", realpath, ()=>{});
+engine.preload("./Move1/blackBackground.jpeg");
+async function main() {
+    await engine.sleep(1000);
+    let zombie = engine.getAnimation("Zombie", "Move");
     zombie.create(125, 125);
+    zombie.__object__.flip.x = true;
+    zombie.__object__.createCollisionBox(30, 50, -90, -50);
+    zombie.__object__.rigidbody = true;
+    zombie.__object__.collisionBox.debug.show();
+
+    const floor = GameObject.create("blackBackground.jpeg", 0, 500, 800, 100);
+    floor.createCollisionBox();
+    floor.collisionBox.debug.show();
+
+    zombie.update = function() {
+        if(Input.getKeyDown(KeyCode.Space)) {
+            this.__object__.upForce = 100;
+        }
+    }
+
 }
 
+main();

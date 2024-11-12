@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Bouncing Box</title>
+	<style>
+		#box {
+			width: 70px;
+			height: 70px;
+			background-color: teal;
+			font-size: 300%;
+			text-align: center;
+			display: block;
+			position: absolute;
+			top: 100px;
+			left: 0px;
+		}
+		body{
+			height: 90vh;
+			width: 100vw;
+			overflow: hidden;
+		}
+	</style>
+	<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+
+</head>
+<body id="board">
+	<!-- HTML for the box -->
+	<div id="box">0</div>
+
+	<script>
+		/* global $ */
+		'use strict'
+		$(document).ready(function(){
+			//////////////////////////////////////////////////////////////////
+			/////////////////// EXAMPLE HEADER ///////////////////////////////
+			//////////////////////////////////////////////////////////////////
+
+			var BOARD_WIDTH = $('#board').width();	// Number: the maximum X-Coordinate of the screen
+
+			// Every 50 milliseconds, call the update Function (see below)
+			setInterval(go, 50);
+
+			
+			var l = 0;
+			var t = 100;
+			var left = 10;
+			var down = 30;
+
+			/* 
+			This Function will be called 20 times/second. Each time it is called,
+			it should move the Box to a new location. If the box drifts off the screen
+			turn it around! 
+			*/
+
+            function moveBox() {
+                l += left;
+				t += down;
+                drawBox();
+            }
+            function drawBox() {
+                $('#box').css("top", t);
+				$('#box').css("left", l);
+            }
+            function setBoxNewDire() {
+                if (l > 800 || l < 0) { left = -left; }
+				if (t > 800 || t < 0) { down = -down; }
+            }
+			function go() {
+                moveBox();
+                setBoxNewDire();
+			}
+
+			
+
+
+		}); 
+	</script>
+</body>
+</html>

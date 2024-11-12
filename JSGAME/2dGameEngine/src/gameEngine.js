@@ -47,6 +47,7 @@ class GameEngine {
         this.canvas.addEventListener("mousedown", this.__mouseDown__);
         this.canvas.addEventListener("mouseup", this.__mouseUp__);
         this.canvas.addEventListener("mousemove", this.__mouseMove__);
+        this.canvas.setAttribute("tabindex", "0");
         this.canvas.addEventListener("keydown", (e) => {Input.__keyDownHandle(e);})
         this.canvas.addEventListener("keyup", (e) => {Input.__keyUpHandle(e);})
     }
@@ -119,7 +120,7 @@ class GameEngine {
     /**
      * 游戏引擎更新方法，负责更新游戏逻辑和绘制画面
      */
-    __update() {
+    __update__() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
         this.objects.sort((a, b) => a.order - b.order);
@@ -132,9 +133,12 @@ class GameEngine {
         this.deltaTime = (Date.now() - this.__time) / 1000;
         this.__time = Date.now();
 
-        for(let eventName of Object.keys(this.__updateEvent)) {
-            this.__updateEvent[eventName]();
+        for(let gameEvent of Object.values(this.__updateEvent)) {
+            gameEvent();
         }
+
+        Input.__keyDown = Input.__deepCopy(Input.__NULLKEYDOWN);
+        Input.__keyUp = Input.__deepCopy(Input.__NULLKEYUP);
     }
 
     /**
@@ -219,7 +223,6 @@ class GameEngine {
     /**
      * 暂停一段时间
      * @param {number} ms - 暂停的时间（毫秒）
-     * @returns {Promise<void>} - 延迟一段时间后继续执行
      */
     async sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
@@ -230,30 +233,36 @@ class GameEngine {
      * @param {GameObject} object - 需要绘制的对象
      */
     draw(object) {
-        if(!object.image && !object.text) return;
-        if(object.image === null && object.text !== null) {
-            this.ctx.font = object.style.font;
-            this.ctx.fillStyle = object.style.color;
-            this.ctx.fillText(object.text, object.x, object.y);
-            return;
-        }
-
-        this.ctx.save();
-
-         // 设置透明度
-        this.ctx.globalAlpha = object.opacity !== undefined ? object.opacity : 1;
-
-        // slider
-        this.ctx.beginPath();
-        this.ctx.rect(object.x, object.y, object.width * object.sliderX, object.height * object.sliderY);
-        this.ctx.clip();
-        // rotation
-        this.ctx.translate(object.x + object.width / 2, object.y + object.height / 2);
-        this.ctx.rotate(object.rotation * Mathf.PI / 180);
-        this.ctx.drawImage(object.image, -object.width / 2, -object.height / 2, object.width, object.height); // 绘制图像
-
-        this.ctx.restore();
+    if (!object.image && !object.text) return;
+    if (object.image === null && object.text !== null) {
+        this.ctx.font = object.style.font;
+        this.ctx.fillStyle = object.style.color;
+        this.ctx.fillText(object.text, object.x, object.y);
+        return;
     }
+
+    this.ctx.save();
+
+    // 设置透明度
+    this.ctx.globalAlpha = object.opacity !== undefined ? object.opacity : 1;
+
+    // 设置默认滑动比例
+    const sliderX = object.slider.x !== undefined ? object.slider.x : 1;
+    const sliderY = object.slider.y !== undefined ? object.slider.y : 1;
+
+    // slider
+    this.ctx.beginPath();
+    this.ctx.rect(object.x, object.y, object.width * sliderX, object.height * sliderY);
+    this.ctx.clip();
+
+    // rotation
+    this.ctx.translate(object.x + object.width / 2, object.y + object.height / 2);
+    this.ctx.scale(object.flip.x ? -1 : 1, object.flip.y ? -1 : 1);
+    this.ctx.rotate(object.rotation * Mathf.PI / 180);
+    this.ctx.drawImage(object.image, -object.width / 2, -object.height / 2, object.width, object.height); // 绘制图像
+
+    this.ctx.restore();
+}
 
     /**
      * 获取预加载的图片
@@ -275,7 +284,7 @@ class GameEngine {
      */
     start() {
         setInterval(() => {
-            this.__update();
+            this.__update__();
         }, 1000 / this.fps);
     }
 
@@ -289,6 +298,37 @@ class GameEngine {
     
 }
 
+class Resources {
+    constructor() {
+        this.struct = {};
+    }
+
+    createFolder(name) {
+        this.struct[name] = {};
+    }
+
+    add(filename, src, type) {
+        let struct = this.struct
+        let fn = null
+        if(filename.split("/").length > 1) {
+            let folder = filename.split("/");
+            fn = folder.pop();
+            for(let f of folder) {
+                if(!struct[f]) {
+                    console.error(`Folder ${f} not found`);
+                    return;
+                }
+                struct = struct[f];
+            }
+        } else fn = filename;
+
+
+    }
+
+    
+}
+
+
 /**
  * 输入类，用于处理键盘输入
  */
@@ -298,21 +338,18 @@ class Input {
     /** 空KEYUP数据 @type {object.<string, any>} */
     static __NULLKEYUP = {meta: null, ctrl: false, shift: false, keyCode: -1};
     /** KEYDOWN数据 @type {object.<string, any>} */
-    static __keyDown = Input.__NULLKEYDOWN;
+    static __keyDown = Input.__deepCopy(Input.__NULLKEYDOWN);
     /** KEYUP数据 @type {object.<string, any>} */
-    static __keyUp = Input.__NULLKEYUP;
+    static __keyUp = Input.__deepCopy(Input.__NULLKEYUP);
 
     static getKeyDown() {
         let getKeyDownCheck = function(code) {
-            if(Input.__keyDown.keyCode === code) {
-                Input.__keyDown = Input.__NULLKEYDOWN;
-                return true;
-            } else return false;
+            if(Input.__keyDown.keyCode === code) return true;
+            else return false;
         }
 
         let getKeyDownWithMeta = function() {
             let meta = Input.__keyDown;
-            Input.__keyDown = Input.__NULLKEYDOWN;
             return meta;
         }
 
@@ -323,15 +360,12 @@ class Input {
 
     static getKeyUp() {
         let getKeyUpCheck = function(code) {
-            if(Input.__keyUp.keyCode === code) {
-                Input.__keyUp = Input.__NULLKEYUP;
-                return true;
-            } else return false;
+            if(Input.__keyUp.keyCode === code)                return true;
+            else return false;
         }
 
         let getKeyUpWithMeta = function() {
             let meta = Input.__keyUp;
-            Input.__keyUp = Input.__NULLKEYUP;
             return meta;
         }
 
@@ -341,21 +375,42 @@ class Input {
     }
 
     static __keyDownHandle(event) {
-        Input.keyDown.meta = event;
-        Input.keyDown.ctrl = event.ctrlKey;
-        Input.keyDown.shift = event.shiftKey;
-        Input.keyDown.keyCode = event.code;
+        Input.__keyDown.meta = event;
+        Input.__keyDown.ctrl = event.ctrlKey;
+        Input.__keyDown.shift = event.shiftKey;
+        Input.__keyDown.keyCode = event.code;
     }
 
     static __keyUpHandle(event) {
-        Input.KeyUp.meta = event;
-        Input.KeyUp.ctrl = event.ctrlKey;
-        Input.KeyUp.shift = event.shiftKey;
-        Input.KeyUp.keyCode = event.keyCode;
-        Input.KeyUp.key = event.code;
+        Input.__keyUp.meta = event;
+        Input.__keyUp.ctrl = event.ctrlKey;
+        Input.__keyUp.shift = event.shiftKey;
+        Input.__keyUp.keyCode = event.keyCode;
+        Input.__keyUp.key = event.code;
 
     }
 
+    static __deepCopy(obj) {
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+    
+        if (Array.isArray(obj)) {
+            const arrCopy = [];
+            for (let i = 0; i < obj.length; i++) {
+                arrCopy[i] = Input.__deepCopy(obj[i]);
+            }
+            return arrCopy;
+        }
+    
+        const objCopy = {};
+        for (const key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                objCopy[key] = Input.__deepCopy(obj[key]);
+            }
+        }
+        return objCopy;
+    }
 }
 
 
@@ -378,14 +433,8 @@ class CollisionBox {
         /** 碰撞箱高度 @type {number} */
         this.height = height;
 
-        /** 碰撞箱x轴偏移 @type {number} */
-        this.offsetX = 0;
-        /** 碰撞箱y轴偏移 @type {number} */
-        this.offsetY = 0;
-        /** 碰撞箱高度偏移 @type {number} */
-        this.offsetHeight = 0;
-        /** 碰撞箱宽度偏移 @type {number} */
-        this.offsetWidth = 0;
+        /** 碰撞箱轴偏移 @type {number} */
+        this.offset = {x: 0, y: 0, width: 0, height: 0};
 
         /** 进入碰撞箱的对象 @type {GameObject[]} */
         this.__enterObject = [];
@@ -478,10 +527,10 @@ class CollisionBox {
         return this.x + this.width > box.x;
     }
     isCollideWithTop(box) {
-        return this.y + this.height > box.y;
+        return this.y < box.y + box.height;
     }
     isCollideWithBottom(box) {
-        return this.y < box.y + box.height;
+        return this.y + this.height > box.y;
     }
 
     /**
@@ -536,31 +585,22 @@ class CollisionBox {
                     if(this.__enterObject.includes(object)) {
                         this.__enterObject.splice(this.__enterObject.indexOf(object), 1);
                         this.onCollisionExit(object);
-                    }
+                  }
                 }
             }
 
-            if(this.parentObject.rigidbody) {
-                if(object.collisionBox && object.collisionBox !== this && !object.__destoryed && !object.isTrigger) {
+            if(this.parentObject.__rigidbody) {
+                if(object.collisionBox && object.collisionBox !== this && !object.__destoryed && !object.collisionBox.isTrigger) {
                     // 碰撞检测, 并根据碰撞方向禁止移动
-                    if(this.isCollideWithLeft(object.collisionBox)) {
-                        this.parentObject.x = object.collisionBox.x + object.collisionBox.width;
-                    }
-                    if(this.isCollideWithRight(object.collisionBox)) {
-                        this.parentObject.x = object.collisionBox.x - this.parentObject.width;
-                    }
-                    if(this.isCollideWithTop(object.collisionBox)) {
-                        this.parentObject.y = object.collisionBox.y + object.collisionBox.height;
-                    }
                     if(this.isCollideWithBottom(object.collisionBox)) {
-                        this.parentObject.y = object.collisionBox.y - this.parentObject.height;
+                        // 碰撞到底部后关闭重力 并设置y坐标
+                        this.parentObject.y = object.collisionBox.y - this.parentObject.height + 1;
+                        this.parentObject.DisableGravity();
+                    } else {
+                        if(this.parentObject.upForce > 0)
+                            this.parentObject.EnableGravity();
                     }
                 }
-                // 重力计算
-                this.parentObject.upForce = Mathf.Clamp(this.parentObject.upForce, 0, this.parentObject.upForce);
-                const GDT = this.parentObject.gravity * engine.deltaTime;
-                this.parentObject.y -= GDT + this.parentObject.upForce;
-                this.parentObject.upForce -= GDT;
             }
         }
         
@@ -719,36 +759,105 @@ class GameObject {
      * @param {boolean} visible - 对象是否可见
      */
     constructor(image = null, x = 0, y = 0, width = 100, height = 100, visible = true) {
-        this.name = null; // 对象的名称
-        this._x = x; // 对象的 x 坐标
-        this._y = y; // 对象的 y 坐标
-        this.tag = ""; // 对象的标签
-        this.image = image; // 对象的图像
-        this.text = null; // 对象的文本， null 表示没有文本
-        this.style = {"font": "30px Arial", "color": "black"}; // 文本样式 
-        this.rotation = 0; // 旋转角度
-        this.sliderX = 1; // 水平滑动效果比例
-        this.sliderY = 1; // 垂直滑动效果比例
-        this.width = width; // 对象的宽度
-        this.height = height; // 对象的高度
-        this.visible = visible; // 对象是否可见
-        this.opacity = 1; // 默认不透明
-        this.collisionBox = null; // CollisionBox
-        this.childs = []; // 子对象
-        this.parent = null; // 父对象
-        this.id = GameObject.OBJECT_ID++; // 为每个实例生成唯一ID
-        this.order = engine.objects.length; // 绘制顺序
-        this.offsetX = 0;
-        this.offsetY = 0;
-        this.rigidbody = false;
+        /** 对象的名称 @type {string} */
+        this.name = null;
+        /** 对象的 x 坐标 @type {number} */
+        this._x = x;
+        /** 对象的 y 坐标 @type {number} */
+        this._y = y;
+        /** 对象的标签 @type {string} */
+        this.tag = "";
+        /** 对象的图像 @type {Image|null} */
+        this.image = image;
+        /** 对象的文本 @type {string|null} */
+        this.text = null;
+        /** 文本样式 @type {object.<string, string>} */
+        this.style = {"font": "30px Arial", "color": "black"};
+        /** 对象的旋转角度 @type {number} */
+        this.rotation = 0;
+        /** 对象的滑动比例 @type {object.<string, number>} */
+        this.slider = {x: 1, y: 1};
+        /** 对象的宽度 @type {number} */
+        this.width = width;
+        /** 对象的高度 @type {number} */
+        this.height = height;
+        /** 对象是否可见 @type {boolean} */
+        this.visible = visible;
+        /** 对象的透明度 @type {number} */
+        this.opacity = 1;
+        /** 碰撞盒 @type {CollisionBox||CircleCollisionBox} */
+        this.collisionBox = null;
+        /** 子对象 @type {GameObject[]} */
+        this.childs = [];
+        /** 父对象 @type {GameObject} */
+        this.parent = null;
+        /** 对象的ID @type {number} */
+        this.id = GameObject.OBJECT_ID++;
+        /** 对象的绘制图层 @type {number} */
+        this.order = engine.objects.length;
+        /** 是否翻转 @type {object.<string, boolean>} */
+        this.flip = {x: false, y: false};
+
+        /** 是否启用刚体 @type {boolean} */
+        this.__rigidbody = false;
+        /** 是否已被销毁 @type {boolean} */
         this.__destoryed = false;
 
+        /** 重力 @type {number} */
         this.gravity = 5;
+        /** 上升力 @type {number} */
         this.upForce = 0;
+        /** 重力事件状态 @type {string} */
+        this.__gravityEventState = "disable";
         
         engine.objects.push(this);
     }
 
+    gravityUpdate() {
+        // 如果upForce小于0，则设置upFrce为0
+        this.upForce = Mathf.Max(this.upForce, 0);
+        // GDT = 重力 * 时间差 * 100
+        const GDT = this.gravity * engine.deltaTime * 100;
+        // y轴坐标增加GDT - upForce, 增加代表下坠
+        this.y += GDT - this.upForce;
+        for(let obj of engine.objects) {
+            if(obj.collisionBox && obj.collisionBox !== this.collisionBox) {
+                if(this.collisionBox.isCollideWithBottom(obj.collisionBox)) {
+                    this.y -= GDT - this.upForce;
+                    this.y = obj.collisionBox.y - this.height + 1;
+                    this.DisableGravity();
+                }
+            }
+        }
+        // 如果upForce大于0，则减少upForce
+        if(this.upForce > 0)
+            this.upForce -= GDT / 50;
+    }
+
+    EnableGravity() {
+        if(this.__gravityEventState === "enable") return;
+        this.__gravityEventState = "enable";
+        engine.registerEvent(`GameObjectGravity${this.id}`, () => { this.gravityUpdate(); });
+
+    }
+    DisableGravity() {
+        if(this.__gravityEventState === "disable") return;
+        this.__gravityEventState = "disable";
+        engine.removeEvent(`GameObjectGravity${this.id}`);
+    }
+
+    set rigidbody(value) {
+        if(value) {
+            this.__rigidbody = true;
+            this.EnableGravity();
+        }
+        else {
+            this.DisableGravity();
+            this.upForce = 0;
+            engine.removeEvent(`GameObjectGravity${this.id}`);
+            this.__rigidbody = false;
+        }
+    }
 
     /**
      * 获取对象的 x 坐标
@@ -769,10 +878,10 @@ class GameObject {
     set x(x) { 
         this._x = x; 
         if(this.collisionBox) { 
-            this.collisionBox.x = this._x + (this.collisionBox.offsetX || 0); 
+            this.collisionBox.x = this._x + (this.collisionBox.offset.x || 0); 
         }
         for(let child of this.childs) 
-            child.x = x + child.offsetX;
+            child.collisionBox.x = child.x + child.collisionBox.offset.x;
     }
 
     /**
@@ -782,10 +891,10 @@ class GameObject {
     set y(y) {
         this._y = y;
         if(this.collisionBox) {
-            this.collisionBox.y = this._y + (this.collisionBox.offsetY || 0);
+            this.collisionBox.y = this._y + (this.collisionBox.offset.y || 0);
         }
         for(let child of this.childs) 
-            child.y = y + child.offsetY;
+            child.collisionBox.y = child.y + child.collisionBox.offset.y;
     }
 
     /**
@@ -794,8 +903,6 @@ class GameObject {
      */
     setChild(child) {
         child.parent = this;
-        child.x = this.x + child.offsetX;
-        child.y = this.y + child.offsetY;
         this.childs.push(child);
     }
 
@@ -808,8 +915,7 @@ class GameObject {
      */
     createCollisionBox(offsetX = 0, offsetY = 0, offsetWidth = 0, offsetHeight = 0) {
         this.collisionBox = new CollisionBox(this.x + offsetX, this.y + offsetY, this.width + offsetWidth, this.height + offsetHeight);
-        this.collisionBox.offsetX = offsetX; // 保存偏移量，便于后续更新时使用
-        this.collisionBox.offsetY = offsetY;
+        this.collisionBox.offset = {x: offsetX, y: offsetY};
         this.collisionBox.offsetHeight = offsetHeight;
         this.collisionBox.offsetWidth = offsetWidth;
         this.collisionBox.parentObject = this;
@@ -824,8 +930,8 @@ class GameObject {
      */
     createCircleCollisionBox(radius, offsetX = 0, offsetY = 0) {
         this.collisionBox = new CircleCollisionBox(this._x + offsetX, this._y + offsetY, radius);
-        this.collisionBox.offsetX = offsetX; // 保存偏移量，便于后续更新时使用
-        this.collisionBox.offsetY = offsetY;
+        this.collisionBox.offset.x = offsetX; // 保存偏移量，便于后续更新时使用
+        this.collisionBox.offset.y = offsetY;
         this.collisionBox.parentObject = this;
     }
 
@@ -853,7 +959,7 @@ class GameObject {
      * @param {number} slider - 滑动比例 (0-1)
      */
     setSliderX(slider) {
-        this.sliderX = slider;
+        this.slider.x = slider;
     }
 
     /**
@@ -862,7 +968,7 @@ class GameObject {
      * @returns {void}
      */
     setSliderY(slider) {
-        this.sliderY = slider;
+        this.slider.y = slider;
     }
 
     /**
@@ -1013,6 +1119,7 @@ class Animation {
         this.curframe = 0;
         this.framesCount = 0;
         this.speed = speed;
+        /** @type {GameObject} */
         this.__object__ = null;
 
         // {condition: function, anim: Animation, valueName: string}
@@ -1041,7 +1148,7 @@ class Animation {
      * @param {boolean} visible - 是否可见
      */
     create(width, height, visible = true) {
-        this.__object__ = new GameObject(this.frames[0], width, height, visible);
+        this.__object__ = new GameObject(this.frames[0], 0, 0, width, height, visible);
         this.__object__.tag = "animation";
         this.__object__.update = () => {
             this.framesCount++;
@@ -1670,132 +1777,132 @@ class Mathf {
  * 键盘按键码
  */
 class KeyCode {
-    /** a键 @type {number} */
-    static A = 65;
-    /** b键 @type {number} */
-    static B = 66;
-    /** c键 @type {number} */
-    static C = 67;
-    /** d键 @type {number} */
-    static D = 68;
-    /** e键 @type {number} */
-    static E = 69;
-    /** f键 @type {number} */
-    static F = 70;
-    /** g键 @type {number} */
-    static G = 71;
-    /** h键 @type {number} */
-    static H = 72;
-    /** i键 @type {number} */
-    static I = 73;
-    /** j键 @type {number} */
-    static J = 74;
-    /** k键 @type {number} */
-    static K = 75;
-    /** l键 @type {number} */
-    static L = 76;
-    /** m键 @type {number} */
-    static M = 77;
-    /** n键 @type {number} */
-    static N = 78;
-    /** o键 @type {number} */
-    static O = 79;
-    /** p键 @type {number} */
-    static P = 80;
-    /** q键 @type {number} */
-    static Q = 81;
-    /** r键 @type {number} */
-    static R = 82;
-    /** s键 @type {number} */
-    static S = 83;
-    /** t键 @type {number} */
-    static T = 84;
-    /** u键 @type {number} */
-    static U = 85;
-    /** v键 @type {number} */
-    static V = 86;
-    /** w键 @type {number} */
-    static W = 87;
-    /** x键 @type {number} */
-    static X = 88;
-    /** y键 @type {number} */
-    static Y = 89;
-    /** z键 @type {number} */
-    static Z = 90;
+    /** a键 @type {string} */
+    static A = "KeyA";
+    /** b键 @type {string} */
+    static B = "KeyB";
+    /** c键 @type {string} */
+    static C = "KeyC";
+    /** d键 @type {string} */
+    static D = "KeyD";
+    /** e键 @type {string} */
+    static E = "KeyE";
+    /** f键 @type {string} */
+    static F = "KeyF";
+    /** g键 @type {string} */
+    static G = "KeyG";
+    /** h键 @type {string} */
+    static H = "KeyH";
+    /** i键 @type {string} */
+    static I = "KeyI";
+    /** j键 @type {string} */
+    static J = "KeyJ";
+    /** k键 @type {string} */
+    static K = "KeyK";
+    /** l键 @type {string} */
+    static L = "KeyL";
+    /** m键 @type {string} */
+    static M = "KeyM";
+    /** n键 @type {string} */
+    static N = "KeyN";
+    /** o键 @type {string} */
+    static O = "KeyO";
+    /** p键 @type {string} */
+    static P = "KeyP";
+    /** q键 @type {string} */
+    static Q = "KeyQ";
+    /** r键 @type {string} */
+    static R = "KeyR";
+    /** s键 @type {string} */
+    static S = "KeyS";
+    /** t键 @type {string} */
+    static T = "KeyT";
+    /** u键 @type {string} */
+    static U = "KeyU";
+    /** v键 @type {string} */
+    static V = "KeyV";
+    /** w键 @type {string} */
+    static W = "KeyW";
+    /** x键 @type {string} */
+    static X = "KeyX";
+    /** y键 @type {string} */
+    static Y = "KeyY";
+    /** z键 @type {string} */
+    static Z = "KeyZ";
 
-    /** 0键 @type {number} */
-    static Num0 = 48;
-    /** 1键 @type {number} */
-    static Num1 = 49;
-    /** 2键 @type {number} */
-    static Num2 = 50;
-    /** 3键 @type {number} */
-    static Num3 = 51;
-    /** 4键 @type {number} */
-    static Num4 = 52;
-    /** 5键 @type {number} */
-    static Num5 = 53;
-    /** 6键 @type {number} */
-    static Num6 = 54;
-    /** 7键 @type {number} */
-    static Num7 = 55;
-    /** 8键 @type {number} */
-    static Num8 = 56;
-    /** 9键 @type {number} */
-    static Num9 = 57;
+    /** 0键 @type {string} */
+    static Num0 = "Digit0";
+    /** 1键 @type {string} */
+    static Num1 = "Digit1";
+    /** 2键 @type {string} */
+    static Num2 = "Digit2";
+    /** 3键 @type {string} */
+    static Num3 = "Digit3";
+    /** 4键 @type {string} */
+    static Num4 = "Digit4";
+    /** 5键 @type {string} */
+    static Num5 = "Digit5";
+    /** 6键 @type {string} */
+    static Num6 = "Digit6";
+    /** 7键 @type {string} */
+    static Num7 = "Digit7";
+    /** 8键 @type {string} */
+    static Num8 = "Digit8";
+    /** 9键 @type {string} */
+    static Num9 = "Digit9";
 
-    /** 空格键 @type {number} */
-    static Space = 32;
-    /** 回车键 @type {number} */
-    static Enter = 13;
-    /** Tab键 @type {number} */
-    static Tab = 9;
-    /** Esc键 @type {number} */
-    static Esc = 27;
-    /** Backspace键 @type {number} */
-    static Backspace = 8;
-    /** CapsLock键 @type {number} */
-    static CapsLock = 20;
-    /** Delete键 @type {number} */
-    static Delete = 46;
-    /** End键 @type {number} */
-    static End = 35;
-    /** Home键 @type {number} */
-    static Home = 36;
+    /** 空格键 @type {string} */
+    static Space = "Space";
+    /** 回车键 @type {string} */
+    static Enter = "Enter";
+    /** Tab键 @type {string} */
+    static Tab = "Tap";
+    /** Esc键 @type {string} */
+    static Escape = "Escape";
+    /** Backspace键 @type {string} */
+    static Backspace = "Backspace";
+    /** CapsLock键 @type {string} */
+    static CapsLock = "CapsLock";
+    /** Delete键 @type {string} */
+    static Delete = "Delete";
+    /** End键 @type {string} */
+    static End = "End";
+    /** Home键 @type {string} */
+    static Home = "Home";
 
-    /** 左方向键 @type {number} */
-    static ArrowLeft = 37;
-    /** 上方向键 @type {number} */
-    static ArrowUp = 38;
-    /** 右方向键 @type {number} */
-    static ArrowRight = 39;
-    /** 下方向键 @type {number} */
-    static ArrowDown = 40;
+    /** 左方向键 @type {string} */
+    static ArrowLeft = "ArrowLeft";
+    /** 上方向键 @type {string} */
+    static ArrowUp = "ArrowUp";
+    /** 右方向键 @type {string} */
+    static ArrowRight = "ArrowRight";
+    /** 下方向键 @type {string} */
+    static ArrowDown = "ArrowDown";
 
-    /** F1键 @type {number} */
-    static F1 = 112;
-    /** F2键 @type {number} */
-    static F2 = 113;
-    /** F3键 @type {number} */
-    static F3 = 114;
-    /** F4键 @type {number} */
-    static F4 = 115;
-    /** F5键 @type {number} */
-    static F5 = 116;
-    /** F6键 @type {number} */
-    static F6 = 117;
-    /** F7键 @type {number} */
-    static F7 = 118;
-    /** F8键 @type {number} */
-    static F8 = 119;
-    /** F9键 @type {number} */
-    static F9 = 120;
-    /** F10键 @type {number} */
-    static F10 = 121;
-    /** F11键 @type {number} */
-    static F11 = 122;
-    /** F12键 @type {number} */
-    static F12 = 123;
+    /** F1键 @type {string} */
+    static F1 = "F1";
+    /** F2键 @type {string} */
+    static F2 = "F2";
+    /** F3键 @type {string} */
+    static F3 = "F3";
+    /** F4键 @type {string} */
+    static F4 = "F4";
+    /** F5键 @type {string} */
+    static F5 = "F5";
+    /** F6键 @type {string} */
+    static F6 = "F6";
+    /** F7键 @type {string} */
+    static F7 = "F7";
+    /** F8键 @type {string} */
+    static F8 = "F8";
+    /** F9键 @type {string} */
+    static F9 = "F9";
+    /** F10键 @type {string} */
+    static F10 = "F10";
+    /** F11键 @type {string} */
+    static F11 = "F11";
+    /** F12键 @type {string} */
+    static F12 = "F12";
 }
 
 /**
