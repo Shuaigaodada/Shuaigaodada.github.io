@@ -1,0 +1,108 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+}
+#chat-container {
+    width: 90%; /* 调整宽度 */
+    max-width: 800px; /* 调整最大宽度 */
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+#messages {
+    height: 500px; /* 调整高度 */
+    overflow-y: scroll;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+.message {
+    display: flex;
+    margin-bottom: 10px;
+}
+.message.user {
+    justify-content: flex-end;
+}
+.message.ai {
+    justify-content: flex-start;
+}
+.message .bubble {
+    max-width: 70%;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: #f1f1f1;
+    white-space: pre-wrap; /* 保证换行符正常显示 */
+}
+.message.user .bubble {
+    background-color: #007bff;
+    color: white;
+}
+.message .bubble code {
+    background-color: #0d0d0d; /* 深色背景 */
+    color: #dcdcdc; /* 浅色文字 */
+    border-radius: 3px;
+    padding: 2px 4px;
+}
+.message .bubble pre {
+    background-color: #0d0d0d; /* 深色背景 */
+    color: #dcdcdc; /* 浅色文字 */
+    border-radius: 3px;
+    padding: 10px;
+    overflow: auto;
+    font-family: Consolas, "Courier New", monospace; /* 使用等宽字体 */
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5); /* 内阴影 */
+}
+
+#input-container {
+    display: flex;
+}
+#input-container textarea {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px 0 0 5px;
+    resize: none;
+    height: 50px;
+}
+#input-container button {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-left: none;
+    border-radius: 0 5px 5px 0;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+}
+#log-button {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+}
+#log-container {
+    width: 90%; /* 调整宽度 */
+    max-width: 800px; /* 调整最大宽度 */
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+#logs {
+    height: 150px;
+    overflow-y: scroll;
+    border: 1px solid #ccc;
+    padding: 10px;
+}
+.hidden {
+    display: none;
+}

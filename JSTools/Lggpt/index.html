@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Laogao GPT</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/vs2015.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div id="chat-container">
+        <h1>Laogao GPT</h1>
+        <div id="messages"></div>
+        <div id="input-container">
+            <textarea id="message-input" placeholder="Type your message here..."></textarea>
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+    <button id="log-button">Show Logs</button>
+    <div id="log-container" class="hidden">
+        <h2>Logs</h2>
+        <div id="logs"></div>
+    </div>
+</body>
+</html>
