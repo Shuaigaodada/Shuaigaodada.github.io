@@ -1,9 +1,10 @@
-/**
- * 二维向量类
- * @param {number} x - x 坐标
- * @param {number} y - y 坐标
- */
 class Vector2 {
+    /**
+     * 二维向量类
+     * @param {number} x - x 坐标
+     * @param {number} y - y 坐标
+     * @example new Vector2(0, 0);
+     */
     constructor(x, y) {
         /** x 坐标 @type {number} */
         this._x = x;
@@ -19,91 +20,125 @@ class Vector2 {
         this.__gety__ = () => { return this._y; };
     }
 
-    /**
-     * 获取x坐标
-     * @returns {number}
-     */
-    get x() { return this.__getx__(); }
-    /**
-     * 设置x坐标
-     * @type {number}
-     */
-    set x(value) { this.__setx__(value); }
-    /**
-     * 获取y坐标
-     * @returns {number}
-     */
-    get y() { return this.__gety__(); }
-    /**
-     * 设置y坐标
-     * @type {number}
-     */
-    set y(value) { this.__sety__(value); }
-}
-/**
- * 三维向量类
- * @param {number} x - x 坐标
- * @param {number} y - y 坐标
- * @param {number} z - z 坐标
- */
-class Vector3 {
-    constructor(x, y, z) {
-        /** x 坐标 @type {number} */
-        this.x = x;
-        /** y 坐标 @type {number} */
-        this.y = y;
-        /** z 坐标 @type {number} */
-        this.z = z;
-
-        /** 设置x函数 */
-        this.__setx__ = (value) => { this.x = value; };
-        /** 设置y函数 */
-        this.__sety__ = (value) => { this.y = value; };
-        /** 设置z函数 */
-        this.__setz__ = (value) => { this.z = value; };
-        /** 获取x函数 */
-        this.__getx__ = () => { return this.x; };
-        /** 获取y函数 */
-        this.__gety__ = () => { return this.y; };
-        /** 获取z函数 */
-        this.__getz__ = () => { return this.z; };
+    copy() {
+        return new Vector2(this.x, this.y);
     }
 
     /**
      * 获取x坐标
      * @returns {number}
-    */
+     * @example let x = vector.x;
+     */
     get x() { return this.__getx__(); }
     /**
      * 设置x坐标
      * @param {number} value
-    */
+     * @example vector.x = 10;
+     */
     set x(value) { this.__setx__(value); }
     /**
      * 获取y坐标
      * @returns {number}
+     * @example let y = vector.y;
      */
     get y() { return this.__gety__(); }
     /**
      * 设置y坐标
      * @param {number} value
+     * @example vector.y = 10;
+     */
+    set y(value) { this.__sety__(value); }
+}
+
+class Vector3 {
+    /**
+     * 三维向量类
+     * @param {number} x - x 坐标
+     * @param {number} y - y 坐标
+     * @param {number} z - z 坐标
+     * @example new Vector3(0, 0, 0);
+     */
+    constructor(x, y, z) {
+        /** x 坐标 @type {number} */
+        this._x = x;
+        /** y 坐标 @type {number} */
+        this._y = y;
+        /** z 坐标 @type {number} */
+        this._z = z;
+
+        /** 设置x函数 */
+        this.__setx__ = (value) => { this._x = value; };
+        /** 设置y函数 */
+        this.__sety__ = (value) => { this._y = value; };
+        /** 设置z函数 */
+        this.__setz__ = (value) => { this._z = value; };
+        /** 获取x函数 */
+        this.__getx__ = () => { return this._x; };
+        /** 获取y函数 */
+        this.__gety__ = () => { return this._y; };
+        /** 获取z函数 */
+        this.__getz__ = () => { return this._z; };
+    }
+
+    copy() {
+        return new Vector3(this.x, this.y, this.z);
+    }
+
+    /**
+     * 获取x坐标
+     * @returns {number}
+     * @example let x = vector.x;
+    */
+    get x() { return this.__getx__(); }
+    /**
+     * 设置x坐标
+     * @param {number} value
+     * @example vector.x = 10;
+    */
+    set x(value) { this.__setx__(value); }
+    /**
+     * 获取y坐标
+     * @returns {number}
+     * @example let y = vector.y;
+     */
+    get y() { return this.__gety__(); }
+    /**
+     * 设置y坐标
+     * @param {number} value
+     * @example vector.y = 10;
      */
     set y(value) { this.__sety__(value); }
     /**
      * 获取z坐标
      * @returns {number}
+     * @example let z = vector.z;
      */
     get z() { return this.__getz__(); }
     /**
      * 设置z坐标
      * @param {number} value
+     * @example vector.z = 10;
      */
     set z(value) { this.__setz__(value); }
 }
 
-/**
- * 游戏资源管理器类
- */
+class AnimatorConnection {
+    /**
+     * 动画连接类
+     * @param {string} anim - 动画名称
+     * @param {function} condition - 条件函数
+     * @param {boolean} transition - 是否过度
+     * @param {function} callback - 回调函数
+     * @example new AnimatorConnection("walk", () => true, true, () => {});
+     */
+    constructor(anim, condition, transition, callback) {
+        this.anim = anim;
+        this.condition = condition;
+        this.transition = transition;
+        this.callback = callback;
+    }
+}
+
 class ResourcesObject {
     /** 图片文件类型 @type {string[]} */
     static ImageTypes = [
@@ -122,6 +157,10 @@ class ResourcesObject {
     /** 动画文件类型 @type {string[]} */
     static AnimationTypes = ["anim", "animation", "ani", "frames", "fms"];
 
+    /** 动画控制器文件类型 @type {string[]} */
+    static AnimatorTypes = ["animator", "anmt", "animators"]
+
+    /** 游戏资源管理器类 */
     constructor() {
         /** 资源文件结构 @type {Object} */
         this.__files__ = {};
@@ -133,26 +172,27 @@ class ResourcesObject {
      * 加载所有资源文件并更新进度
      * @param {function} updateProgress - 更新进度的回调函数，参数为当前进度百分比
      * @returns {Promise} - 返回一个Promise对象，当所有资源加载完成时解析
+     * @example Resources.loadAll((progress) => console.log(progress));
      */
     async loadAll(updateProgress) {
         const files = this.__files__;
         const totalFiles = this.countFiles(files);
         let loadedFiles = 0;
 
-        const loadFile = async (path, obj) => {
-            for (const key in obj) {
-                if (typeof obj[key] === 'object') {
-                    await loadFile([...path, key], obj[key]);
-                } else {
-                    const filename = [...path, key].join('/');
-                    await this.load(filename);
-                    
-                    loadedFiles++;
-                    try {
-                        updateProgress((loadedFiles / totalFiles) * 100);
-                    } catch(error) {
-                        console.error('Error in updateProgress callback:', error);
-                    }
+        const loadFile = async (path, object) => {
+            if(typeof object === "object" && !Array.isArray(object)) {
+                for(const key in object) {
+                    await loadFile([...path, key], object[key]);
+                }
+            } else {
+                const filename = path.join("/");
+                await this.load(filename);
+                loadedFiles++;
+                try {
+                    updateProgress && updateProgress(loadedFiles / totalFiles * 100);
+                } catch(error) {
+                    console.error("Resources.LoadAll: Error in updateProgress callback");
+                    console.error(error);
                 }
             }
         };
@@ -164,6 +204,7 @@ class ResourcesObject {
      * 添加资源文件
      * @param {string} filename - 资源文件的路径和名称
      * @param {string} src - 资源文件的源路径
+     * @example Resources.add("player.jpg", "assets/player.jpg");
      */
     add(filename, src) {
         // 规范化路径
@@ -173,15 +214,14 @@ class ResourcesObject {
         filename = path.pop();
 
         if(path) {
-            let current = this.cdPath(path)
-            if(current === null) return;
-            current[filename] = src;
+            this.cdPath(path)[filename] = src
         } else this.__files__[filename] = src;
     }
 
     /**
      * 创建文件夹
      * @param {string} folder - 文件夹路径
+     * @example Resources.createFolder("images");
      */
     createFolder(folder) {
         // 规范化路径
@@ -202,6 +242,7 @@ class ResourcesObject {
      * 加载资源文件
      * @param {string} filename - 资源文件的路径和名称
      * @returns {Promise} - 返回一个Promise对象，解析为加载的资源
+     * @example Resources.load("player.jpg");
      */
     load(filename) {
         return new Promise((resolve, reject) => {
@@ -226,11 +267,13 @@ class ResourcesObject {
             let type = filename.split(".").pop();
             
             if(ResourcesObject.ImageTypes.includes(type)) {
-                this.handleLoadImage(current, src);
+                this.handleLoadImage(path, filename, src, resolve, reject);
             } else if(ResourcesObject.AudioTypes.includes(type)) {
-                this.handleLoadAudio(current, src);
+                this.handleLoadAudio(path, filename, src, resolve, reject);
             } else if(ResourcesObject.AnimationTypes.includes(type)) {
-                this.handleLoadAnimation(current, src);
+                this.handleLoadAnimation(path, filename, src, resolve, reject);
+            } else if(ResourcesObject.AnimatorTypes.includes(type)) {
+                this.handleLoadAnimator(path, filename, src, resolve, reject);
             } else {
                 // 当资源文件类型不支持时，记录错误并返回
                 console.error(`Resource.Load: ${filename} type not supported`);
@@ -241,15 +284,19 @@ class ResourcesObject {
     
     /**
      * 处理加载图片
-     * @param {object} current - 当前资源文件对象
+     * @param {string} path - 图片文件路径
+     * @param {string} filename - 图片文件名称
      * @param {Image} image - 图片对象
+     * @param {function} resolve - 解析函数
+     * @param {function} reject - 拒绝函数
+     * @example Resources.handleLoadImage(current, "player.jpg", image, resolve, reject);
      */
-    handleLoadImage(current, image) {
+    handleLoadImage(path, filename, image, resolve, reject) {
         // 加载图片文件
         let img = new Image();
         img.onload = () => {
             resolve(img);
-            current[filename] = img;
+            this.cdPath(path)[filename] = img;
         };
         img.onerror = () => {
             console.error(`Resource.Load: Failed to load image ${filename}`);
@@ -260,15 +307,19 @@ class ResourcesObject {
 
     /**
      * 处理加载音频
-     * @param {object} current - 当前资源文件对象
+     * @param {string} path - 音频文件路径
+     * @param {string} filename - 音频文件名称
      * @param {Audio} audio - 音频对象
+     * @param {function} resolve - 解析函数
+     * @param {function} reject - 拒绝函数
+     * @example Resources.handleLoadAudio(current, "bgm.mp3", audio, resolve, reject);
      */
-    handleLoadAudio(current, audio) {
+    handleLoadAudio(path, filename, src, resolve, reject) {
         // 加载音频文件
         let audio = new Audio();
         audio.onloadeddata = () => {
             resolve(audio);
-            current[filename] = audio;
+            this.cdPath(path)[filename] = audio;
         };
         audio.onerror = () => {
             console.error(`Resource.Load: Failed to load audio ${filename}`);
@@ -279,39 +330,79 @@ class ResourcesObject {
 
     /**
      * 处理加载动画
-     * @param {object} current - 当前资源文件对象
+     * @param {string} path - 动画文件路径
+     * @param {string} filename - 动画文件名称
      * @param {Array} frames - 动画帧数组
+     * @param {function} resolve - 解析函数
+     * @param {function} reject - 拒绝函数
+     * @example Resources.handleLoadAnimation(current, "player.anim", frames, resolve, reject);
      */
-    handleLoadAnimation(current, frames) {
-        let frameArray = Array(frames.length);
-        let framePromises = frames.map((frame, index) => {
-            return new Promise((resolve, reject) => {
-                let img = new Image();
-                img.onload = () => {
-                    frameArray[index] = img;
-                    resolve();
-                };
-                img.onerror = () => {
-                    console.error(`Resource.Load: Failed to load image ${frame}`);
-                    reject(new Error(`Resource.Load: Failed to load image ${frame}`));
-                };
-                img.src = frame;
+    handleLoadAnimation(path, filename, frames, resolve, reject) {
+        let framePromises = frames.map(frame => {
+            return new Promise(async (resolveFrame, rejectFrame) => {
+                if(typeof this.rawfind(frame) === "string")
+                    await this.load(frame);
+                resolveFrame(this.rawfind(frame));
             });
         });
 
-        Promise.all(framePromises).then(() => {
-            current[filename] = frameArray;
-            resolve(frameArray);
+        Promise.all(framePromises).then((frames) => {
+            resolve(frames);
         }).catch(error => {
-            console.error(`Resource.Load: Failed to load animation ${filename}`);
-            reject(new Error(`Resource.Load: Failed to load animation ${filename}`));
+            console.error(`Resource.Load: Failed to load animation ${error}`);
+            reject(new Error(`Resource.Load: Failed to load animation ${error}`));
         });
+    }
+
+    /**
+     * 处理加载动画控制器
+     * @param {string} path - 动画控制器文件路径
+     * @param {string} filename - 动画控制器文件名称
+     * @param {Array} anims - 动画路径数组
+     * @param {function} resolve - 解析函数
+     * @param {function} reject - 拒绝函数
+     * @example Resources.handleLoadAnimator(current, "player.animator", anims, resolve, reject);
+     */
+    handleLoadAnimator(path, filename, anims, resolve, reject) {
+        let animPromises = anims.map(anim => {
+            return new Promise(async (resolveAnim, rejectAnim) => {
+                await this.load(anim);
+                resolveAnim(this.rawfind(anim));
+            });
+        });
+        Promise.all(animPromises).then(() => {
+            resolve(anims);
+        }).catch(error => {
+            console.error(`Resource.Load: Failed to load animator ${error}`);
+            reject(new Error(`Resource.Load: Failed to load animator ${error}`));
+        });
+    }
+
+    /**
+     * 查找资源文件 不检查任何错误
+     * @param {string} filename - 资源文件的路径和名称
+     * @returns {*} - 返回找到的资源文件
+     * @example Resources.rawfind("player.jpg");
+     */
+    rawfind(filename) {
+        // 规范化路径
+        filename = this.normalizePath(filename);
+
+        // 将filename转换为路径
+        let path = filename.split("/");
+        filename = path.pop();
+
+        // 切换到指定路径
+        let current = this.cdPath(path);
+
+        return current[filename];
     }
 
     /**
      * 查找资源文件
      * @param {string} filename - 资源文件的路径和名称
      * @returns {*} - 返回找到的资源文件
+     * @example Resources.find("image/player.jpg");
      */
     find(filename) {
         // 规范化路径
@@ -324,10 +415,10 @@ class ResourcesObject {
         // 切换到指定路径
         let current = this.cdPath(path);
         if(current === null || current[filename] === undefined) {
-            console.error(`Resource.Find: ${filename} not found`);
+            console.error(`Resource.find: ${filename} not found`);
             return null;
         } else if(typeof current[filename] === 'string') {
-            console.error(`Resource.Find: ${filename} did not loaded`);
+            console.error(`Resource.find: ${filename} did not loaded`);
             return null;
         }
 
@@ -338,6 +429,7 @@ class ResourcesObject {
      * 创建动画
      * @param {string} filename - 动画文件名称
      * @param {Array} frames - 动画帧数组
+     * @example Resources.createAnimation("player.anim", ["player1.jpg", "player2.jpg"]);
      */
     createAnimation(filename, frames) {
         if(this.isPath(filename)) {
@@ -350,9 +442,26 @@ class ResourcesObject {
     }
 
     /**
+     * 创建动画控制器
+     * @param {string} filename - 动画文件名称
+     * @param {string[][]} anims - 动画组
+     * @example Resources.createAnimator("player.animator", [["walk", 0, 1], ["idle", 2, 3]]);
+     */
+    createAnimator(filename, anims) {
+        if(this.isPath(filename)) {
+            let path = filename.split("/");
+            filename = path.pop();
+            let current = this.cdPath(path);
+            if(current === null) return;
+            current[filename] = anims;
+        } else this.__files__[filename] = anims;
+    }
+
+    /**
      * 检查是否是路径
      * @param {string} p - 路径字符串
      * @returns {boolean} - 返回是否是路径
+     * @example Resources.isPath("images/player.jpg");
      */
     isPath(p) { return p.split("/").length > 1; }
 
@@ -360,10 +469,13 @@ class ResourcesObject {
      * 切换到指定路径
      * @param {array|string} p - 路径数组或路径字符串
      * @returns {object} - 返回路径对象
+     * @example Resources.cdPath("images/player.jpg"); return {player.jpg: "assets/player.jpg"};
      */
     cdPath(p) {
+        if(!p) return this.__files__;
         let current = this.__files__;
 
+        p = this.normalizePath(p);
         // 切换到默认路径
         if(this.defaultPath !== "")
             for(let dp of this.defaultPath.split("/")) 
@@ -371,10 +483,9 @@ class ResourcesObject {
 
         // 将路径转为数组
         let path = null
-        if(typeof p === 'string') {
+        if(typeof p === 'string') 
             path = p.split("/");
-            path.pop();
-        } else path = p;
+        else path = p;
 
         // 切换到指定路径
         for(let i = 0; i < path.length; i++) {
@@ -393,6 +504,7 @@ class ResourcesObject {
      * 计算资源文件的总数
      * @param {object} obj - 资源文件对象
      * @returns {number} - 返回资源文件的总数
+     * @example Resources.countFiles(obj);
      */
     countFiles(obj) {
         let count = 0;
@@ -401,7 +513,6 @@ class ResourcesObject {
                 count += this.countFiles(obj[key]);
             else count++;
         }
-        
         return count;
     }
 
@@ -409,9 +520,10 @@ class ResourcesObject {
      * 规范化路径，处理相对路径
      * @param {string} path - 路径字符串
      * @returns {string} - 返回规范化后的路径
+     * @example Resources.normalizePath("./player.jpg");
      */
     normalizePath(path) {
-        const parts = path.split('/');
+        const parts = typeof path === "string" ? path.split('/') : path;
         const stack = [];
         for(const part of parts) {
             if(part === '.' || part === '') continue;
@@ -423,15 +535,13 @@ class ResourcesObject {
 }
 
 class GameEngine {
-    /**
-     * 游戏引擎类，负责管理游戏的整体逻辑、绘制、资源加载等
-     */
+    /** 游戏引擎类，负责管理游戏的整体逻辑、绘制、资源加载等 */
     constructor() {
         /** 游戏对象数组 @type {GameObject[]} */
         this.objects = [];
-        /** 保存的关卡 @type {Object} */
+        /** 保存的关卡 @type {Object.<string, array>} */
         this.savedLevels = {};
-        /** 更新事件 @type {Object} */
+        /** 更新事件 @type {Object.<string, function>} */
         this.updateEvents = {};
         /** 帧率 @type {number} */
         this.fps = 60;
@@ -439,6 +549,11 @@ class GameEngine {
         this.__time__ = 0.0;
         /** 时间增量 @type {number} */
         this.deltaTime = 0.0;
+
+        /** 初始画布宽度 @type {number} */
+        this.initalWidth = 0;
+        /** 初始画布高度 @type {number} */
+        this.initalHeight = 0;
     }
 
     /**
@@ -446,6 +561,7 @@ class GameEngine {
      * @param {string} canvas - 画布对象
      * @param {number} width - 画布的宽度
      * @param {number} height - 画布的高度
+     * @example engine.init("canvas", 800, 600);
      */
     init(canvas, width, height) {
         this.canvas = document.getElementById(canvas);
@@ -454,21 +570,29 @@ class GameEngine {
         this.canvas.height = height;
         this.width = width;
         this.height = height;
+        this.initalWidth = width;
+        this.initalHeight = height;
 
         this.__mouseDown__ = this.__mouseDown__.bind(this);
         this.__mouseUp__ = this.__mouseUp__.bind(this);
         this.__mouseMove__ = this.__mouseMove__.bind(this);
+        this.__resize__ = this.__resize__.bind(this);
 
+        
         this.canvas.setAttribute("tabindex", "0");
         this.canvas.addEventListener("mousedown", this.__mouseDown__);
         this.canvas.addEventListener("mouseup", this.__mouseUp__);
         this.canvas.addEventListener("mousemove", this.__mouseMove__);
+        this.canvas.addEventListener("resize", this.__resize__);
+
+        Input.initialize();        
     }
 
     /**
      * 注册事件
      * @param {string} event - 事件名称
      * @param {function} callback - 回调函数
+     * @example engine.registerEvent("update", () => {});
      */
     registerEvent(event, callback) {
         this.updateEvents[event] = callback;
@@ -477,14 +601,30 @@ class GameEngine {
     /**
      * 移除事件
      * @param {string} event - 事件名称
+     * @example engine.removeEvent("update");
      */
     removeEvent(event) {
         delete this.updateEvents[event];
     }
 
     /**
+     * 调整画布大小
+     * @param {number} width - 画布的宽度
+     * @param {number} height - 画布的高度
+     * @example engine.resize(800, 600);
+     */
+    resize(width, height) {
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.width = width;
+        this.height = height;
+        this.__resize__();
+    }
+
+    /**
      * 保存关卡
      * @param {string} name - 关卡名称
+     * @example engine.saveLevel("level1");
      */
     saveLevel(name) {
         this.savedLevels[name] = this.objects;
@@ -493,6 +633,7 @@ class GameEngine {
     /**
      * 加载关卡
      * @param {string} name - 关卡名称
+     * @example engine.loadLevel("level1");
      */
     loadLevel(name) {
         this.objects = this.savedLevels[name];
@@ -500,6 +641,7 @@ class GameEngine {
 
     /**
      * 清除关卡
+     * @example engine.clearLevel();
      */
     clearLevel() {
         this.objects = [];
@@ -509,6 +651,7 @@ class GameEngine {
      * 睡眠指定时间
      * @param {number} ms - 毫秒数
      * @returns {Promise} - 返回一个Promise对象
+     * @example await engine.sleep(1000);
      */
     async sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
@@ -516,6 +659,7 @@ class GameEngine {
 
     /**
      * 开始游戏循环
+     * @example engine.startLoop();
      */
     startLoop() {
         setInterval(() => {
@@ -526,6 +670,8 @@ class GameEngine {
     /**
      * 处理滑动效果
      * @param {GameObject} object - 游戏对象
+     * @example engine.handleSlider(object);
+     * @private
      */
     handleSlider(object) {
         this.ctx.beginPath();
@@ -536,6 +682,8 @@ class GameEngine {
     /**
      * 处理旋转效果
      * @param {GameObject} object - 游戏对象
+     * @example engine.handleRotation(object);
+     * @private
      */
     handleRotation(object) {
         this.ctx.translate(object.position.x + object.width / 2, object.position.y + object.height / 2);
@@ -546,6 +694,8 @@ class GameEngine {
     /**
      * 处理文字效果
      * @param {GameObject} object - 游戏对象
+     * @example engine.handleText(object);
+     * @private
      */
     handleText(object) {
         this.ctx.font = object.style.font;
@@ -556,6 +706,7 @@ class GameEngine {
     /**
      * 绘制游戏对象
      * @param {GameObject} object - 游戏对象
+     * @private
      */
     __draw__(object) {
         // 空对象
@@ -574,6 +725,7 @@ class GameEngine {
 
     /**
      * 更新游戏状态
+     * @private
      */
     __update__() {
         this.ctx.clearRect(0, 0, this.width, this.height);
@@ -583,7 +735,7 @@ class GameEngine {
 
         this.objects.sort((a, b) => a.order - b.order);
         for(let object of this.objects) {
-            object.update && object.update();
+            object.__update__ && object.__update__();
             if(object.visible) this.__draw__(object);
         }
 
@@ -594,54 +746,78 @@ class GameEngine {
     /**
      * 处理鼠标按下事件
      * @param {MouseEvent} event - 鼠标按下事件对象
+     * @private
      */
     __mouseDown__(event) {
         const rect = this.canvas.getBoundingClientRect();
         let mouseX = event.clientX - rect.left;
         let mouseY = event.clientY - rect.top;
         for(let object of this.objects) {
-            object.onMouseDown(mouseX, mouseY);
+            object.onMouseDown(new Vector2(mouseX, mouseY));
         }
     }
 
     /**
      * 处理鼠标松开事件
      * @param {MouseEvent} event - 鼠标松开事件对象
+     * @private
      */
     __mouseUp__(event) {
         const rect = this.canvas.getBoundingClientRect();
         let mouseX = event.clientX - rect.left;
         let mouseY = event.clientY - rect.top;
         for(let object of this.objects) {
-            object.onMouseUp(mouseX, mouseY);
+            object.onMouseUp(new Vector2(mouseX, mouseY));
         }
     }
 
     /**
      * 处理鼠标移动事件
      * @param {MouseEvent} event - 鼠标移动事件对象
+     * @private
      */
     __mouseMove__(event) {
         const rect = this.canvas.getBoundingClientRect();
         let mouseX = event.clientX - rect.left;
         let mouseY = event.clientY - rect.top;
         for(let object of this.objects) {
-            object.onMouseMove(mouseX, mouseY);
+            object.onMouseMove(new Vector2(mouseX, mouseY));
         }
+    }
+
+    /**
+     * 当窗口调整大小
+     * @private
+     */
+    __resize__() {
+        const scaleX = this.canvas.width / this.initalWidth;
+        const scaleY = this.canvas.height / this.initalHeight;
+
+        for(let object of this.objects) {
+            object.position.x *= scaleX;
+            object.position.y *= scaleY;
+            object.width *= scaleX;
+            object.height *= scaleY;
+        }
+        
+        this.initalWidth = this.canvas.width;
+        this.initalHeight = this.canvas.height;
     }
 }
 
-/**
- * 游戏对象类
- * @param {string|Image} img - 图像或图像路径
- * @param {Vector2} vector - 位置向量
- * @param {number} width - 宽度
- * @param {number} height - 高度
- */
+
 class GameObject {
-    constructor(img, vector, width, height) {
+    /**
+     * 游戏对象类
+     * @param {string|Image} img - 图像或图像路径
+     * @param {Vector2} vector - 位置向量
+     * @param {number} width - 宽度
+     * @param {number} height - 高度
+     * @example new GameObject(Resources.find("player.jpg"), new Vector2(0, 0), 50, 50);
+     */
+    constructor(img = null, vector = null, width = 0, height = 0) {
         /** 位置向量 @type {Vector2} */
-        this.position = vector;
+        this.position = vector ? vector.copy() : new Vector2(0, 0);
         /** 宽度 @type {number} */
         this.width = width;
         /** 高度 @type {number} */
@@ -673,9 +849,11 @@ class GameObject {
         /** 是否可见 @type {boolean} */
         this.visible = true;
         /** 是否已销毁 @type {boolean} */
-        this.destoryed = false;
+        this.destroyed = false;
         /** 对象的偏移 @type {Vector2} */
         this.offset = new Vector2(0, 0);
+        /** 动画控制器 @type {Animator|null} */
+        this.animator = null;
 
         this.position.__setx__ = this.__setx__.bind(this);
         this.position.__sety__ = this.__sety__.bind(this);
@@ -687,10 +865,11 @@ class GameObject {
      * 检查图像
      * @param {string|Image} img - 图像或图像路径
      * @returns {Image|null} - 返回图像对象或null
+     * @private
      */
     __checkimage__(img) {
         if(typeof img === "string") {
-            img = Resources.Find(img);
+            img = Resources.find(img);
             if(!img) {
                 console.error(`GameObject: Image ${img} not found`);
                 return null;
@@ -702,9 +881,10 @@ class GameObject {
     /**
      * 更新x坐标
      * @param {number} value - x坐标值
+     * @private
      */
     __setx__(value) {
-        this.position.x = value + this.offset.x;
+        this.position._x = value + this.offset.x;
         if(this.collisionBox) 
             this.collisionBox.position.x = this.position.x + this.offset.x + (this.collisionBox.offset.x || 0);
         for(let child of this.childs) {
@@ -715,50 +895,382 @@ class GameObject {
     /**
      * 更新y坐标
      * @param {number} value - y坐标值
+     * @private
      */
     __sety__(value) {
-        this.position.y = value + this.offset.y;
+        this.position._y = value + this.offset.y;
         if(this.collisionBox) 
             this.collisionBox.position.y = this.position.y + this.offset.y + (this.collisionBox.offset.y || 0);
-        for(let child of this.childs) {
+        for(let child of this.childs)
             child.position.y = this.position.y + child.position.y + this.offset.y + child.offset.y;
-        }
     }
 
     /**
      * 设置为子对象
      * @param {GameObject} child - 子对象
+     * @example parent.setAsChild(child);
      */
     setAsChild(child) {
         child.parent = this;
         this.childs.push(child);
     }
+
+    /**
+     * 创建碰撞盒
+     * @param {Vector2} offset - 偏移量
+     * @param {number} offset_w - 宽度偏移量
+     * @param {number} offset_h - 高度偏移量
+     * @example object.createCollisionBox(new Vector2(0, 0), 0, 0);
+     */
+    createCollisionBox(offset = null, offset_w = 0, offset_h = 0) {
+        new CollisionBox(this);
+        this.collisionBox.offset = offset ? offset : new Vector2(0, 0);
+        this.collisionBox.width = (offset_w || 0) + this.width;
+        this.collisionBox.height = (offset_h || 0) + this.height;
+    }
+
+    /**
+     * 创建圆形碰撞盒
+     * @param {number} radius - 半径
+     * @param {Vector2} offset - 偏移量
+     * @param {number} offset_w - 宽度偏移量
+     * @param {number} offset_h - 高度偏移量
+     * @example object.createCircleCollisionBox(10, new Vector2(0, 0), 0, 0);
+     */
+    createCircleCollisionBox(radius, offset = null, offset_w = 0, offset_h = 0) {
+        if(!radius) {
+            console.error("GameObject: radius is required for circle collision box");
+            return;
+        }
+        new CircleCollisionBox(this, radius);
+        this.collisionBox.offset = offset ? offset : new Vector2(0, 0);
+        this.collisionBox.width = (offset_w || 0) + this.width;
+        this.collisionBox.height = (offset_h || 0) + this.height;
+    }
+
+    /**
+     * 销毁碰撞箱
+     * @example object.destroyCollisionBox();
+     */
+    destroyCollisionBox() {
+        this.collisionBox.destroy();
+    }
+
+    /**
+     * 销毁对象
+     * @example object.destroy();
+     */
+    destroy() {
+        GameObject.destroy(this);
+    }
+
+    /**
+     * 复制对象
+     * @returns {GameObject} - 返回复制的对象
+     * @example object.copy();
+     */
+    copy() {
+        const deepClone = (object, seen = new Map()) => {
+            if(object === null || typeof object !== 'object') return object;
+            if(seen.has(object)) return seen.get(object);
+            const clone = Array.isArray(object) ? [] : Object.create(Object.getPrototypeOf(object));
+            seen.set(object, clone);
+
+            for(let key in object) {
+                if(object.hasOwnProperty(key)) 
+                    clone[key] = deepClone(object[key], seen);
+            }
+            return clone;
+        }
+        return deepClone(this);
+    }
+
+    /**
+     * 销毁对象
+     * @param {GameObject} object - 对象
+     * @example GameObject.destroy(object);
+     */
+    static destroy(object) {
+        const index = engine.objects.indexOf(object);
+        if(index !== -1)
+            engine.objects.splice(index, 1);
+        else console.error("GameObject.destroy: object not found");
+        object.destroyed = true;
+        object.collisionBox && object.collisionBox.destroy();
+    }
+
+    /**
+     * 在每一帧都会调用此函数
+     * @private
+     */
+    __update__() {
+        this.__animator__();
+        this.__anim__();
+        this.collisionBox && this.collisionBox.__event__();
+        this.update();
+    }
+
+    /**
+     * 动画更新函数
+     * @private
+     */
+    __anim__() { }
+
+    /**
+     * 动画控制器更新函数
+     * @private
+     */
+    __animator__() { }
+
+    /**
+     * 在每一帧都会调用此函数
+     * @abstract
+     * @example object.update = () => { this.position.x += 1; };
+     */
+    update() {}
+
+    /**
+     * 鼠标按下事件
+     * @param {Vector2} click - 鼠标坐标
+     * @abstract
+     * @example object.onMouseDown = (click) => { console.log(click); };
+     */
+    onMouseDown(click) {}
+
+    /**
+     * 鼠标松开事件
+     * @param {Vector2} click - 鼠标坐标
+     * @abstract
+     * @example object.onMouseUp = (click) => { console.log(click); };
+     */
+    onMouseUp(click) {}
+
+    /**
+     * 鼠标移动事件
+     * @param {Vector2} click - 鼠标坐标
+     * @abstract
+     * @example object.onMouseMove = (click) => { console.log(click); };
+     */
+    onMouseMove(click) {}
 }
 
-/**
- * 动画类，处理对象的动画效果，你不应该直接实例化这个类
- * @param {Image[]} frames - 动画帧的图像数组
- */
+
 class Animation {
-    constructor(frames) {
+    /**
+     * 处理对象的动画效果
+     * @param {Image[]} frames - 动画帧的图像数组
+     * @param {GameObject} object - 游戏对象
+     * @example new Animation(Resources.find("player.anim"), object);
+     */
+    constructor(frames, object) {
         /** 动画帧 @type {Image[]} */
-        this.frames = frames;
+        this.frames = this.__load__(frames);
         /** 当前帧索引 @type {number} */
         this.__index__ = 0;
         /** 动画速度 @type {number} */
         this.speed = 1;
+        /** 是否循环播放 @type {boolean} */
+        this.loop = true;
+        /** 父对象 @type {GameObject} */
+        this.parent = object;
+        /**
+         * 连接的动画
+         * @type {Object[]}
+         * @example {condition: Function, anim: Animation, valueName: String}
+         */
+        this.next = [];
+        /** 帧计数器 @type {number} */
+        this.frameCounter = 0;
+        /** 帧更新计数器 @type {number} */
+        this.frameUpdate = 8
+        /** 是否停止 @type {boolean} */
+        this.stoped = false;
+    }
+
+    __load__(frames) {
+        let framesArray = Array(frames.length);
+        for(let i = 0; i < frames.length; i++)
+            framesArray[i] = Resources.find(frames[i]);
+        return framesArray;
+    }
+
+    /**
+     * 开始播放动画
+     * @example animation.play();
+     */
+    play() {
+        this.stoped = false;
+        this.parent.image = this.frames[this.__index__];
+        this.parent.__anim__ = () => {this.__update__();};
+    }
+
+    /**
+     * 停止播放动画
+     * @example animation.stop();
+     */
+    stop() {
+        this.stoped = true;
+    }
+
+    /**
+     * 重置动画
+     * @example animation.reset();
+     */
+    reset() {
+        this.__index__ = 0;
+        this.frameCounter = 0;
+    }
+
+    /**
+     * 更新动画
+     * @private
+     */
+    __update__() {
+        if(this.stoped) return;
+        this.frameCounter++;
+        const framesToUpdate = Mathf.Floor(this.frameUpdate / this.speed);
+        if(this.frameCounter >= framesToUpdate) {
+            this.frameCounter = 0;
+            this.__index__++;
+            if(this.__index__ >= this.frames.length) {
+                if(this.loop) this.__index__ = 0;
+                else this.__index__ = this.frames.length - 1;
+            }
+        }
+        this.parent.image = this.frames[this.__index__];
     }
 }
 
-/**
- * 碰撞盒类，用于处理物体的碰撞检测
- * @param {GameObject} object - 父对象
- */
+class Animator {
+    /**
+     * 动画控制器类，用于处理对象的动画效果
+     * @param {Animation[]} anims - 动画数组
+     * @param {GameObject} object - 游戏对象 
+     * @example new Animator(Resources.find("player.animator"), object);
+     */
+    constructor(anims, object, enter = null) {
+        /** 动画对象 @type {Object.<string, Animation>} */
+        this.animations = this.__loadanim__(anims, object);
+        /** 父游戏对象 @type {GameObject} */
+        this.parent = object;
+        /** 当前动画 @type {Animation|null} */
+        this.current = null;
+        /** 默认动画 @type {string} */
+        this.enter = enter;
+        /** 退出动画 @type {AnimatorConnection} */
+        this.exit = null;
+        /** 值 @type {Object.<string, *>} */
+        this.values = {};
+
+        this.parent.animator = this;
+        this.parent.__animator__ = this.__animator__.bind(this);
+    }
+
+    add(name, anim) {
+        if(typeof anim === "Animation")
+            this.animations[name] = anim;
+        else this.animations[name] = new Animation(anim, this.parent);
+    }
+
+    /**
+     * 添加动画连接
+     * @param {string} anim1 - 动画1
+     * @param {string} anim2 - 动画2
+     * @param {function} condition - 条件
+     * @param {string} valueName - 值名称
+     * @param {boolean} transition - 是否过渡
+     * @example animator.connect("idle", "run", (values) => {return values["speed"] > 0;}, true);
+     */
+    connect(anim1, anim2, condition, valueName, transition = false) {
+        anim1.next.push(AnimatorConnection(anim2, condition, valueName, transition));
+    }
+
+    /**
+     * 设置值
+     * @param {string} name - 名称
+     * @param {*} value - 值
+     * @example animator.setValue("speed", 10);
+     */
+    setValue(name, value) {
+        this.values[name] = value;
+    }
+
+    /**
+     * 获取值
+     * @param {string} name - 名称
+     * @returns {*} - 返回值
+     * @example animator.getValue("speed");
+     */
+    getValue(name) {
+        return this.values[name];
+    }
+
+    /**
+     * 动画控制器
+     * @private
+     */
+    __animator__() {
+        // 检查是否有默认动画
+        if(!this.current) {
+            this.current = this.animations[this.enter];
+            if(!this.current) {
+                console.error(`Animator: animator didnt set enter animation`);
+                return;
+            }
+            this.current.play();
+        }
+        
+        // 检查连接并切换动画
+        for(let next of this.current.next) {
+            if(next.condition(this.values)) {
+                let ratio = this.current.__index__ / this.current.frames.length;
+                this.current.reset();
+                this.current = this.animations[next.anim];
+
+                if(next.transition)
+                    this.current.__index__ = Mathf.Floor(this.current.frames.length * ratio);
+                next.callback && next.callback();
+                this.current.play();
+                break;
+            }
+        }
+        
+        // 检查退出动画
+        if(this.exit && this.exit.condition(this.values)) {
+            this.current.reset();
+            this.current = this.animations[this.exit.anim];
+            this.exit.callback && this.exit.callback();
+        }
+        return;
+    }
+
+    /**
+     * 加载动画
+     * @param {Object} anims - 动画对象
+     * @param {GameObject} object - 游戏对象
+     * @returns {Object} - 返回动画对象
+     * @private
+     */
+    __loadanim__(anims, object) {
+        let animsDict = {};
+        for(let anim of anims) {
+            let animName = anim.split("/").pop().split(".").shift();
+            animsDict[animName] = new Animation(Resources.find(anim), object);
+        }
+        return animsDict;
+    }
+}
+
 class CollisionBox {
     static __id__ = 0;
+    /**
+     * 碰撞盒类，用于处理物体的碰撞检测
+     * @param {GameObject} object - 父对象
+     * @example new CollisionBox(object);
+     */
     constructor(object) {
         /** 位置向量 @type {Vector2} */
-        this.position = object.position;
+        this.position = object.position.copy();
         /** 宽度 @type {number} */
         this.width = object.width;
         /** 高度 @type {number} */
@@ -768,13 +1280,15 @@ class CollisionBox {
         /** 是否为触发器 @type {boolean} */
         this.isTrigger = false;
         /** 父对象 @type {GameObject|null} */
-        this.parentObject = null;
+        this.parent = object;
         /** 碰撞进入对象数组 @type {GameObject[]} */
         this.__enter__ = [];
         /** 碰撞盒ID @type {number} */
         this.id = CollisionBox.__id__++;
+        /** 碰撞箱是否可用 @type {boolean} */
+        this.available = true;
 
-        /** 调试信息 @type {Object} */
+        /** 调试信息 @type {Object.<string, function|string>} */
         this.debug = {
             show: () => {this.__debugshow__();},
             hide: () => {this.__debughide__();},
@@ -785,38 +1299,47 @@ class CollisionBox {
         };
 
         this.show();
+        this.parent.collisionBox = this;
     }
 
     /**
      * 碰撞进入事件
      * @param {GameObject} other - 另一个碰撞对象
+     * @abstract
+     * @example onCollisionEnter(other) { console.log(other); }
      */
     onCollisionEnter(other) {}
 
     /**
      * 碰撞持续事件
      * @param {GameObject} other - 另一个碰撞对象
+     * @abstract
+     * @example onCollisionStay(other) { console.log(other); }
      */
     onCollisionStay(other) {}
 
     /**
      * 碰撞退出事件
      * @param {GameObject} other - 另一个碰撞对象
+     * @abstract
+     * @example onCollisionExit(other) { console.log(other); }
      */
     onCollisionExit(other) {}
 
     /**
      * 显示碰撞盒
+     * @example collisionBox.show();
      */
     show() {
-        engine.RegisterEvent(`collision_${this.id}`, () => {this.this.__event__();});
+        this.available = true;
     }
 
     /**
      * 隐藏碰撞盒
+     * @example collisionBox.hide();
      */
     hide() {
-        this.destory();
+        this.destroy();
         this.debug.__hidedbox__ = true;
         if(this.debug.__drawedbox__) {
             this.debug.__drawedbox__ = false;
@@ -826,9 +1349,10 @@ class CollisionBox {
 
     /**
      * 销毁碰撞盒
+     * @example collisionBox.destroy();
      */
-    destory() {
-        engine.RemoveEvent(`collision_${this.id}`);
+    destroy() {
+        this.available = false;
         if(this.debug.__drawedbox__) this.debug.hide();
     }
 
@@ -836,6 +1360,7 @@ class CollisionBox {
      * 检测是否与左侧碰撞
      * @param {GameObject} other - 另一个碰撞对象
      * @returns {boolean} - 返回是否碰撞
+     * @example collisionBox.isCollideWithLeft(other);
      */
     isCollideWithLeft(other) { return this.position.x < other.position.x + other.width; }
 
@@ -843,6 +1368,7 @@ class CollisionBox {
      * 检测是否与右侧碰撞
      * @param {GameObject} other - 另一个碰撞对象
      * @returns {boolean} - 返回是否碰撞
+     * @example collisionBox.isCollideWithRight(other);
      */
     isCollideWithRight(other) { return this.position.x + this.width > other.position.x; }
 
@@ -850,6 +1376,7 @@ class CollisionBox {
      * 检测是否与顶部碰撞
      * @param {GameObject} other - 另一个碰撞对象
      * @returns {boolean} - 返回是否碰撞
+     * @example collisionBox.isCollideWithTop(other);
      */
     isCollideWithTop(other) { return this.position.y < other.position.y + other.height; }
 
@@ -857,6 +1384,7 @@ class CollisionBox {
      * 检测是否与底部碰撞
      * @param {GameObject} other - 另一个碰撞对象
      * @returns {boolean} - 返回是否碰撞
+     * @example collisionBox.isCollideWithBottom(other);
      */
     isCollideWithBottom(other) { return this.position.y + this.height > other.position.y; }
 
@@ -864,6 +1392,7 @@ class CollisionBox {
      * 检测是否与圆形碰撞
      * @param {GameObject} other - 另一个碰撞对象
      * @returns {boolean} - 返回是否碰撞
+     * @example collisionBox.isCollideWithCircle(other);
      */
     isCollideWithCircle(other) {
         let circleDistanceX = Mathf.Abs(other.position.x + other.radius - (this.position.x + this.width / 2));
@@ -884,6 +1413,7 @@ class CollisionBox {
      * 检测是否与点碰撞
      * @param {Vector2} vector - 点的向量
      * @returns {boolean} - 返回是否碰撞
+     * @example collisionBox.isCollideWithPoint(new Vector2(0, 0));
      */
     isCollideWithPoint(vector) {
         return this.position.x < vector.x && this.position.x + this.width > vector.x &&
@@ -892,13 +1422,15 @@ class CollisionBox {
 
     /**
      * 碰撞事件处理
+     * @private
      */
     __event__() {
-        const destoryed = this.__enter__.filter(obj => !engine.objects.includes(obj));
-        const objects = destoryed.concat(engine.objects);
+        if(!this.available) return;
+        const destroyed = this.__enter__.filter(obj => !engine.objects.includes(obj));
+        const objects = destroyed.concat(engine.objects);
 
         for(let object of objects) {
-            if(object.collisionBox && object.collisionBox !== this && !object.destoryed) {
+            if(object.collisionBox && object.collisionBox !== this && !object.destroyed) {
                 if(!this.__enter__.includes(object)) {
                     this.__enter__.push(object);
                     this.onCollisionEnter(object);
@@ -913,6 +1445,7 @@ class CollisionBox {
 
     /**
      * 显示调试信息
+     * @private
      */
     __debugshow__() {
         if(this.debug.__drawedbox__) {
@@ -922,28 +1455,31 @@ class CollisionBox {
             engine.ctx.strokeRect(this.position.x, this.position.y, this.width, this.height);
             engine.ctx.restore();
         } else {
-            engine.RegisterEvent(`collision_debug_${this.id}`, () => { this.__debugshow__(); });
+            engine.registerEvent(`collision_debug_${this.id}`, () => { this.__debugshow__(); });
             this.debug.__drawedbox__ = true;
         }
     }
 
     /**
      * 隐藏调试信息
+     * @private
      */
     __debughide__() {
-        engine.RemoveEvent(`collision_debug_${this.id}`);
+        engine.removeEvent(`collision_debug_${this.id}`);
         this.debug.__drawedbox__ = false;
         this.debug.__hidedbox__ = true;
     }
 }
 
-/**
- * 圆形碰撞盒类，继承方形碰撞盒，扩展圆形检测功能
- * @param {number} x - 圆形碰撞盒的 x 坐标
- * @param {number} y - 圆形碰撞盒的 y 坐标
- * @param {number} radius - 圆形的半径
- */
+
 class CircleCollisionBox extends CollisionBox {
+    /**
+     * 圆形碰撞盒类，继承方形碰撞盒，扩展圆形检测功能
+     * @param {number} x - 圆形碰撞盒的 x 坐标
+     * @param {number} y - 圆形碰撞盒的 y 坐标
+     * @param {number} radius - 圆形的半径
+     * @example new CircleCollisionBox(0, 0, 10);
+     */
     constructor(object, radius) {
         super(object);
         /** 半径 @type {number} */
@@ -954,6 +1490,7 @@ class CircleCollisionBox extends CollisionBox {
      * 检测与另一个碰撞盒是否发生碰撞
      * @param {CollisionBox|CircleCollisionBox} box - 另一个碰撞盒实例
      * @returns {boolean} - 是否发生碰撞
+     * @example circleCollisionBox.isCollideWith(other);
      */
     isCollideWith(box) {
         if(box instanceof CircleCollisionBox) {
@@ -987,6 +1524,7 @@ class CircleCollisionBox extends CollisionBox {
      * 是否碰撞左侧
      * @param {CollisionBox|CircleCollisionBox} box - 另一个碰撞盒实例
      * @returns {boolean} - 是否碰撞
+     * @example circleCollisionBox.isCollideWithLeft(other);
      */
     isCollideWithLeft(box) { return this.position.x < box.position.x + box.width + this.radius; }
 
@@ -994,6 +1532,7 @@ class CircleCollisionBox extends CollisionBox {
      * 是否碰撞右侧
      * @param {CollisionBox|CircleCollisionBox} box - 另一个碰撞盒实例
      * @returns {boolean} - 是否碰撞
+     * @example circleCollisionBox.isCollideWithRight(other);
      */
     isCollideWithRight(box) { return this.position.x + this.radius > box.position.x - this.radius; }
 
@@ -1001,6 +1540,7 @@ class CircleCollisionBox extends CollisionBox {
      * 是否碰撞顶部
      * @param {CollisionBox|CircleCollisionBox} box - 另一个碰撞盒实例
      * @returns {boolean} - 是否碰撞
+     * @example circleCollisionBox.isCollideWithTop(other);
      */
     isCollideWithTop(box) { return this.position.y < box.position.y + box.height + this.radius; }
 
@@ -1008,6 +1548,7 @@ class CircleCollisionBox extends CollisionBox {
      * 是否碰撞底部
      * @param {CollisionBox|CircleCollisionBox} box - 另一个碰撞盒实例
      * @returns {boolean} - 是否碰撞
+     * @example circleCollisionBox.isCollideWithBottom(other);
      */
     isCollideWithBottom(box) { return this.position.y + this.radius > box.position.y - this.radius; }
 
@@ -1016,6 +1557,7 @@ class CircleCollisionBox extends CollisionBox {
      * @param {number} x - 点的 x 坐标
      * @param {number} y - 点的 y 坐标
      * @returns {boolean} - 是否发生碰撞
+     * @example circleCollisionBox.isCollideWithPoint(0, 0);
      */
     isCollideWithPoint(vector) {
         let dx = this.position.x + this.radius - vector.x;
@@ -1023,6 +1565,10 @@ class CircleCollisionBox extends CollisionBox {
         return Mathf.Sqrt(dx * dx + dy * dy) < this.radius;
     }
 
+    /**
+     * 显示调试信息
+     * @private
+     */
     __debugshow__() {
         if(this.debug.__drawedbox__) {
             engine.ctx.save();
@@ -1039,39 +1585,124 @@ class CircleCollisionBox extends CollisionBox {
     }
 }
 
+class Input {
+    /** key是否被按下 @type {object.<string, boolean>} */
+    static keyDown = {};
+    /** key是否被松开 @type {object.<string, boolean>} */
+    static keyUp = {};
+
+    /**
+     * 获取键盘按键是否被按下
+     * @param {string} keycode - 按键代码
+     * @returns {boolean} - 是否被按下
+     * @example Input.getKeyDown(KeyCode.A);
+     */
+    static getKeyDown(keycode) {
+        return !!Input.keyDown[keycode];
+    }
+
+    /**
+     * 获取键盘按键是否被松开
+     * @param {string} keycode - 按键代码
+     * @returns {boolean} - 是否被松开
+     * @example Input.getKeyUp(KeyCode.A);
+     */
+    static getKeyUp(keycode) {
+        if(!!Input.keyUp[keycode]) {
+            Input.keyUp[keycode] = false;
+            return true;
+        }
+        return false;
+    }
+
+    static initialize() {
+        window.addEventListener("keydown", event => {
+            Input.keyDown[event.code] = true;
+            Input.keyUp[event.code] = false;
+        });
+        window.addEventListener("keyup", event => {
+            Input.keyDown[event.code] = false;
+            Input.keyUp[event.code] = true;
+        });
+    }
+}
+
 class Camera {
-    static main = Camera(new Vector2(0, 0));
+    /** 
+     * 游戏中主相机 
+     * @type {Camera}
+     * @example Camera.main.position.x = 10; 
+     */
+    static main = new Camera(new Vector3(0, 0, 0));
+
     /**
      * 相机类，用于处理游戏中的视角问题
-     * @param {Vector2} vector - 位置向量
+     * @param {Vector3} vector - 位置向量
+     * @example new Camera(new Vector3(0, 0, 0));
      */
     constructor(vector) {
-        /** 位置向量 @type {Vector2} */
-        this.position = vector;
-        /** 相机宽度 @type {number} */
-        this.__width__ = engine.width;
-        /** 相机高度 @type {number} */
-        this.__height__ = engine.height;
+        /** 位置向量 @type {Vector3} */
+        this.position = vector.copy();
         /** 相机跟随对象 @type {GameObject|null} */
-        this.followObject = null;
+        this.__follow__ = null;
 
         this.position.__setx__ = this.__setx__.bind(this);
         this.position.__sety__ = this.__sety__.bind(this);
+        this.position.__setz__ = this.__setz__.bind(this);
     }
 
+    /**
+     * 设置相机跟随对象
+     * @param {GameObject} object - 跟随对象
+     */
+    set followObject(object) {
+        this.__follow__ = object;
+        const baseSetX = this.__follow__.position.__setx__;
+        const baseSetY = this.__follow__.position.__sety__;
+        this.__follow__.position.__setx__ = (value) => {
+            baseSetX.call(this.__follow__.position, value);
+            this.__setx__(value);
+        };
+        this.__follow__.position.__sety__ = (value) => {
+            baseSetY.call(this.__follow__.position, value);
+            this.__sety__(value);
+        }
+    }
+
+    /**
+     * 更新相机位置x坐标，实际上是更新了所有游戏对象的位置
+     * @param {number} value - x坐标值
+     * @private
+     */
     __setx__(value) {
         for(let object of engine.objects)
             object.position.x -= value - this.position.x;
-        this.position.x = value;
+        this._x = value;
     }
 
+    /**
+     * 更新相机位置y坐标，实际上是更新了所有游戏对象的位置
+     * @param {number} value - y坐标值
+     * @private
+     */
     __sety__(value) {
         for(let object of engine.objects)
             object.position.y -= value - this.position.y;
-        this.position.y = value;
+        this._y = value;
     }
 
-
+    /**
+     * 更新相机位置z坐标，实际上是更新了所有游戏对象的大小
+     * @param {number} value - z坐标值
+     * @private
+     */
+    __setz__(value) {
+        for(let object of engine.objects) {
+            object.width += value - this.position.z;
+            object.height += value - this.position.z;
+        }
+        this._z = value;
+    }
 }
 
 /**
@@ -1121,57 +1752,85 @@ class Mathf {
         return [Math.cos(angle), Math.sin(angle)];
     }
 
-    /**
-     * 生成指定范围内的随机数
-     * @param {number} min - 最小值
-     * @param {number} max - 最大值
-     * @returns {number} - 随机数
-     */
-    static Random(min, max) {
-        return Math.random() * (max - min) + min;
-    }
+    static random = class {
+        /**
+         * 生成0到1之间的随机数
+         * @returns {number} - 随机数
+         * @example Mathf.random.randint.rand();
+         */
+        static rand() { return Math.random(); }
 
-    /**
-     * 生成指定范围内的随机整数
-     * @param {number} min - 最小值
-     * @param {number} max - 最大值
-     * @returns {number} - 随机整数
-     */
-    static RandomInt(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
+        /**
+         * 生成指定范围内的随机数
+         * @param {number} min - 最小值
+         * @param {number} max - 最大值
+         * @returns {number} - 随机数
+         */
+        static randint(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        
+        /**
+         * 生成指定范围内的随机浮点数
+         * @param {number} min - 最小值
+         * @param {number} max - 最大值
+         * @returns {number} - 随机浮点数
+         * @example Mathf.random.randint.randfloat(0, 1);
+         */
+        static randfloat(min, max) {
+            return Math.random() * (max - min) + min;
+        }
 
-    /**
-     * 从数组中随机选择一个元素
-     * @param {any[]} arr - 数组
-     * @returns {any} - 随机选择的元素
-     */
-    static RandomChoice(arr) {
-        return arr[Math.floor(Math.random() * arr.length)];
-    }
+        /**
+         * 从数组中随机选择一个元素
+         * @param {any[]} array - 数组
+         * @returns {any} - 随机选择的元素
+         * @example Mathf.random.randint.choice([1, 2, 3]);
+         */
+        static choice(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
 
-    /**
-     * 生成随机RGB颜色
-     * @returns {string} - RGB颜色字符串
-     */
-    static RandomColor() {
-        return `rgb(${Mathf.RandomInt(0, 255)}, ${Mathf.RandomInt(0, 255)}, ${Mathf.RandomInt(0, 255)})`;
-    }
+        /**
+         * 从数组中随机选择多个元素
+         * @param {any[]} array - 数组
+         * @param {number} count - 选择的数量
+         * @returns {any[]} - 随机选择的元素数组
+         * @example Mathf.random.randint.choices([1, 2, 3], 2);
+         */
+        static choices(array, count) {
+            let result = [];
+            for(let i = 0; i < count; i++)
+                result.push(array[Math.floor(Math.random() * array.length)]);
+            return result;
+        }
 
-    /**
-     * 生成随机RGBA颜色
-     * @returns {string} - RGBA颜色字符串
-     */
-    static RandomColorAlpha() {
-        return `rgba(${Mathf.RandomInt(0, 255)}, ${Mathf.RandomInt(0, 255)}, ${Mathf.RandomInt(0, 255)}, ${Mathf.Random(0, 1)})`;
-    }
+        /**
+         * 生成随机RGB颜色
+         * @returns {string} - RGB颜色字符串
+         * @example Mathf.random.randint.RGB();
+         */
+        RGB() {
+            return `rgb(${Mathf.random.randint.randint(0, 255)}, ${Mathf.random.randint.randint(0, 255)}, ${Mathf.random.randint.randint(0, 255)})`;
+        }
 
-    /**
-     * 生成固定透明度的随机RGBA颜色
-     * @returns {string} - RGBA颜色字符串
-     */
-    static RandomColorAlphaFixed() {
-        return `rgba(${Mathf.RandomInt(0, 255)}, ${Mathf.RandomInt(0, 255)}, ${Mathf.RandomInt(0, 255)}, 0.5)`;
+        /**
+         * 生成随机RGBA颜色
+         * @returns {string} - RGBA颜色字符串
+         * @example Mathf.random.randint.RGBA();
+         */
+        RGBA() {
+            return `rgba(${Mathf.random.randint.randint(0, 255)}, ${Mathf.random.randint.randint(0, 255)}, ${Mathf.random.randint.randint(0, 255)}, ${Mathf.random.randint.randfloat(0, 1)})`;
+        }
+
+        /**
+         * 生成固定透明度的随机RGBA颜色
+         * @returns {string} - RGBA颜色字符串
+         * @example Mathf.random.randint.RGBAFixed();
+         */
+        RGBAFixed() {
+            return `rgba(${Mathf.random.randint.randint(0, 255)}, ${Mathf.random.randint.randint(0, 255)}, ${Mathf.random.randint.randint(0, 255)}, 0.5)`;
+        }
     }
 
     /**
@@ -1266,7 +1925,7 @@ class Mathf {
      * @returns {number[]} - 随机方向向量 [cos(angle), sin(angle)]
      */
     static RandomDirection() {
-        let angle = Mathf.Random(0, 360);
+        let angle = Mathf.random.randint(0, 360);
         return [Math.cos(angle * Math.PI / 180), Math.sin(angle * Math.PI / 180)];
     }
 
@@ -1275,7 +1934,7 @@ class Mathf {
      * @returns {number[]} - 随机方向向量 [cos(angle), sin(angle)]
      */
     static RandomDirection2() {
-        let angle = Mathf.Random(0, 2 * Math.PI);
+        let angle = Mathf.random.randint(0, 2 * Math.PI);
         return [Math.cos(angle), Math.sin(angle)];
     }
 
@@ -1604,6 +2263,73 @@ class KeyCode {
     static End = "End";
     /** Home键 @type {string} */
     static Home = "Home";
+
+    /** Insert键 @type {string} */
+    static Insert = "Insert";
+    /** PageUp键 @type {string} */
+    static PageUp = "PageUp";
+    /** PageDown键 @type {string} */
+    static PageDown = "PageDown";
+
+    /** 左Shift键 @type {string} */
+    static ShiftLeft = "ShiftLeft";
+    /** 右Shift键 @type {string} */
+    static ShiftRight = "ShiftRight";
+    /** 左Ctrl键 @type {string} */
+    static ControlLeft = "ControlLeft";
+    /** 右Ctrl键 @type {string} */
+    static ControlRight = "ControlRight";
+    /** 左Alt键 @type {string} */
+    static AltLeft = "AltLeft";
+    /** 右Alt键 @type {string} */
+    static AltRight = "AltRight";
+    /** 左Meta键 @type {string} */
+    static MetaLeft = "MetaLeft"; // windows键
+    /** 右Meta键 @type {string} */
+    static MetaRight = "MetaRight";
+    /** 波浪键 @type {string} */
+    static Backquote = "Backquote"; // `
+    /** fn键 @type {string} */
+    static PrintScreen = "PrintScreen";
+    /** 减号键 @type {string} */
+    static Minus = "Minus"; // -
+    /** 等号键 @type {string} */
+    static Equal = "Equal"; // =
+    /** 小键盘Enter键 @type {string} */
+    static NumpadEnter = "NumpadEnter";
+    /** 小键盘除键 @type {string} */
+    static NumpadDivide = "NumpadDivide";
+    /** 小键盘乘键 @type {string} */
+    static NumpadMultiply = "NumpadMultiply";
+    /** 小键盘减键 @type {string} */
+    static NumpadSubtract = "NumpadSubtract";
+    /** 小键盘加键 @type {string} */
+    static NumpadAdd = "NumpadAdd";
+    /** 小键盘.键 @type {string} */
+    static NumpadDecimal = "NumpadDecimal";
+    /** 小键盘0键 @type {string} */
+    static Numpad0 = "Numpad0";
+    /** 小键盘1键 @type {string} */
+    static Numpad1 = "Numpad1";
+    /** 小键盘2键 @type {string} */
+    static Numpad2 = "Numpad2";
+    /** 小键盘3键 @type {string} */
+    static Numpad3 = "Numpad3";
+    /** 小键盘4键 @type {string} */
+    static Numpad4 = "Numpad4";
+    /** 小键盘5键 @type {string} */
+    static Numpad5 = "Numpad5";
+    /** 小键盘6键 @type {string} */
+    static Numpad6 = "Numpad6";
+    /** 小键盘7键 @type {string} */
+    static Numpad7 = "Numpad7";
+    /** 小键盘8键 @type {string} */
+    static Numpad8 = "Numpad8";
+    /** 小键盘9键 @type {string} */
+    static Numpad9 = "Numpad9";
+    /** 小键盘开启键 @type {string} */
+    static NumLock = "NumLock";
+
 
     /** 左方向键 @type {string} */
     static ArrowLeft = "ArrowLeft";

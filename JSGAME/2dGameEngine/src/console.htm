@@ -17,15 +17,9 @@
 </head>
 <body>
     <div id="consoleOutput"></div>
+    <canvas id="gameCanvas"></canvas>
     <script src="console.js"></script>
     <script src="./2dgameEngine.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', async function() {
-            Resources.CreateFolder("a");
-            Resources.Add("a/images.png", "https://www.w3schools.com/w3css/img_lights.jpg");
-            await Resources.Load("a/images.png");
-            Resources.Find("a/images.png");
-        });
-    </script>
+    <script src="./test.js"></script>
 </body>
 </html>

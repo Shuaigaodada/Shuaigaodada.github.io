@@ -3,13 +3,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const originalConsoleError = console.error;
     const consoleOutput = document.getElementById('consoleOutput');
 
+    const formatArgs = (args) => {
+        return args.map(arg => {
+            if (typeof arg === 'object') {
+                return JSON.stringify(arg, null, 2);
+            }
+            return arg;
+        }).join(' ');
+    };
+
     console.log = function(...args) {
         // Call the original console.log function
         originalConsoleLog.apply(console, args);
 
         // Create a new paragraph element for each log message
         const message = document.createElement('p');
-        message.textContent = args.join(' ');
+        message.textContent = formatArgs(args);
 
         // Append the message to the consoleOutput div
         consoleOutput.appendChild(message);
@@ -25,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create a new paragraph element for each error message
         const errorMessage = document.createElement('p');
         errorMessage.style.color = 'red';
-        errorMessage.textContent = args.join(' ');
+        errorMessage.textContent = formatArgs(args);
 
         // Append the error message to the consoleOutput div
         consoleOutput.appendChild(errorMessage);
