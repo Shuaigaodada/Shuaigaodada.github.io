@@ -160,21 +160,39 @@ class ResourcesObject {
     /** 动画控制器文件类型 @type {string[]} */
     static AnimatorTypes = ["animator", "anmt", "animators"]
 
+    /** 字体文件类型 @type {string[]} */
+    static FontTypes = ["ttf", "otf", "woff", "woff2", "eot", "TTF", "OTF", "WOFF", "WOFF2", "EOT", "ttc", "TTC"];
+
     /** 游戏资源管理器类 */
     constructor() {
         /** 资源文件结构 @type {Object} */
         this.__files__ = {};
         /** 默认路径 @type {string} */
         this.defaultPath = "";
+        this.__loadalldone__ = false;
+    }
+
+    /**
+     * 等待加载所有资源文件完成
+     * @returns {Promise} - 返回一个Promise对象，当所有资源加载完成时解析
+     * @example await Resources.loaddone();
+     */
+    async loadDone() {
+        return new Promise((resolve, reject) => {
+            if(this.__loadalldone__) resolve();
+            else setTimeout(() => { this.loadDone().then(resolve); }, 0);
+        });
     }
 
     /**
      * 加载所有资源文件并更新进度
      * @param {function} updateProgress - 更新进度的回调函数，参数为当前进度百分比
-     * @returns {Promise} - 返回一个Promise对象，当所有资源加载完成时解析
+     * @param {function} callback - 加载完成后的回调函数
+     * @param {boolean} async - 是否异步加载
+     * @returns {Promise} - 返回一个Promise对象当所有资源加载完成时解析
      * @example Resources.loadAll((progress) => console.log(progress));
      */
-    async loadAll(updateProgress) {
+    async loadAll(updateProgress, callback=null, _async=false) {
         const files = this.__files__;
         const totalFiles = this.countFiles(files);
         let loadedFiles = 0;
@@ -198,6 +216,10 @@ class ResourcesObject {
         };
 
         await loadFile([], files);
+        this.__loadalldone__ = true;
+        if(_async)
+            callback && await callback();
+        else callback && callback();
     }
 
     /**
@@ -274,6 +296,8 @@ class ResourcesObject {
                 this.handleLoadAnimation(path, filename, src, resolve, reject);
             } else if(ResourcesObject.AnimatorTypes.includes(type)) {
                 this.handleLoadAnimator(path, filename, src, resolve, reject);
+            } else if(Resources) {
+                this.handleLoadFont(path, filename, src, resolve, reject);
             } else {
                 // 当资源文件类型不支持时，记录错误并返回
                 console.error(`Resource.Load: ${filename} type not supported`);
@@ -326,6 +350,27 @@ class ResourcesObject {
             reject(new Error(`Resource.Load: Failed to load audio ${filename}`));
         };
         audio.src = src;
+    }
+
+    /**
+     * 处理加载字体
+     * @param {string} path - 字体文件路径
+     * @param {string} filename - 字体文件名称
+     * @param {string} src - 字体文件源路径
+     * @param {function} resolve - 解析函数
+     * @param {function} reject - 拒绝函数
+     * @example Resources.handleLoadFont(current, "font.ttf", "assets/font.ttf", resolve, reject);
+     */
+    handleLoadFont(path, filename, src, resolve, reject) {
+        let font = new FontFace(filename, `url(${src})`);
+        font.load().then(() => {
+            document.fonts.add(font);
+            resolve(font);
+            this.cdPath(path)[filename] = font;
+        }).catch(error => {
+            console.error(`Resource.Load: Failed to load font ${filename}`);
+            reject(new Error(`Resource.Load: Failed to load font ${filename}`));
+        });
     }
 
     /**
@@ -426,38 +471,6 @@ class ResourcesObject {
     }
 
     /**
-     * 创建动画
-     * @param {string} filename - 动画文件名称
-     * @param {Array} frames - 动画帧数组
-     * @example Resources.createAnimation("player.anim", ["player1.jpg", "player2.jpg"]);
-     */
-    createAnimation(filename, frames) {
-        if(this.isPath(filename)) {
-            let path = filename.split("/");
-            filename = path.pop();
-            let current = this.cdPath(path);
-            if(current === null) return;
-            current[filename] = frames;
-        } else this.__files__[filename] = frames;
-    }
-
-    /**
-     * 创建动画控制器
-     * @param {string} filename - 动画文件名称
-     * @param {string[][]} anims - 动画组
-     * @example Resources.createAnimator("player.animator", [["walk", 0, 1], ["idle", 2, 3]]);
-     */
-    createAnimator(filename, anims) {
-        if(this.isPath(filename)) {
-            let path = filename.split("/");
-            filename = path.pop();
-            let current = this.cdPath(path);
-            if(current === null) return;
-            current[filename] = anims;
-        } else this.__files__[filename] = anims;
-    }
-
-    /**
      * 检查是否是路径
      * @param {string} p - 路径字符串
      * @returns {boolean} - 返回是否是路径
@@ -472,7 +485,7 @@ class ResourcesObject {
      * @example Resources.cdPath("images/player.jpg"); return {player.jpg: "assets/player.jpg"};
      */
     cdPath(p) {
-        if(!p) return this.__files__;
+        if(!p || (Array.isArray(p) && !p.length)) return this.__files__;
         let current = this.__files__;
 
         p = this.normalizePath(p);
@@ -492,7 +505,7 @@ class ResourcesObject {
             if(current[path[i]] === undefined) {
                 // 当路径不存在时，记录错误并返回
                 console.error(`Path ${path.slice(0, i + 1).join("/")} does not exist`);
-                return null;
+                return this.__files__;
             }
             current = current[path[i]];
         }
@@ -659,9 +672,9 @@ class GameEngine {
 
     /**
      * 开始游戏循环
-     * @example engine.startLoop();
+     * @example engine.loop();
      */
-    startLoop() {
+    loop() {
         setInterval(() => {
             this.__update__();
         }, 1000 / this.fps);
@@ -735,6 +748,7 @@ class GameEngine {
 
         this.objects.sort((a, b) => a.order - b.order);
         for(let object of this.objects) {
+            if(!object.available) continue;
             object.__update__ && object.__update__();
             if(object.visible) this.__draw__(object);
         }
@@ -752,9 +766,10 @@ class GameEngine {
         const rect = this.canvas.getBoundingClientRect();
         let mouseX = event.clientX - rect.left;
         let mouseY = event.clientY - rect.top;
-        for(let object of this.objects) {
+        for(let object of this.objects)
             object.onMouseDown(new Vector2(mouseX, mouseY));
-        }
+        Input.mouseState = true;
+        Input.mousePosition = new Vector2(mouseX, mouseY);
     }
 
     /**
@@ -766,9 +781,10 @@ class GameEngine {
         const rect = this.canvas.getBoundingClientRect();
         let mouseX = event.clientX - rect.left;
         let mouseY = event.clientY - rect.top;
-        for(let object of this.objects) {
+        for(let object of this.objects)
             object.onMouseUp(new Vector2(mouseX, mouseY));
-        }
+        Input.mouseState = false;
+        Input.mousePosition = new Vector2(mouseX, mouseY);
     }
 
     /**
@@ -780,9 +796,10 @@ class GameEngine {
         const rect = this.canvas.getBoundingClientRect();
         let mouseX = event.clientX - rect.left;
         let mouseY = event.clientY - rect.top;
-        for(let object of this.objects) {
+        for(let object of this.objects)
             object.onMouseMove(new Vector2(mouseX, mouseY));
-        }
+        Input.mouseState = true;
+        Input.mousePosition = new Vector2(mouseX, mouseY);
     }
 
     /**
@@ -847,19 +864,41 @@ class GameObject {
         /** 父对象 @type {GameObject|null} */
         this.parent = null;
         /** 是否可见 @type {boolean} */
-        this.visible = true;
+        this.__visible__ = true;
         /** 是否已销毁 @type {boolean} */
         this.destroyed = false;
         /** 对象的偏移 @type {Vector2} */
         this.offset = new Vector2(0, 0);
         /** 动画控制器 @type {Animator|null} */
         this.animator = null;
+        /** 对象预制件 @type {GameObject|null} */
+        this.__prefab__ = null;
+        /** 对象是否可用 @type {boolean} */
+        this.available = true;
 
         this.position.__setx__ = this.__setx__.bind(this);
         this.position.__sety__ = this.__sety__.bind(this);
 
         engine.objects.push(this);
     }
+
+    /**
+     * 更新对象可见性
+     * @param {boolean} value - 是否可见
+     * @example object.visible = false;
+     */
+    set visible(value) {
+        this.__visible__ = value;
+        for(let child of this.childs)
+            child.visible = value;
+    }
+
+    /**
+     * 获取对象可见性
+     * @returns {boolean}
+     * @example let visible = object.visible;
+     */
+    get visible() { return this.__visible__; }
 
     /**
      * 检查图像
@@ -884,12 +923,14 @@ class GameObject {
      * @private
      */
     __setx__(value) {
-        this.position._x = value + this.offset.x;
+        if(!this.parent)
+            this.position._x = value;
+        else this.offset.x = value;
+
         if(this.collisionBox) 
             this.collisionBox.position.x = this.position.x + this.offset.x + (this.collisionBox.offset.x || 0);
-        for(let child of this.childs) {
-            child.position.x = this.position.x + child.position.x + this.offset.x + child.offset.x;
-        }
+        for(let child of this.childs)
+            child.position._x = this.position.x + child.offset.x;
     }
 
     /**
@@ -898,21 +939,27 @@ class GameObject {
      * @private
      */
     __sety__(value) {
-        this.position._y = value + this.offset.y;
+        if(!this.parent)
+            this.position._y = value;
+        else this.offset.y = value;
+
         if(this.collisionBox) 
             this.collisionBox.position.y = this.position.y + this.offset.y + (this.collisionBox.offset.y || 0);
         for(let child of this.childs)
-            child.position.y = this.position.y + child.position.y + this.offset.y + child.offset.y;
+            child.position._y = this.position.y + child.offset.y;
     }
 
     /**
      * 设置为子对象
-     * @param {GameObject} child - 子对象
+     * @param {GameObject} arguments - 子对象
      * @example parent.setAsChild(child);
      */
-    setAsChild(child) {
-        child.parent = this;
-        this.childs.push(child);
+    setAsChild() {
+        for(let child of arguments) {
+            child.parent = this;
+            child.offset = new Vector2(child.position.x - this.position.x, child.position.y - this.position.y);
+            this.childs.push(child);
+        }
     }
 
     /**
@@ -969,20 +1016,65 @@ class GameObject {
      * @returns {GameObject} - 返回复制的对象
      * @example object.copy();
      */
-    copy() {
-        const deepClone = (object, seen = new Map()) => {
-            if(object === null || typeof object !== 'object') return object;
-            if(seen.has(object)) return seen.get(object);
-            const clone = Array.isArray(object) ? [] : Object.create(Object.getPrototypeOf(object));
-            seen.set(object, clone);
+    copy(available = true) {
+        const cloneObject = new GameObject(this.image, this.position.copy(), this.width, this.height);
+        cloneObject.text = this.text;
+        cloneObject.style = this.style;
+        cloneObject.tag = this.tag;
+        cloneObject.order = this.order;
+        cloneObject.rotation = this.rotation;
+        cloneObject.opacity = this.opacity;
+        cloneObject.sliders = this.sliders;
+        cloneObject.flip = this.flip;
+        cloneObject.collisionBox = this.collisionBox ? this.collisionBox.copy(): null;
 
-            for(let key in object) {
-                if(object.hasOwnProperty(key)) 
-                    clone[key] = deepClone(object[key], seen);
-            }
-            return clone;
+        let childs = [];
+        for(let child of this.childs)
+            childs.push(child.copy());
+        cloneObject.childs = childs;
+
+        cloneObject.parent = this.parent ? this.parent: null;
+        cloneObject.__visible__ = this.__visible__;
+        cloneObject.destroyed = this.destroyed;
+        cloneObject.offset = this.offset.copy();
+        cloneObject.animator = this.animator ? this.animator.copy(): null;
+        cloneObject.__prefab__ = this.__prefab__;
+        cloneObject.update = this.update;
+        cloneObject.onMouseDown = this.onMouseDown;
+        cloneObject.onMouseUp = this.onMouseUp;
+        cloneObject.onMouseMove = this.onMouseMove;
+
+        cloneObject.available = available;
+        return cloneObject;
+    }
+
+    /**
+     * 保存对象
+     * @example object.save();
+     */
+    save() {
+        this.__prefab__ = this.copy(false);
+    }
+
+    /**
+     * 获取该对象的预制件
+     * @returns {GameObject} - 返回对象的预制件
+     * @example object.prefab;
+     */
+    prefab() {
+        return this.__prefab__.copy();
+    }
+
+    /**
+     * 将对象加载为预制件
+     * @example object.load();
+     */
+    load() {
+        // 将prefab所有属性移植此对象
+        for(let key in this.__prefab__) {
+            if(this.__prefab__.hasOwnProperty(key))
+                this[key] = this.__prefab__[key];
         }
-        return deepClone(this);
     }
 
     /**
@@ -1058,11 +1150,11 @@ class GameObject {
 class Animation {
     /**
      * 处理对象的动画效果
-     * @param {Image[]} frames - 动画帧的图像数组
      * @param {GameObject} object - 游戏对象
+     * @param {Image[]} frames - 动画帧的图像数组
      * @example new Animation(Resources.find("player.anim"), object);
      */
-    constructor(frames, object) {
+    constructor(object, frames) {
         /** 动画帧 @type {Image[]} */
         this.frames = this.__load__(frames);
         /** 当前帧索引 @type {number} */
@@ -1144,11 +1236,12 @@ class Animation {
 class Animator {
     /**
      * 动画控制器类，用于处理对象的动画效果
-     * @param {Animation[]} anims - 动画数组
-     * @param {GameObject} object - 游戏对象 
+     * @param {GameObject} object - 游戏对象
+     * @param {Animation[]} anims - 动画数组 
      * @example new Animator(Resources.find("player.animator"), object);
      */
     constructor(anims, object, enter = null) {
+        anims = typeof anims === "string" ? Resources.find(anims): anims;
         /** 动画对象 @type {Object.<string, Animation>} */
         this.animations = this.__loadanim__(anims, object);
         /** 父游戏对象 @type {GameObject} */
@@ -1169,7 +1262,7 @@ class Animator {
     add(name, anim) {
         if(typeof anim === "Animation")
             this.animations[name] = anim;
-        else this.animations[name] = new Animation(anim, this.parent);
+        else this.animations[name] = new Animation(this.parent, anim);
     }
 
     /**
@@ -1255,7 +1348,7 @@ class Animator {
         let animsDict = {};
         for(let anim of anims) {
             let animName = anim.split("/").pop().split(".").shift();
-            animsDict[animName] = new Animation(Resources.find(anim), object);
+            animsDict[animName] = new Animation(object, Resources.find(anim));
         }
         return animsDict;
     }
@@ -1300,6 +1393,19 @@ class CollisionBox {
 
         this.show();
         this.parent.collisionBox = this;
+    }
+
+    /**
+     * 返回碰撞盒的副本
+     * @returns {CollisionBox} - 返回碰撞盒的副本
+     */
+    copy() {
+        const box = new CollisionBox(this.parent);
+        box.width = this.width;
+        box.height = this.height;
+        box.offset = this.offset.copy();
+        box.isTrigger = this.isTrigger;
+        return box;
     }
 
     /**
@@ -1420,6 +1526,16 @@ class CollisionBox {
                 this.position.y < vector.y && this.position.y + this.height > vector.y;
     }
 
+    isCollideWith(object) {
+        if(object instanceof CollisionBox) {
+            return this.isCollideWithPoint(object.position)
+        } else if(object instanceof CircleCollisionBox) {
+            return this.isCollideWithCircle(object);
+        } else {
+            return object.isCollideWith(this);
+        }
+    }
+
     /**
      * 碰撞事件处理
      * @private
@@ -1430,7 +1546,7 @@ class CollisionBox {
         const objects = destroyed.concat(engine.objects);
 
         for(let object of objects) {
-            if(object.collisionBox && object.collisionBox !== this && !object.destroyed) {
+            if(object.collisionBox && object.collisionBox !== this && !object.destroyed && this.isCollideWith(object.collisionBox)) {
                 if(!this.__enter__.includes(object)) {
                     this.__enter__.push(object);
                     this.onCollisionEnter(object);
@@ -1590,6 +1706,10 @@ class Input {
     static keyDown = {};
     /** key是否被松开 @type {object.<string, boolean>} */
     static keyUp = {};
+    /** 鼠标状态 @type {boolean} */
+    static mouseState = false;
+    /** 鼠标位置 @type {Vector2} */
+    static mousePosition = new Vector2(0, 0);
 
     /**
      * 获取键盘按键是否被按下
@@ -1599,6 +1719,18 @@ class Input {
      */
     static getKeyDown(keycode) {
         return !!Input.keyDown[keycode];
+    }
+
+    static getMouseDown() {
+        return Input.mouseState;
+    }
+
+    static getMouseUp() {
+        return Input.mouseState;
+    }
+
+    static getMouseMove() {
+        return Input.mousePosition;
     }
 
     /**
