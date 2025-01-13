@@ -312,7 +312,7 @@
         function upgrade2() {
             SCORE -= upgrade_auto_need;
             origin_timeout = null;
-            money = upgrade_scoreup_need * auto_upscore;
+            money = Math.floor(upgrade_scoreup_need * auto_upscore);
             if(threads.length <= 0) {
                 timeout = 1600;
                 threads.push([setInterval(auto_getscore, timeout, money), timeout, money]);
@@ -332,7 +332,7 @@
                 auto_upscore += 0.05;
                 if(newthread) {
                     timeout = 1500;
-                    money = upgrade_scoreup_need * auto_upscore;
+                    money = Math.floor(upgrade_scoreup_need * auto_upscore);
                     threads.push([setInterval(auto_getscore, timeout, money), timeout, money]);
                 }
             }
