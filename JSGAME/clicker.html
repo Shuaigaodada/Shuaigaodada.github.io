@@ -312,8 +312,7 @@
         function upgrade2() {
             SCORE -= upgrade_auto_need;
             origin_timeout = null;
-            auto_upscore += 0.05;
-            money = Math.floor(auto_upscore * upgrade_scoreup_need);
+            money = upgrade_scoreup_need * auto_upscore;
             if(threads.length <= 0) {
                 timeout = 1600;
                 threads.push([setInterval(auto_getscore, timeout, money), timeout, money]);
@@ -329,9 +328,11 @@
                 }
                 threads[thread_id][0] = setInterval(auto_getscore, threads[thread_id][1], threads[thread_id][2]);
                 console.log(`Thread Info(${thread_id}): id: ${threads[thread_id][0]}, timeout: ${threads[thread_id][1]}, value: ${threads[thread_id][2]}`);
-        
+                
+                auto_upscore += 0.05;
                 if(newthread) {
                     timeout = 1500;
+                    money = upgrade_scoreup_need * auto_upscore;
                     threads.push([setInterval(auto_getscore, timeout, money), timeout, money]);
                 }
             }
