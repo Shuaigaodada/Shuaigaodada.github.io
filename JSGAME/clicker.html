@@ -282,7 +282,7 @@
         const upgrade_attrs_button = document.getElementById("upgrade_attrs");
         const translate_button = document.getElementById("translate");
         const attrinfo_label = document.getElementById("attrinfo");
-
+        const auto_upscore = 0.05;
 
 
         function getRandomInt(min, max) {
@@ -312,9 +312,10 @@
         function upgrade2() {
             SCORE -= upgrade_auto_need;
             origin_timeout = null;
+            money = upgrade_scoreup_need * auto_upscore;
             if(threads.length <= 0) {
                 timeout = 1600;
-                threads.push([setInterval(auto_getscore, timeout, (1 + money_gainer) * 88), timeout, (1 + money_gainer) * 88]);
+                threads.push([setInterval(auto_getscore, timeout, money), timeout, money]);
             } else {
                 var newthread = false;
                 thread_id = threads.length - 1;
@@ -330,12 +331,12 @@
         
                 if(newthread) {
                     timeout = 1500;
-                    money_gainer = Math.floor(money_gainer * 18);
-                    value = (1 + money_gainer) * 88;
-                    threads.push([setInterval(auto_getscore, timeout, value), timeout, value]);
+                    auto_upscore += 1;
+                    money = upgrade_scoreup_need * auto_upscore;
+                    threads.push([setInterval(auto_getscore, timeout, money), timeout, money]);
                 }
             }
-            upgrade_auto_need = Math.floor(upgrade_auto_need * 2.88);
+            upgrade_auto_need = Math.floor(upgrade_auto_need * 1.55);
             if(origin_timeout !== null) {
                 showUpgradeNotification(
                     UPGRADE2_TEXT.format(
