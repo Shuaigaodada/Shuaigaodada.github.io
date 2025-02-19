@@ -1788,7 +1788,8 @@ class Camera {
      * @param {GameObject} object - 跟随对象
      */
     set followObject(object) {
-        this.__follow__ = object;
+        // TODO: 修改以下代码 
+        this.__follow__ = object; 
         const baseSetX = this.__follow__.position.__setx__;
         const baseSetY = this.__follow__.position.__sety__;
         this.__follow__.position.__setx__ = (value) => {
