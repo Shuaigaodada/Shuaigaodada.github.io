@@ -2,7 +2,7 @@ import os
 import zipfile
 
 basedir = "/workspaces/Shuaigaodada.github.io/assignments"
-file = "asd-walker-master.zip"
+file = "asd-image-filtering-main.zip"
 
 file = os.path.join(basedir, file)
 

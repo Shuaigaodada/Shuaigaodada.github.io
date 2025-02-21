@@ -1,0 +1,29 @@
+name: Sync main with master
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update master branch
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git checkout main
+          git fetch origin
+          git checkout master
+          git pull
+          git merge origin/main
+          git push origin master

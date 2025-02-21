@@ -1,0 +1,22 @@
+name: Trigger Update in asd-projects-template
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger workflow in asd-projects-template
+        run: |
+          curl -X POST https://api.github.com/repos/OperationSpark/asd-projects-template/dispatches \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Authorization: token ${{ secrets.PAT }}" \
+          --data '{
+            "event_type": "update-${{ github.event.repository.name }}",
+            "client_payload": {
+              "repo": "${{ github.event.repository.name }}"
+            }
+          }'
