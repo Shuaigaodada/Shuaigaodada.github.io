@@ -175,7 +175,7 @@ class ResourcesObject {
     /**
      * 等待加载所有资源文件完成
      * @returns {Promise} - 返回一个Promise对象，当所有资源加载完成时解析
-     * @example await Resources.loaddone();
+     * @example await Resources.loadDone();
      */
     async loadDone() {
         return new Promise((resolve, reject) => {
@@ -743,6 +743,7 @@ class GameEngine {
     __update__() {
         this.ctx.clearRect(0, 0, this.width, this.height);
 
+        // 更新deltaTime
         this.deltaTime = (Date.now() - this.__time) / 1000;
         this.__time = Date.now();
 
@@ -753,6 +754,7 @@ class GameEngine {
             if(object.visible) this.__draw__(object);
         }
 
+        // 特殊注册事件 此事件在所有对象更新之后update结尾调用
         for(let gameEvent of Object.values(this.updateEvents))
             gameEvent();
     }

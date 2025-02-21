@@ -2,7 +2,7 @@ import os
 import zipfile
 
 basedir = "/workspaces/Shuaigaodada.github.io/assignments"
-file = "snake-fsd-master.zip"
+file = "asd-walker-master.zip"
 
 file = os.path.join(basedir, file)
 
