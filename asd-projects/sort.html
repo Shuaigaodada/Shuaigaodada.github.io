@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>sorting</title>
+</head>
+
+<body>
+    <canvas id="canvas" width="1700" height="800"> </canvas>
+</body>
+
+</html>
+<script>
+    var canvas = document.getElementById("canvas")
+    var ctx = canvas.getContext("2d")
+
+    var length = 10000
+    var speedOfReplay = 0
+    var textPadding = 3
+
+    var listToSort = makeRandomList(length)
+    var sortedList = listToSort
+
+    sortedList = quickSort(listToSort)
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Bubble Sort
+    async function bubbleSort(list) {
+        for (let i = 0; i < list.length - 1; i++) {
+            for (let j = 0; j < list.length - i - 1; j++) {
+                showCurrentSort(list, j);
+                await sleep(speedOfReplay);
+                if (list[j] > list[j + 1]) {
+                    [list[j], list[j + 1]] = [list[j + 1], list[j]];
+                }
+            }
+        }
+        showCurrentSort(list);
+    }
+
+    // Selection Sort
+    async function selectionSort(list) {
+        for (let i = 0; i < list.length - 1; i++) {
+            let minIndex = i;
+            for (let j = i + 1; j < list.length; j++) {
+                showCurrentSort(list, j);
+                await sleep(speedOfReplay);
+                if (list[j] < list[minIndex]) {
+                    minIndex = j;
+                }
+            }
+            [list[i], list[minIndex]] = [list[minIndex], list[i]];
+        }
+        showCurrentSort(list);
+    }
+
+    // Insertion Sort
+    async function insertionSort(list) {
+        for (let i = 1; i < list.length; i++) {
+            let key = list[i];
+            let j = i - 1;
+            while (j >= 0 && list[j] > key) {
+                showCurrentSort(list, j);
+                await sleep(speedOfReplay);
+                list[j + 1] = list[j];
+                j--;
+            }
+            list[j + 1] = key;
+        }
+        showCurrentSort(list);
+    }
+
+    // Merge Sort
+    async function mergeSort(list) {
+        if (list.length <= 1) return list;
+
+        const mid = Math.floor(list.length / 2);
+        const left = await mergeSort(list.slice(0, mid));
+        const right = await mergeSort(list.slice(mid));
+
+        return await merge(left, right);
+    }
+
+    async function merge(left, right) {
+        let result = [];
+        while (left.length && right.length) {
+            showCurrentSort(result.concat(left, right), result.length);
+            await sleep(speedOfReplay);
+            if (left[0] < right[0]) {
+                result.push(left.shift());
+            } else {
+                result.push(right.shift());
+            }
+        }
+        return result.concat(left, right);
+    }
+
+    // Quick Sort
+    async function quickSort(list, low = 0, high = list.length - 1) {
+        if (low < high) {
+            const pivotIndex = await partition(list, low, high);
+            await quickSort(list, low, pivotIndex - 1);
+            await quickSort(list, pivotIndex + 1, high);
+        }
+        showCurrentSort(list);
+    }
+
+    async function partition(list, low, high) {
+        const pivot = list[high];
+        let i = low - 1;
+        for (let j = low; j < high; j++) {
+            showCurrentSort(list, j);
+            await sleep(speedOfReplay);
+            if (list[j] < pivot) {
+                i++;
+                [list[i], list[j]] = [list[j], list[i]];
+            }
+        }
+        [list[i + 1], list[high]] = [list[high], list[i + 1]];
+        return i + 1;
+    }
+
+    // Heap Sort
+    async function heapSort(list) {
+        const n = list.length;
+
+        for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
+            await heapify(list, n, i);
+        }
+
+        for (let i = n - 1; i > 0; i--) {
+            [list[0], list[i]] = [list[i], list[0]];
+            await heapify(list, i, 0);
+        }
+        showCurrentSort(list);
+    }
+
+    async function heapify(list, n, i) {
+        let largest = i;
+        const left = 2 * i + 1;
+        const right = 2 * i + 2;
+
+        if (left < n && list[left] > list[largest]) largest = left;
+        if (right < n && list[right] > list[largest]) largest = right;
+
+        if (largest !== i) {
+            [list[i], list[largest]] = [list[largest], list[i]];
+            showCurrentSort(list, i);
+            await sleep(speedOfReplay);
+            await heapify(list, n, largest);
+        }
+    }
+
+    // Shell Sort
+    async function shellSort(list) {
+        for (let gap = Math.floor(list.length / 2); gap > 0; gap = Math.floor(gap / 2)) {
+            for (let i = gap; i < list.length; i++) {
+                let temp = list[i];
+                let j;
+                for (j = i; j >= gap && list[j - gap] > temp; j -= gap) {
+                    showCurrentSort(list, j);
+                    await sleep(speedOfReplay);
+                    list[j] = list[j - gap];
+                }
+                list[j] = temp;
+            }
+        }
+        showCurrentSort(list);
+    }
+
+    // Radix Sort
+    async function radixSort(list) {
+        const max = Math.max(...list);
+        let exp = 1;
+
+        while (Math.floor(max / exp) > 0) {
+            await countingSortForRadix(list, exp);
+            exp *= 10;
+        }
+        showCurrentSort(list);
+    }
+
+    async function countingSortForRadix(list, exp) {
+        const output = new Array(list.length).fill(0);
+        const count = new Array(10).fill(0);
+
+        for (let i = 0; i < list.length; i++) {
+            count[Math.floor(list[i] / exp) % 10]++;
+        }
+
+        for (let i = 1; i < 10; i++) {
+            count[i] += count[i - 1];
+        }
+
+        for (let i = list.length - 1; i >= 0; i--) {
+            output[count[Math.floor(list[i] / exp) % 10] - 1] = list[i];
+            count[Math.floor(list[i] / exp) % 10]--;
+        }
+
+        for (let i = 0; i < list.length; i++) {
+            list[i] = output[i];
+            showCurrentSort(list, i);
+            await sleep(speedOfReplay);
+        }
+    }
+
+    // Bucket Sort
+    async function bucketSort(list) {
+        const buckets = Array.from({ length: 10 }, () => []);
+        const max = Math.max(...list);
+
+        for (let i = 0; i < list.length; i++) {
+            const index = Math.floor((list[i] / max) * 10);
+            buckets[index].push(list[i]);
+        }
+
+        for (let i = 0; i < buckets.length; i++) {
+            await insertionSort(buckets[i]);
+        }
+
+        let index = 0;
+        for (let i = 0; i < buckets.length; i++) {
+            for (let j = 0; j < buckets[i].length; j++) {
+                list[index++] = buckets[i][j];
+                showCurrentSort(list, index);
+                await sleep(speedOfReplay);
+            }
+        }
+    }
+
+
+    function showCurrentSort(currentList, currentIndex) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        var widthOfBars = (canvas.width - 10) / length
+        var heightOfBars = (canvas.height - 10) / length
+        for (let i = 0; i < currentList.length; i++) {
+            ctx.fillStyle = "hsl(" + (currentList[i] * (360 / length)) + ",100%,50%)"
+            if (i === currentIndex) {
+                ctx.fillStyle = "black"
+            }
+            ctx.fillRect(i * widthOfBars, canvas.height - (currentList[i] * heightOfBars), widthOfBars, currentList[i] * heightOfBars)
+            ctx.fillText(currentList[i], i * widthOfBars, canvas.height - (currentList[i] * heightOfBars) - textPadding)
+        }
+    }
+
+    function makeRandomList(lengthOfList) {
+        var listOfAllNumbers = []
+        var randomList = []
+        for (let i = 0; i < lengthOfList; i++) {
+            listOfAllNumbers.push(i) //this makes a list of every number between 0 and lengthOfList
+        }
+
+        var randomIndex
+        while (listOfAllNumbers.length > 0) { //while there are still numbers in the listOfAllNumbers
+            randomIndex = Math.floor(Math.random() * listOfAllNumbers.length) //grab one of the numbers from ListOfAllNumbers
+            randomList.push(listOfAllNumbers[randomIndex])//put that number in the randomNumbers list
+            listOfAllNumbers.splice(randomIndex, 1) //remove the number from the list of all numbers
+            // at the end of this operation you end up with a list of numbers from 0 to lengthOfList where none of the numbers repeat. 
+        }
+        return randomList
+    }
+
+
+
+</script>
