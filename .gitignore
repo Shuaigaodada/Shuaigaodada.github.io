@@ -19,7 +19,6 @@ bower_components/
 
 # Build directories
 dist/
-build/
 
 # Environment variables
 .env
