@@ -1,5 +1,7 @@
-const apiKey = "sk-k9NC5rQ4xfhmp44RucC5YrddqZEsuzTZHQ8Cb00UnESccLvh"; // 替换为你的API密钥
+const apiKey = "" // AI Token API Key
 const url = "https://api.chatanywhere.org/v1/chat/completions";
+// ---------------------------- ERROR Link broken -----------------------------
+// need fixed
 
 // 配置 marked 以使用 highlight.js 渲染代码块
 marked.setOptions({

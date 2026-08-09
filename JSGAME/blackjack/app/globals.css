@@ -1,0 +1,172 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@600;700&display=swap');
+
+:root { color: #f6efd9; background: #06110d; font-family: "DM Mono", ui-monospace, monospace; }
+* { box-sizing: border-box; }
+html, body, #root { width: 100%; height: 100%; overflow: hidden; } body { margin: 0; min-width: 320px; min-height: 100vh; background: #28170f; }
+button { font: inherit; }
+.bankroll-stacks { z-index: 4 !important; }.player-seat { position: relative; z-index: 3; }
+.table-clock { margin-left: auto; color: #f6d57f; font-size: 13px; letter-spacing: .08em; }
+@media (min-width: 601px) { .action-panel:not(.action-panel--betting) { z-index: 10 !important; top: 50% !important; right: clamp(28px, 5vw, 96px) !important; bottom: auto !important; left: auto !important; flex-direction: column; transform: translateY(-50%) !important; } }
+@media (min-width: 601px) { .action-panel:not(.action-panel--betting) { right: clamp(470px, 27vw, 560px) !important; }.bankroll-stacks .bankroll-stack { right: clamp(16px, 2vw, 42px); width: 226px; height: 202px; }.bankroll-stacks .bankroll-stack--b { top: 13%; }.bankroll-stacks .bankroll-stack--a { bottom: 7%; }.bankroll-stacks .bankroll-stack__label { left: 0; width: 226px; }.bankroll-stacks .chip-rack { display: grid; width: 100%; height: 100%; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); gap: 3px; padding: 8px; border: 2px solid #a77b38; border-radius: 11px; background: linear-gradient(145deg, #3b2819, #160f0a); box-shadow: inset 0 0 0 3px #5c3b1e, inset 0 0 16px #000b, 0 8px 16px #00130b99; }.bankroll-stacks .chip-rack__slot { position: relative; width: auto; height: auto; overflow: hidden; border: 1px solid #7e5c2e; border-radius: 6px; background: #0a2119; transform: none; }.bankroll-stacks .chip-rack__slot:nth-child(n) { bottom: auto; left: auto; transform: none; }.bankroll-stacks .bankroll-stack__chip { width: 34px; height: 34px; border-width: 3px; font-size: 7px; } }
+@media (min-width: 601px) { .player-seat { position: relative; }.player-seat .bankroll-rack { position: absolute; top: 16px; left: calc(50% + 150px); z-index: 2; justify-content: flex-start; width: 155px; padding-left: 0; }.player-seat .bankroll-rack::before { position: absolute; top: -15px; left: 0; color: #d8bd7a; content: "个人筹码"; font-size: 9px; letter-spacing: .08em; white-space: nowrap; } }
+@media (min-width: 601px) and (min-height: 821px) and (max-height: 1050px) { .table-felt { padding-top: 82px !important; padding-bottom: 82px !important; }.player-seat { gap: 8px; }.playing-card, .hand-card-slot { width: 118px !important; height: 190px !important; }.hand { min-height: 190px !important; }.bankroll-rack { height: 20px; }.bankroll-chip { width: 23px; height: 23px; } }
+.action-panel--betting { width: min(820px, calc(100% - 32px)); flex-wrap: wrap; align-items: center; }
+.action-panel--betting { z-index: 10 !important; top: 59% !important; bottom: auto !important; transform: translateX(-50%) !important; }
+.action-panel--betting { display: grid !important; grid-template-columns: max-content 162px max-content; align-items: center; justify-content: center; gap: 12px; }
+.action-panel--betting .bet-input { width: 150px; justify-self: center; }.action-panel--betting .action { grid-column: 2; width: 162px; min-width: 162px; }.bet-label, .bet-available { color: #f4e6be; font-size: 13px; white-space: nowrap; }.bet-available { color: #d5bb7b; }
+.bet-summary { display: flex; width: 100%; align-items: center; justify-content: center; gap: 10px; color: #f4e6be; font-size: 13px; }.bet-input { width: 150px; padding: 10px 12px; color: #342615; border: 1px solid #dfba60; border-radius: 4px; outline: none; background: #f5e5ba; color-scheme: light; font: inherit; text-align: center; }.bet-input::placeholder { color: #78603a; opacity: 1; }.bet-input:focus { border-color: #fff0ab; box-shadow: 0 0 0 2px #f1cd6966; }.bet-summary span { color: #d5bb7b; }
+.chip-picker { display: flex; flex: 1 1 490px; flex-wrap: wrap; justify-content: center; gap: 7px; }.chip-picker__chip { width: 42px; height: 42px; cursor: pointer; color: #fff3cf; border: 3px dashed #fff1ce; border-radius: 50%; background: #ab3633; box-shadow: inset 0 0 0 2px #6b1e24, 0 2px 5px #0008; font-size: 9px; font-weight: 800; transition: transform .15s; }.chip-picker__chip:nth-child(2n) { background: #265b7b; }.chip-picker__chip:nth-child(3n) { background: #c59535; }.chip-picker__chip:hover:not(:disabled) { transform: translateY(-3px); }.chip-picker__chip:disabled { cursor: not-allowed; opacity: .38; }
+.deck-empty-note { color: #f0ca79; font-size: 13px; }
+.bankroll-rack { display: flex; height: 24px; align-items: center; justify-content: center; padding-left: 8px; }.bankroll-chip { display: grid; width: 27px; height: 27px; margin-left: -8px; place-items: center; color: #fff0c9; border: 2px dashed #fff0c9; border-radius: 50%; background: #2d5e82; box-shadow: inset 0 0 0 1px #123553, 0 2px 3px #0007; font-size: 7px; font-weight: 800; }.bankroll-chip:nth-child(3n) { background: #c09236; }.bankroll-chip:nth-child(2n) { background: #a63232; }
+.player-seat .bankroll-rack { height: 42px; padding: 7px 11px 7px 16px; border: 1px solid #9f793b; border-radius: 8px; background: linear-gradient(145deg, #3b2819, #160f0a); box-shadow: inset 0 0 0 2px #5c3b1e, inset 0 0 10px #000a, 0 4px 9px #00130b88; }.player-seat .bankroll-chip { width: 26px; height: 26px; margin-left: -9px; }
+@media (max-width: 800px) { .masthead { top: 17px; }.brand-mark { width: 36px; height: 36px; }.table-frame { padding: 8px !important; }.table-felt { min-height: calc(100svh - 16px) !important; padding: 84px 9px 88px !important; border-radius: 38% 38% 7% 7% / 10% 10% 4% 4%; }.masthead h1 { font-size: 20px; }.table-clock { display: none; }.round { font-size: 10px; }.player-header { min-width: 220px; }.player-seat .bankroll-rack { position: static; width: auto; }.player-seat .bankroll-rack::before { display: none; }.playing-card, .hand-card-slot { width: 57px !important; height: 92px !important; }.hand-card-slot { margin-left: -11px; }.hand { min-height: 94px !important; }.action-panel { bottom: 22px; width: calc(100% - 20px); }.action { min-width: 0; flex: 1; padding: 12px 5px; font-size: 12px; }.action kbd { display: none; }.action-panel--betting { top: 57% !important; bottom: auto !important; width: calc(100% - 20px); }.bet-summary { gap: 6px; }.bet-input { width: 135px; } }
+.bankroll-stacks { position: absolute; z-index: 3; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none; }.bankroll-stack { position: absolute; right: clamp(170px, 18vw, 350px); width: 244px; height: 232px; }.bankroll-stack--b { top: 11%; }.bankroll-stack--a { bottom: 5%; }.bankroll-stack__label { position: absolute; top: -20px; left: 0; width: 244px; color: #f1d486; font-size: 11px; font-weight: 800; text-align: center; text-shadow: 0 2px 3px #000; white-space: nowrap; }.chip-rack { position: relative; width: 100%; height: 100%; }.chip-rack__slot { position: absolute; width: 52px; height: 116px; transform-origin: bottom center; }.chip-rack__slot:nth-child(1) { bottom: 1px; left: 3px; transform: rotate(-5deg); }.chip-rack__slot:nth-child(2) { bottom: 19px; left: 49px; transform: rotate(4deg); }.chip-rack__slot:nth-child(3) { bottom: 2px; left: 100px; transform: rotate(-2deg); }.chip-rack__slot:nth-child(4) { bottom: 27px; left: 158px; transform: rotate(5deg); }.chip-rack__slot:nth-child(5) { bottom: 111px; left: 19px; transform: rotate(3deg); }.chip-rack__slot:nth-child(6) { bottom: 119px; left: 80px; transform: rotate(-4deg); }.chip-rack__slot:nth-child(7) { bottom: 105px; left: 147px; transform: rotate(2deg); }.bankroll-stack__chip { position: absolute; z-index: 1; display: grid; width: 38px; height: 38px; place-items: center; color: #fff3d0; border: 4px dashed #fff3d0; border-radius: 50%; box-shadow: inset 0 0 0 2px #6e2024, 0 3px 5px #0009; font-size: 8px; font-weight: 900; }
+.table-felt { position: relative; }
+.game-page { position: relative; width: 100%; height: 100svh; min-height: 100svh; overflow: hidden; }
+.masthead { position: absolute; z-index: 2; top: 25px; left: clamp(18px, 4vw, 58px); right: clamp(18px, 4vw, 58px); display: flex; align-items: center; gap: 13px; color: #d6b46d; text-shadow: 0 2px 4px #000; }
+.brand-mark { display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid #cda85e; border-radius: 50%; font-size: 20px; font-weight: bold; }
+.masthead p { margin: 0 0 3px; font-size: 11px; letter-spacing: .12em; }.masthead h1 { margin: 0; color: #fff7e4; font: 700 29px "Noto Serif SC", serif; }.round { margin-left: auto; font-size: 14px; }
+.table-clock { position: absolute; left: 50%; margin: 0; transform: translateX(-50%); }
+.table-frame { width: 100%; height: 100svh; min-height: 100svh; overflow: hidden; padding: clamp(12px, 2.2vw, 34px); background: linear-gradient(135deg, #381f13, #8b5530 19%, #3b2115 49%, #9b6137 78%, #2b170e); box-shadow: inset 0 0 0 2px #c39153; }
+.table-felt { min-height: calc(100svh - clamp(24px, 4.4vw, 68px)); padding: 105px clamp(32px, 12vw, 210px) 116px; border: 2px solid #d3aa64; border-radius: 46% 46% 13% 13% / 16% 16% 10% 10%; background: radial-gradient(ellipse at center, #176343, #0b412d 66%, #082d20); display: flex; flex-direction: column; justify-content: space-between; box-shadow: inset 0 0 60px #001a10, inset 0 0 0 9px #0d5238; }
+.player-seat { display: grid; gap: 14px; justify-items: center; padding: 8px; border: 1px solid transparent; border-radius: 16px; transition: .2s; }.player-seat.is-active { border-color: #e6bd63; background: #f8d8870d; box-shadow: 0 0 26px #f5c65835; }.player-seat.is-winner { border-color: #f9dc7b; }
+.player-header { display: flex; align-items: center; gap: 10px; min-width: 290px; color: #f7edcf; }.player-header strong, .player-header span { display: block; }.player-header strong { font: 600 20px "Noto Serif SC", serif; }.player-header span { margin-top: 2px; color: #cab887; font-size: 12px; }.avatar { display: grid; place-items: center; width: 43px; height: 43px; overflow: hidden; border: 1px solid #d7b968; border-radius: 50%; color: #1b392d; background: #d6b567; font-size: 18px; }.avatar img { width: 100%; height: 100%; object-fit: cover; }.score { position: relative; display: grid; width: 51px; height: 51px; margin-left: auto; padding: 4px; place-items: center; overflow: hidden; color: #fff1ac; border: 0; border-radius: 50%; background: conic-gradient(var(--score-color) var(--score-progress), #1a342b 0); font-size: 20px; font-weight: 800; text-shadow: 0 1px 3px #000; }.score::before { position: absolute; inset: 4px; content: ""; border-radius: 50%; background: #123527; box-shadow: inset 0 0 0 1px #7f6634; }.score span { position: relative; z-index: 1; }.score.is-hidden { color: #d6bd80; background: #826d3b; }
+.turn-timer { min-width: 44px; padding: 6px 8px; color: #fff0bd; border: 1px solid #d9af51; border-radius: 999px; background: #281c12cc; font-size: 13px; font-weight: 800; text-align: center; }
+
+/* 大厅：第一期只开放 5 桌，但完整预留 20 桌的扩展网格。 */
+.lobby-page { box-sizing: border-box; min-height: 100svh; padding: clamp(28px, 5vw, 74px); color: #f6ead0; background: radial-gradient(circle at 50% 20%, #1c6848, #073522 53%, #25160e); }
+.lobby-header { display: flex; align-items: end; justify-content: space-between; max-width: 1120px; margin: 0 auto 26px; padding-bottom: 20px; border-bottom: 1px solid #c89c4e77; }.lobby-header p { margin: 0 0 7px; color: #dcb969; font-size: 11px; font-weight: 800; letter-spacing: .2em; }.lobby-header h1 { margin: 0; font: 700 clamp(29px, 4vw, 48px) "Noto Serif SC", serif; text-shadow: 0 3px 8px #000; }.lobby-capacity { display: grid; grid-template-columns: auto auto; column-gap: 8px; align-items: baseline; color: #d9bd79; }.lobby-capacity b { color: #ffe19a; font-size: 32px; }.lobby-capacity span { font-size: 13px; }.lobby-capacity small { grid-column: 1 / -1; color: #ab956b; text-align: right; }
+.lobby-account { display:flex; align-items:center; gap:9px; cursor:pointer; color:#f7e4b1; border:0; background:transparent; }.lobby-account img,.avatar-upload img { width:42px; height:42px; border:2px solid #d8b664; border-radius:50%; object-fit:cover; }.account-modal { position:fixed; z-index:30; inset:0; display:grid; place-items:center; background:#00150aaa; }.account-modal form { position:relative; display:grid; min-width:280px; gap:10px; padding:25px; color:#f8edcf; border:1px solid #d5ae59; border-radius:12px; background:#123c2d; }.account-modal form > button:first-child { position:absolute; top:8px; right:10px; border:0; background:transparent; color:#fff; font-size:22px; }.account-modal input { padding:9px; border:0; border-radius:4px; }.account-modal form button { padding:8px; cursor:pointer; color:#fff5d7; border:1px solid #c89b48; background:#315f41; }.avatar-upload { justify-self:center; cursor:pointer; }.avatar-upload input { display:none; }
+.lobby-intro { display: flex; max-width: 1120px; margin: 0 auto 23px; align-items: center; justify-content: space-between; color: #ddca9c; font-size: 14px; }.lobby-intro strong { color: #bfaa7b; font-size: 12px; font-weight: 500; }
+.login-panel { display: flex; max-width: 1120px; margin: -4px auto 22px; padding: 12px; align-items: center; gap: 9px; border: 1px solid #b9914c; border-radius: 9px; background: #102d22dd; }.login-panel b { color: #f5d17b; }.login-panel input { width: 130px; padding: 8px 10px; color: #372617; border: 0; border-radius: 4px; background: #f3e4ba; }.login-panel button { padding: 8px 11px; cursor: pointer; color: #f8edcf; border: 1px solid #cda85a; border-radius: 4px; background: #315f41; }.login-panel button[type="button"] { background: transparent; }.login-panel small { color: #ffaaa0; }
+.lobby-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: clamp(12px, 2vw, 24px); max-width: 1120px; margin: auto; }.lobby-table { position: relative; display: grid; min-height: 158px; padding: 13px; place-items: center; cursor: pointer; color: #f7e4b1; border: 1px solid #d4aa5c; border-radius: 18px; background: linear-gradient(145deg, #16704c, #08412d); box-shadow: inset 0 0 0 6px #062f2088, 0 10px 18px #00190f99; transition: transform .18s, box-shadow .18s, border-color .18s; }.lobby-table:hover:not(:disabled) { border-color: #ffe095; box-shadow: inset 0 0 0 6px #0c4932, 0 0 0 2px #efca7044, 0 14px 25px #0008; transform: translateY(-5px); }.lobby-table:disabled { cursor: default; opacity: .4; }.lobby-table__number { position: absolute; top: 11px; left: 13px; color: #e5c474; font: 800 11px ui-monospace, monospace; letter-spacing: .08em; }.lobby-table__felt { display: grid; width: 64px; height: 64px; place-items: center; border: 2px solid #d7b568; border-radius: 50%; background: radial-gradient(circle, #13573d, #082d20); box-shadow: inset 0 0 0 6px #0e482f, 0 3px 8px #0009; }.lobby-table__felt i { color: #f1cb69; font: 800 27px "Noto Serif SC", serif; font-style: normal; }.lobby-table strong { margin-top: 3px; font-size: 14px; }.lobby-table small { color: #c2af83; font-size: 11px; }.lobby-table.is-reserved { border-style: dashed; background: #0d3225aa; box-shadow: inset 0 0 0 6px #061f1688; }.lobby-table.is-reserved .lobby-table__felt { border-color: #7e7256; background: #123126; }.lobby-return { padding: 7px 10px; cursor: pointer; color: #e8cd8c; border: 1px solid #b9954d; border-radius: 5px; background: #1a342999; font: inherit; font-size: 12px; }.lobby-return:hover { background: #31523f; }
+@media (max-width: 850px) { .lobby-grid { grid-template-columns: repeat(3, 1fr); }.lobby-intro { align-items: start; flex-direction: column; gap: 7px; }.lobby-header { align-items: start; flex-direction: column; gap: 15px; }.lobby-capacity small { text-align: left; } }
+@media (max-width: 520px) { .lobby-page { padding: 24px 16px; }.lobby-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }.lobby-table { min-height: 134px; }.lobby-table__felt { width: 52px; height: 52px; }.lobby-table__felt i { font-size: 22px; }.lobby-return { margin-right: -4px; }.masthead { gap: 7px; }.masthead .lobby-return + .brand-mark { display: none; } }
+.hand { display: flex; justify-content: center; min-height: 231px; padding: 2px 9px; }.hand-card-slot { position: relative; z-index: 1; width: 144px; height: 231px; flex: 0 0 auto; margin-left: -25px; opacity: 1; transition: opacity .14s ease; }.hand-card-slot:first-child { margin-left: 0; }.hand-card-slot:last-child { z-index: 3; }.hand-card-slot.is-arriving .playing-card { visibility: hidden; }.playing-card { width: 144px; height: 231px; perspective: 800px; filter: drop-shadow(0 8px 8px #001a11aa); }.card-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .5s ease; }.playing-card.is-hidden .card-inner { transform: rotateY(180deg); }.card-face, .card-back { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 10px; backface-visibility: hidden; }.card-face { display: block; object-fit: contain; background: #fff; }.card-back { display: grid; place-items: center; border: 5px solid #f7f1df; transform: rotateY(180deg); background-color: #163a62; background-image: linear-gradient(45deg, rgb(211 170 81 / 22%) 25%, transparent 25%, transparent 75%, rgb(211 170 81 / 22%) 75%), linear-gradient(-45deg, rgb(211 170 81 / 22%) 25%, transparent 25%, transparent 75%, rgb(211 170 81 / 22%) 75%); background-position: 0 0, 9px 9px; background-size: 18px 18px; box-shadow: inset 0 0 0 2px #b98a3d, inset 0 0 0 7px #163a62, inset 0 0 0 8px rgb(211 170 81 / 75%); }.card-back-logo { display: grid; width: 45%; aspect-ratio: 1; place-items: center; border: 2px solid #d3aa51; border-radius: 50%; background: #102d4d; box-shadow: 0 0 0 5px #102d4d, 0 0 0 6px rgb(211 170 81 / 75%); color: #e6c979; font-size: 1.5rem; font-weight: 800; letter-spacing: -.08em; }
+.table-felt--betting .hand { display: none; min-height: 0; }.table-felt--betting .player-seat { gap: 7px; }
+.table-center { align-self: center; display: grid; gap: 9px; min-width: min(350px, 95%); padding: 21px 30px; text-align: center; border-top: 1px solid #d7b665; border-bottom: 1px solid #d7b665; color: #f8edcf; background: #06241755; }.center-label { color: #d8bd7a; font-size: 11px; letter-spacing: .16em; }.table-center strong { font: 600 22px "Noto Serif SC", serif; }.pot { display: flex; align-items: center; justify-content: center; gap: 12px; color: #cbb88c; font-size: 13px; }.pot b { margin-left: 5px; color: #f5d06f; }.chip-stack { display: flex; padding-left: 16px; }.chip { display: grid; place-items: center; width: 38px; height: 38px; margin-left: -16px; border: 4px dashed #fff7e5; border-radius: 50%; box-shadow: 0 2px 4px #0008; color: #fff7e5; font-size: 9px; font-weight: bold; }.chip--gold { background: #ba8931; }.chip--ivory { color: #4a3920; border-color: #d6af55; background: #f3e4ba; }.chip--red { background: #ad3430; }
+.betting-chips { position: absolute; z-index: 2; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none; }.chip-bundle { position: absolute; right: clamp(30px, 6vw, 110px); display: grid; width: 58px; height: 78px; place-items: center; }.chip-bundle--b { top: 23%; animation: ante-b .9s cubic-bezier(.2, .8, .2, 1) .15s forwards; }.chip-bundle--a { top: 70%; animation: ante-a .9s cubic-bezier(.2, .8, .2, 1) .15s forwards; }.chip-bundle__amount { position: absolute; top: -20px; color: #e9cc80; font-size: 11px; font-weight: bold; text-shadow: 0 1px 2px #000; }.bet-chip { position: absolute; display: grid; width: 45px; height: 45px; place-items: center; border: 5px dashed #fff5d9; border-radius: 50%; background: #b83b35; box-shadow: 0 3px 5px #0008, inset 0 0 0 2px #7d1c21; color: #fff5d9; font-size: 10px; font-weight: bold; transform: translateY(calc(var(--chip-index) * -6px)); }.bet-chip:nth-of-type(3) { background: #d2a341; }.bet-chip:nth-of-type(4) { background: #e4d9bd; color: #563d1f; }.bet-chip:nth-of-type(5) { background: #245c82; }.betting-chips.is-won-a .chip-bundle--a { animation: payout-a-self .9s cubic-bezier(.2, .8, .2, 1) forwards; }.betting-chips.is-won-a .chip-bundle--b { animation: payout-a-opponent .9s cubic-bezier(.2, .8, .2, 1) forwards; }.betting-chips.is-won-b .chip-bundle--a { animation: payout-b-opponent .9s cubic-bezier(.2, .8, .2, 1) forwards; }.betting-chips.is-won-b .chip-bundle--b { animation: payout-b-self .9s cubic-bezier(.2, .8, .2, 1) forwards; }.betting-chips.is-won-a .chip-bundle--b .bet-chip { transform: translate(calc(var(--chip-index) * 3px), calc(var(--chip-index) * -6px)); }.betting-chips.is-won-b .chip-bundle--a .bet-chip { transform: translate(calc(var(--chip-index) * -3px), calc(var(--chip-index) * -6px)); } @keyframes ante-b { to { transform: translate(-180px, 155px); } } @keyframes ante-a { to { transform: translate(-180px, -155px); } } @keyframes payout-a-self { from { top: 70%; transform: translate(-180px, -155px); } to { top: 70%; transform: translate(0, 0); } } @keyframes payout-a-opponent { from { top: 23%; transform: translate(-180px, 155px); } to { top: 70%; transform: translate(-28px, 0); } } @keyframes payout-b-self { from { top: 23%; transform: translate(-180px, 155px); } to { top: 23%; transform: translate(0, 0); } } @keyframes payout-b-opponent { from { top: 70%; transform: translate(-180px, -155px); } to { top: 23%; transform: translate(-28px, 0); } }
+.deck-pile { position: absolute; z-index: 1; top: 50%; left: clamp(16px, 3vw, 54px); display: grid; gap: 8px; justify-items: center; padding: 0; cursor: grab; touch-action: none; color: #e7cd8e; border: 0; background: transparent; transform: translateY(-50%); }.deck-pile:active { cursor: grabbing; }.deck-pile__cards { position: relative; display: block; width: 95px; height: 154px; }.deck-pile__cards::before, .deck-pile__cards::after { position: absolute; inset: 5px -4px -4px 5px; content: ""; border: 3px solid #b78b3e; border-radius: 9px; background: #0f2e4f; }.deck-pile__cards::before { inset: 9px -8px -8px 9px; opacity: .65; }.deck-pile .playing-card { position: relative; z-index: 1; width: 95px; height: 154px; margin: 0; }.deck-pile__label { font-size: 12px; }.deck-pile:hover:not(:disabled) .card-inner { transform: translateY(-8px) rotateY(180deg); }.deck-pile:disabled { cursor: not-allowed; opacity: .5; }.dealt-card { position: absolute; z-index: 5; left: clamp(16px, 3vw, 54px); top: 50%; pointer-events: none; cursor: grabbing; animation: deal-to-bottom .82s ease-in forwards; }.dealt-card.is-dragging, .dealt-card.is-settling { animation: none; transform: translate(-50%, -50%); }.dealt-card.is-settling.is-target-ready { transition: left .72s cubic-bezier(.2, .8, .2, 1), top .72s cubic-bezier(.2, .8, .2, 1); }.dealt-card .playing-card { margin: 0; }.dealt-card--top { animation-name: deal-to-top; } @keyframes deal-to-bottom { to { left: 50%; top: 76%; transform: translate(-50%, -50%); } } @keyframes deal-to-top { to { left: 50%; top: 24%; transform: translate(-50%, -50%); } }
+.action-panel { position: absolute; z-index: 2; bottom: clamp(20px, 4vh, 42px); left: 50%; display: flex; justify-content: center; gap: 13px; transform: translateX(-50%); }.action { min-width: 162px; padding: 16px 22px; cursor: pointer; color: #f9edd0; border: 1px solid #c59e54; border-radius: 4px; background: #1d3329; box-shadow: 0 4px 11px #0007; font-size: 15px; transition: transform .15s, background .15s; }.action:hover:not(:disabled) { transform: translateY(-2px); background: #31523f; }.action--hit { background: #366743; }.action--stand { background: #522d25; }.action--double { background: #433522; }.action:disabled { cursor: not-allowed; opacity: .45; }kbd { margin-left: 6px; color: #dbc27e; font-size: 10px; }.round-finished { position: absolute; z-index: 2; bottom: 8px; left: 0; right: 0; margin: 0; text-align: center; color: #d8c899; font-size: 12px; }
+@media (max-height: 820px) and (min-width: 601px) { .table-felt { padding-top: 85px; padding-bottom: 92px; }.playing-card, .hand-card-slot { width: 105px; height: 168px; }.hand { min-height: 168px; } }
+@media (max-width: 600px) { .masthead { top: 17px; }.brand-mark { width: 36px; height: 36px; }.table-frame { padding: 8px; }.table-felt { min-height: calc(100svh - 16px); padding: 84px 9px 88px; border-radius: 38% 38% 7% 7% / 10% 10% 4% 4%; }.masthead h1 { font-size: 20px; }.round { font-size: 10px; }.player-header { min-width: 220px; }.playing-card, .hand-card-slot { width: 57px; height: 92px; }.hand-card-slot { margin-left: -11px; }.hand { min-height: 94px; }.action-panel { bottom: 22px; width: calc(100% - 20px); }.action { min-width: 0; flex: 1; padding: 12px 5px; font-size: 12px; }.action kbd { display: none; } }
+/* 下注筹码的推注、派奖速度放慢，便于看清移动过程。 */
+.chip-bundle--b { animation-duration: 1.45s; }
+.chip-bundle--a { animation-duration: 1.45s; }
+.betting-chips.is-won-a .chip-bundle--a,
+.betting-chips.is-won-a .chip-bundle--b,
+.betting-chips.is-won-b .chip-bundle--a,
+.betting-chips.is-won-b .chip-bundle--b { animation-duration: 1.45s; }
+
+.betting-chips__total { position: absolute; z-index: 4; top: 46%; left: 50%; transform: translate(-50%, -50%); padding: 5px 12px; color: #f8e7a9; border: 1px solid #b99142; border-radius: 999px; background: #11291ee6; box-shadow: 0 3px 8px #00150eaa; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-shadow: 0 1px 2px #000; white-space: nowrap; }.betting-chips__total b { margin-left: 5px; color: #fff1ae; }
+
+.player-seat.is-stood { border-color: #ee5b55; background: #a91d1b24; box-shadow: inset 0 0 0 1px #ff8a7d66, 0 0 24px #d9302d99; animation: stood-alert 1.1s ease-in-out infinite alternate; }.stood-flag { padding: 4px 8px; color: #fff0e7; border: 1px solid #ff9a8d; border-radius: 999px; background: #a52624; box-shadow: 0 2px 6px #270000aa; font-size: 11px; font-weight: 800; letter-spacing: .08em; white-space: nowrap; } @keyframes stood-alert { from { box-shadow: inset 0 0 0 1px #ff8a7d66, 0 0 10px #d9302d66; } to { box-shadow: inset 0 0 0 1px #ffb0a6aa, 0 0 30px #ff3e3799; } }
+
+.player-seat.is-busted { border-color: #ff7043; background: #8d160f3d; box-shadow: inset 0 0 0 2px #ff9d6e99, 0 0 34px #ff3d20cc; animation: busted-alert .52s ease-in-out infinite alternate; }.busted-flag { padding: 5px 10px; color: #fff5e9; border: 1px solid #ffd18e; border-radius: 999px; background: linear-gradient(135deg, #d5371d, #8d160d); box-shadow: 0 2px 8px #350700cc; font-size: 12px; font-weight: 900; letter-spacing: .14em; text-shadow: 0 1px 2px #450000; white-space: nowrap; } @keyframes busted-alert { from { transform: translateX(-1px); box-shadow: inset 0 0 0 2px #ff9d6e77, 0 0 16px #ff3d2077; } to { transform: translateX(1px); box-shadow: inset 0 0 0 2px #ffdd9dbb, 0 0 42px #ff3d20dd; } }
+
+.action-panel--betting .action--reuse {
+  grid-column: 1;
+  width: 104px;
+  min-width: 104px;
+  padding-inline: 14px;
+  font-size: 12px;
+}
+.action-panel--betting .action--raise { grid-column: 3; width: 104px; min-width: 104px; padding-inline: 14px; font-size: 12px; }
+.action-panel--betting .action--reuse { grid-row: 2; }.action-panel--betting .action--stand { grid-column: 2; grid-row: 3; }.action-panel--betting .action--raise { grid-row: 2; }.action-panel--betting .action--hit { grid-column: 2; grid-row: 2; }
+.next-round-wait { align-self: center; padding: 7px 11px; color: #f3dc9c; border: 1px solid #9b7b3e; border-radius: 999px; background: #172f24e8; box-shadow: 0 2px 6px #00150e88; font-size: 12px; font-weight: 700; white-space: nowrap; }
+
+/* 平局揭牌：最大单牌先放大展示三秒，再略微前推出并保留金边。 */
+.hand-card-slot.is-showdown-card {
+  z-index: 9;
+}
+
+.hand-card-slot.is-showdown-card .playing-card {
+  animation: showdown-card-reveal 3s cubic-bezier(.2, .78, .24, 1) forwards;
+  filter: drop-shadow(0 10px 14px #000b) drop-shadow(0 0 10px #e7bc4d99);
+}
+
+.player-seat--top .hand-card-slot.is-showdown-card .playing-card {
+  animation-name: showdown-card-reveal-top;
+}
+
+.hand-card-slot.is-showdown-card .card-face,
+.hand-card-slot.is-showdown-card .card-back {
+  outline: 3px solid #f5cf63;
+  outline-offset: -5px;
+  box-shadow: inset 0 0 0 4px #fff0a5, inset 0 0 0 7px #b47b1d, 0 0 18px #f5c755aa;
+}
+
+@keyframes showdown-card-reveal {
+  0% { transform: translateY(0) scale(1); }
+  18%, 78% { transform: translateY(-30px) scale(1.18); }
+  100% { transform: translateY(-17px) scale(1.03); }
+}
+
+@keyframes showdown-card-reveal-top {
+  0% { transform: translateY(0) scale(1); }
+  18%, 78% { transform: translateY(30px) scale(1.18); }
+  100% { transform: translateY(17px) scale(1.03); }
+}
+
+/* 左侧牌堆：显式叠放多张牌，并在补充新牌堆时执行洗牌动作。 */
+.deck-pile__layer {
+  position: absolute;
+  display: block;
+  width: 95px;
+  height: 154px;
+  border: 3px solid #d1b064;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1a4c71, #0b2948);
+  box-shadow: 0 3px 5px #00100b99;
+}
+
+.deck-pile__layer--1 { top: 9px; left: 10px; opacity: .55; }
+.deck-pile__layer--2 { top: 6px; left: 7px; opacity: .72; }
+.deck-pile__layer--3 { top: 3px; left: 4px; opacity: .88; }
+
+.deck-pile__cards .playing-card { position: relative; z-index: 4; }
+.deck-pile.is-shuffling .deck-pile__cards { animation: deck-shuffle 1.6s cubic-bezier(.25, .75, .25, 1); }
+.deck-pile.is-shuffling .deck-pile__layer--1 { animation: deck-layer-left 1.6s ease-in-out; }
+.deck-pile.is-shuffling .deck-pile__layer--2 { animation: deck-layer-right 1.6s ease-in-out; }
+.deck-pile.is-shuffling .deck-pile__layer--3 { animation: deck-layer-left 1.6s ease-in-out reverse; }
+
+@keyframes deck-shuffle {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  22% { transform: translateX(-24px) rotate(-7deg); }
+  48% { transform: translateX(23px) rotate(7deg); }
+  72% { transform: translateX(-12px) rotate(-3deg); }
+}
+
+@keyframes deck-layer-left {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  30% { transform: translate(-30px, -5px) rotate(-10deg); }
+  65% { transform: translate(18px, 3px) rotate(6deg); }
+}
+
+@keyframes deck-layer-right {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  30% { transform: translate(30px, 4px) rotate(10deg); }
+  65% { transform: translate(-18px, -3px) rotate(-6deg); }
+}
+
+.deck-pile__cards::before, .deck-pile__cards::after { content: none; }
+.deck-pile.is-shuffling .deck-pile__layer { animation: deck-layer-left 1.6s ease-in-out; }
+.deck-pile__count { padding: 3px 7px; color: #f6dd96; border: 1px solid #8d6d37; border-radius: 999px; background: #102d21d9; font-size: 10px; font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
+.deck-pile__label, .deck-pile__count { display: none; }.deck-pile::after { content: "剩余 " attr(data-deck-remaining) " 张"; padding: 4px 8px; color: #f6dd96; border: 1px solid #8d6d37; border-radius: 999px; background: #102d21d9; box-shadow: 0 2px 5px #00150e88; font-size: 11px; font-weight: 800; letter-spacing: .06em; white-space: nowrap; }
+
+/* 简洁牌堆：保留清晰的顶牌与剩余张数，避免装饰层干扰桌面。 */
+.card-face { object-fit: fill; background: transparent; }
+.deck-pile { top: calc(50% - 26px); gap: 0; }.deck-pile__cards { width: 95px; height: 154px; overflow: visible; }.deck-pile .playing-card { position: absolute; z-index: 20; top: 0; left: 0; }.deck-pile::after { content: none; }.deck-pile__count { position: absolute; z-index: 30; top: calc(100% + 10px); left: 50%; display: block; margin: 0; transform: translateX(-50%); }
+
+@media (min-width: 601px) and (min-height: 821px) { .deck-pile__cards { width: 118px; height: 190px; } }
+@media (max-width: 600px) { .deck-pile__cards { width: 57px; height: 94px; } }
+
+/* 推入底池的筹码与右侧存量筹码使用同一视觉规格。 */
+.bet-chip { width: 38px; height: 38px; border: 4px dashed #fff3d0; box-shadow: inset 0 0 0 2px #6e2024, 0 3px 6px #000b; color: #fff3d0; font-size: 8px; }
+
+.player-seat.is-winner { border-color: #f7d46f; background: linear-gradient(90deg, #c88c1b1c, #f8d77a12, #c88c1b1c); box-shadow: inset 0 0 0 2px #ffe7a182, 0 0 30px #e9ae3899; animation: winner-glow 1.2s ease-in-out infinite alternate; }.winner-crown { position: absolute; z-index: 12; top: -38px; right: -46px; display: block; width: 112px; height: 84px; transform: rotate(13deg); filter: drop-shadow(0 5px 5px #5b3400cc) drop-shadow(0 0 12px #ffdc7088); }.winner-crown svg { display: block; width: 100%; height: 100%; fill: #f6c94f; stroke: #8d5406; stroke-width: 4; }.winner-crown svg circle { fill: #fff3a8; stroke: #b3710c; } @keyframes winner-glow { from { box-shadow: inset 0 0 0 2px #ffe7a155, 0 0 14px #e9ae3866; } to { box-shadow: inset 0 0 0 2px #fff3b5bb, 0 0 36px #ffd35aaa; } }
+
+/* 保留筹码，移除右侧筹码盘与其文字标签。 */
+.bankroll-stack__label { display: none; }.bankroll-stacks .chip-rack { background: transparent; border: 0; box-shadow: none; }.bankroll-stacks .chip-rack__slot { overflow: visible; border: 0; background: transparent; }.bankroll-stack__chip { box-shadow: inset 0 0 0 2px #6e2024, 0 3px 6px #000b; }
+
+.stand-up { position: absolute; z-index: 4; top: 30px; right: clamp(112px, 10vw, 180px); padding: 7px 12px; cursor: pointer; color: #ffe6b1; border: 1px solid #bd8c49; border-radius: 5px; background: #4d2c24; font: inherit; font-size: 12px; }.stand-up:hover { background: #69392c; }

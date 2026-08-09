@@ -1,0 +1,31 @@
+# JavaScript dependencies and build caches
+node_modules/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+
+# Python virtual environments and caches
+server/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Cloudflare local development state
+cloudflare/.wrangler/
+cloudflare/.wrangler-config/
+cloudflare/.dev.vars
+cloudflare/.dev.vars.*
+
+# Unused source sheet (119 MB); individual SVG card faces are used instead.
+images/CardDeck_By_VerzatileDev/CardDeck_PNG_By_VerzatileDev.png
+
+# Local environment files and editor metadata
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,29 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "blackjack-duel",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-08-08",
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "BLACKJACK_TABLE",
+				"class_name": "BlackjackTable"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": [
+				"BlackjackTable"
+			]
+		}
+	],
+	"d1_databases": [
+		{
+			"binding": "blackjack_users",
+			"database_name": "blackjack-users",
+			"database_id": "b5f99705-3800-44bf-ac01-4e9a48e3700e"
+		}
+	]
+}
