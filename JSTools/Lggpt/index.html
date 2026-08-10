@@ -1,27 +1,111 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="zh-CN">
 <head>
-    <title>Laogao GPT</title>
     <meta charset="utf-8">
-    <link rel="stylesheet" type="text/css" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/vs2015.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
-    <script src="script.js" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="Laogao GPT — 简洁、安全、支持连续对话的 AI 助手界面。">
+    <meta name="theme-color" content="#0b0d12">
+    <title>Laogao GPT</title>
+    <link rel="stylesheet" href="./style.css">
+    <script src="./script.js" defer></script>
 </head>
 <body>
-    <div id="chat-container">
-        <h1>Laogao GPT</h1>
-        <div id="messages"></div>
-        <div id="input-container">
-            <textarea id="message-input" placeholder="Type your message here..."></textarea>
-            <button id="send-button">Send</button>
-        </div>
-    </div>
-    <button id="log-button">Show Logs</button>
-    <div id="log-container" class="hidden">
-        <h2>Logs</h2>
-        <div id="logs"></div>
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar" aria-label="对话导航">
+            <div class="sidebar-top">
+                <a class="brand" href="../../index.html" aria-label="返回 GAO LAB 首页">
+                    <span class="brand-mark">G</span>
+                    <span>GAO LAB</span>
+                </a>
+                <button class="icon-button mobile-close" id="close-sidebar" type="button" aria-label="关闭导航">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+                </button>
+            </div>
+
+            <button class="new-chat-button" id="new-chat" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                新对话
+            </button>
+
+            <div class="sidebar-section">
+                <p class="sidebar-label">当前对话</p>
+                <button class="conversation-item active" type="button" aria-current="page">
+                    <span class="conversation-icon" aria-hidden="true"></span>
+                    <span id="conversation-title">新的对话</span>
+                </button>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="connection-state">
+                    <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+                    <span id="connection-text">正在检查服务</span>
+                </div>
+                <p>消息仅用于当前会话</p>
+            </div>
+        </aside>
+
+        <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
+
+        <main class="chat-panel">
+            <header class="chat-header">
+                <button class="icon-button menu-button" id="open-sidebar" type="button" aria-label="打开导航">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+                </button>
+                <div>
+                    <h1>Laogao GPT</h1>
+                    <p>你的灵感与编程助手</p>
+                </div>
+                <span class="model-badge"><span></span><b id="model-name">AI Assistant</b></span>
+            </header>
+
+            <div class="messages" id="messages" role="log" aria-live="polite" aria-label="聊天消息">
+                <section class="welcome" id="welcome">
+                    <div class="welcome-mark" aria-hidden="true">G</div>
+                    <p class="eyebrow">Laogao GPT</p>
+                    <h2>今天想一起做点什么？</h2>
+                    <p class="welcome-copy">可以问我代码、学习方法，或者把一个模糊的想法交给我，我们从第一步开始。</p>
+                    <div class="suggestion-grid" aria-label="推荐问题">
+                        <button class="suggestion" type="button" data-prompt="帮我规划一个适合初学者的 JavaScript 小游戏项目">
+                            <span>项目规划</span>
+                            <strong>设计一个小游戏</strong>
+                            <i aria-hidden="true">↗</i>
+                        </button>
+                        <button class="suggestion" type="button" data-prompt="解释一个编程概念，并给我一个容易理解的例子">
+                            <span>学习辅助</span>
+                            <strong>解释编程概念</strong>
+                            <i aria-hidden="true">↗</i>
+                        </button>
+                        <button class="suggestion" type="button" data-prompt="帮我检查下面这段代码可能存在的问题">
+                            <span>代码审查</span>
+                            <strong>找出代码问题</strong>
+                            <i aria-hidden="true">↗</i>
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <div class="composer-area">
+                <div class="error-banner" id="error-banner" role="alert" hidden>
+                    <span id="error-message"></span>
+                    <button id="retry-button" type="button">重试</button>
+                </div>
+                <form class="composer" id="message-form">
+                    <label class="sr-only" for="message-input">输入消息</label>
+                    <textarea id="message-input" rows="1" maxlength="4000" placeholder="给 Laogao GPT 发送消息…" autocomplete="off"></textarea>
+                    <div class="composer-actions">
+                        <span class="character-count" id="character-count">0 / 4000</span>
+                        <span class="key-hint">Shift + Enter 换行</span>
+                        <button class="send-button" id="send-button" type="submit" aria-label="发送消息" disabled>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-4 14-3-6-7-1Z"/><path d="m12 13 7-8"/></svg>
+                        </button>
+                        <button class="stop-button" id="stop-button" type="button" aria-label="停止生成" hidden>
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </div>
+                </form>
+                <p class="disclaimer">AI 可能会出错，请核对重要信息。</p>
+            </div>
+        </main>
     </div>
 </body>
 </html>

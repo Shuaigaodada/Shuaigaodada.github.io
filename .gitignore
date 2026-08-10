@@ -20,6 +20,10 @@ bower_components/
 # Build directories
 dist/
 
+# Cloudflare Wrangler local state
+.wrangler/
+worker-configuration.d.ts
+
 # Environment variables
 .env
 .env.*.local
