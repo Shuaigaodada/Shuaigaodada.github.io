@@ -3,6 +3,14 @@
 	"name": "blackjack-duel",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-08-08",
+	"compatibility_flags": ["nodejs_compat"],
+	"vars": {
+		"ALLOWED_ORIGINS": "https://shuaigaodada.github.io,http://localhost:5173,http://127.0.0.1:5173"
+	},
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1
+	},
 	"durable_objects": {
 		"bindings": [
 			{

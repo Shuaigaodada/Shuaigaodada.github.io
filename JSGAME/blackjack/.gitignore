@@ -4,20 +4,17 @@ node_modules/
 *.tsbuildinfo
 npm-debug.log*
 
-# Python virtual environments and caches
-server/.venv/
-__pycache__/
-*.py[cod]
-.pytest_cache/
+# This project serves the checked-in Vite build from GitHub Pages.
+!dist/
+!dist/**
 
 # Cloudflare local development state
 cloudflare/.wrangler/
+cloudflare/.wrangler-test/
 cloudflare/.wrangler-config/
+cloudflare/dist-check/
 cloudflare/.dev.vars
 cloudflare/.dev.vars.*
-
-# Unused source sheet (119 MB); individual SVG card faces are used instead.
-images/CardDeck_By_VerzatileDev/CardDeck_PNG_By_VerzatileDev.png
 
 # Local environment files and editor metadata
 .env

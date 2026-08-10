@@ -12,6 +12,8 @@ interface BettingChipsProps {
 interface BankrollStacksProps {
   playerABankroll: number;
   playerBBankroll: number;
+  playerAIsBot?: boolean;
+  playerBIsBot?: boolean;
 }
 
 export function splitIntoChips(amount: number) {
@@ -48,15 +50,15 @@ export function BettingChips({ topAmount, bottomAmount, winnerPosition }: Bettin
   return <div className={`betting-chips ${winnerClass}`} aria-label="双方下注筹码">{topAmount > 0 && <ChipBundle player="b" chips={splitIntoChips(topAmount)} />}{bottomAmount > 0 && <ChipBundle player="a" chips={splitIntoChips(bottomAmount)} />}</div>;
 }
 
-function BankrollStack({ player, amount }: { player: "a" | "b"; amount: number }) {
-  const layout = useMemo(() => createBankrollLayout(amount), [amount]);
+function BankrollStack({ player, amount, isBot = false }: { player: "a" | "b"; amount: number; isBot?: boolean }) {
+  const layout = useMemo(() => isBot ? [] : createBankrollLayout(amount), [amount, isBot]);
   const chipsByValue = layout.reduce((groups, chip) => {
     groups.set(chip.value, [...(groups.get(chip.value) ?? []), chip]);
     return groups;
   }, new Map<number, BankrollChip[]>());
   return (
     <div className={`bankroll-stack bankroll-stack--${player}`}>
-      <span className="bankroll-stack__label">{player === "a" ? "玩家 A 赌资" : "玩家 B 赌资"} · {amount.toLocaleString()} $</span>
+      <span className="bankroll-stack__label">{player === "a" ? "玩家 A 赌资" : "玩家 B 赌资"} · {isBot ? "∞" : `${amount.toLocaleString()} $`}</span>
       <div className="chip-rack">
         {[...chipsByValue.entries()].map(([chip, stack]) => (
           <div className="chip-rack__slot" key={chip}>
@@ -124,6 +126,6 @@ function createExactChipCombination(amount: number, count: number) {
   return chips;
 }
 
-export function BankrollStacks({ playerABankroll, playerBBankroll }: BankrollStacksProps) {
-  return <div className="bankroll-stacks" aria-label="双方完整赌资"><BankrollStack player="b" amount={playerBBankroll} /><BankrollStack player="a" amount={playerABankroll} /></div>;
+export function BankrollStacks({ playerABankroll, playerBBankroll, playerAIsBot = false, playerBIsBot = false }: BankrollStacksProps) {
+  return <div className="bankroll-stacks" aria-label="双方完整赌资"><BankrollStack player="b" amount={playerBBankroll} isBot={playerBIsBot} /><BankrollStack player="a" amount={playerABankroll} isBot={playerAIsBot} /></div>;
 }

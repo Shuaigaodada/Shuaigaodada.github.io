@@ -11,6 +11,7 @@ export interface Player {
   id: string;
   name: string;
   avatarData?: string | null;
+  isBot?: boolean;
   seatIndex: 0 | 1;
   hand: PlayingCard[];
   hasStood: boolean;
