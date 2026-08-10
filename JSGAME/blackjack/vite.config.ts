@@ -9,11 +9,12 @@ export default defineConfig({
     {
       name: "relax-csp-during-local-development",
       transformIndexHtml(html, context) {
+        const buildableHtml = html.replace(/\s*<meta http-equiv="refresh"[^>]*\/>/, "");
         // Production keeps the strict CSP from index.html. During Vite development,
         // remove the meta policy so LAN/Radmin Worker addresses can be tested.
         return context.server
-          ? html.replace(/\s*<meta http-equiv="Content-Security-Policy"[^>]*\/>/, "")
-          : html;
+          ? buildableHtml.replace(/\s*<meta http-equiv="Content-Security-Policy"[^>]*\/>/, "")
+          : buildableHtml;
       },
     },
   ],
