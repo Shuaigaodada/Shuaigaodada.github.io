@@ -1,33 +1,197 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="zh-CN">
 <head>
-    <meta charset="utf-8">
-    <title>index</title>
-    
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="高大帅的个人 Web 实验室，收录小游戏、实用工具与前端练习。">
+  <meta name="theme-color" content="#0b0d12">
+  <title>GAO LAB — Web 实验室</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0d12;
+      --surface: rgba(255, 255, 255, .055);
+      --surface-hover: rgba(255, 255, 255, .09);
+      --line: rgba(255, 255, 255, .11);
+      --text: #f5f5f2;
+      --muted: #9da2ad;
+      --accent: #b8f26a;
+      --accent-2: #75d9ff;
+      --radius: 22px;
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 80% 0%, rgba(117, 217, 255, .12), transparent 28rem),
+        radial-gradient(circle at 5% 30%, rgba(184, 242, 106, .08), transparent 24rem),
+        var(--bg);
+      font: 15px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+    .shell { width: min(calc(100% - 40px), var(--max)); margin-inline: auto; }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 82px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 800; letter-spacing: -.02em; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      color: #10120d;
+      background: var(--accent);
+      border-radius: 10px;
+      font-size: 13px;
+      transform: rotate(-4deg);
+    }
+    nav { display: flex; gap: 26px; color: var(--muted); font-size: 14px; }
+    nav a { transition: color .2s ease; }
+    nav a:hover { color: var(--text); }
+
+    .hero { padding: 96px 0 76px; }
+    .eyebrow { margin: 0 0 18px; color: var(--accent); font-size: 12px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { max-width: 850px; margin: 0; font-size: clamp(48px, 8vw, 96px); line-height: .98; letter-spacing: -.065em; }
+    h1 span { color: var(--muted); }
+    .hero-bottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 30px; margin-top: 38px; }
+    .intro { max-width: 540px; margin: 0; color: var(--muted); font-size: clamp(16px, 2vw, 19px); }
+    .hero-link { display: inline-flex; align-items: center; gap: 10px; flex: none; color: var(--accent); font-weight: 700; }
+    .hero-link svg { transition: transform .2s ease; }
+    .hero-link:hover svg { transform: translate(3px, -3px); }
+
+    section { padding: 60px 0; scroll-margin-top: 30px; }
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; margin-bottom: 26px; }
+    h2 { margin: 0; font-size: clamp(28px, 4vw, 42px); letter-spacing: -.04em; }
+    .count { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+
+    .card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 230px;
+      padding: 26px;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      transition: transform .25s ease, border-color .25s ease, background .25s ease;
+    }
+    .card:hover { transform: translateY(-4px); border-color: rgba(255, 255, 255, .23); background: var(--surface-hover); }
+    .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .card.large { grid-column: span 6; min-height: 310px; }
+    .card.small { grid-column: span 4; }
+    .card.wide { grid-column: span 6; min-height: 190px; }
+    .tag { width: max-content; padding: 4px 9px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    .card-copy { margin-top: auto; }
+    .card h3 { margin: 20px 0 4px; font-size: 24px; letter-spacing: -.025em; }
+    .card p { margin: 0; color: var(--muted); }
+    .arrow { position: absolute; top: 24px; right: 24px; color: var(--muted); font-size: 23px; transition: color .2s, transform .2s; }
+    .card:hover .arrow { color: var(--accent); transform: translate(3px, -3px); }
+    .featured::after {
+      content: "";
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      right: -55px;
+      bottom: -80px;
+      border: 42px solid rgba(184, 242, 106, .10);
+      border-radius: 50%;
+    }
+    .featured.blue::after { border-color: rgba(117, 217, 255, .10); }
+
+    footer { display: flex; justify-content: space-between; gap: 20px; margin-top: 50px; padding: 28px 0 40px; color: var(--muted); border-top: 1px solid var(--line); font-size: 13px; }
+
+    @media (max-width: 760px) {
+      .shell { width: min(calc(100% - 28px), var(--max)); }
+      header { height: 68px; }
+      nav { gap: 16px; }
+      nav a:first-child { display: none; }
+      .hero { padding: 66px 0 40px; }
+      .hero-bottom { align-items: flex-start; flex-direction: column; }
+      section { padding: 44px 0; }
+      .card.large, .card.small, .card.wide { grid-column: span 12; min-height: 190px; }
+      .card.large { min-height: 240px; }
+      footer { flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition: none !important; }
+    }
+  </style>
 </head>
 <body>
-    <h1>Where do you want to go?</h1>
-    <a href="./desc/index.html">HOME</a><br><hr>
-    <h2>TOOLS</h2>
-    <a href="./JSTools/Lggpt/index.html">Laogao GPT</a><br>
-    <h2>GAME</h2>
-    <a href="./JSGAME/clicker.html">click game</a><br>
-    <a href="./JSGAME/box_bounces.html">box bounces</a><br>
-    <a href="./JSGAME/cargame/index.html">car game</a><br>
-    <a href="./JSGAME/snake/game.html">snake</a><br>
-    <a href="./JSGAME/Plant-vs.-Zombie/index.html">Plant vs. Zombie</a><br>
-    <a href="./JSGAME/flappybird/index.html">flappybird</a><br>
-    <hr>
-    <h2>Assignments</h2>
-    <a href="./assignments/asd-data-shapes-main">asd-data-shapes-main</a><br>
-    <a href="./assignments/asd-debugging-exercise-main">asd-debugging-exercise-main</a><br>
-    <a href="./assignments/snake-fsd-master/">snake-fsd-master</a><br>
-    <a href="./assignments/asd-walker-master/">asd-walker-master</a><br>
-    <a href="./assignments/asd-image-filtering-main/">asd-image-filtering-main</a><br>
-    <a href="./assignments/asd-sorting-main/">asd-sorting-main</a><br>
+  <div class="shell">
+    <header>
+      <a class="brand" href="#top" aria-label="返回顶部"><span class="brand-mark">G</span>GAO LAB</a>
+      <nav aria-label="主导航">
+        <a href="#games">游戏</a>
+        <a href="#projects">练习</a>
+        <a href="./desc/index.html">关于我</a>
+      </nav>
+    </header>
 
-    <h2>特殊</h2>
-    <a href="./JSGAME/test/index.html">test</a><br>
-    <a href="./JSGAME/2dGameEngine/src/console.htm">2dGameEngine</a><br>
+    <main id="top">
+      <div class="hero">
+        <p class="eyebrow">Creative developer · Web playground</p>
+        <h1>Ideas, games<br><span>& tiny experiments.</span></h1>
+        <div class="hero-bottom">
+          <p class="intro">一个持续生长的个人 Web 实验室。这里收集了我做过的小游戏、工具和前端练习。</p>
+          <a class="hero-link" href="#games">开始探索
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <section id="games">
+        <div class="section-head"><h2>精选游戏</h2><span class="count">06 projects</span></div>
+        <div class="grid">
+          <a class="card large featured" href="./JSGAME/Plant-vs.-Zombie/index.html">
+            <span class="tag">Strategy</span><span class="arrow">↗</span>
+            <div class="card-copy"><h3>植物大战僵尸</h3><p>在浏览器里重现经典塔防玩法。</p></div>
+          </a>
+          <a class="card large featured blue" href="./JSGAME/flappybird/index.html">
+            <span class="tag">Arcade</span><span class="arrow">↗</span>
+            <div class="card-copy"><h3>Flappy Bird</h3><p>保持节奏，穿过每一根管道。</p></div>
+          </a>
+          <a class="card small" href="./JSGAME/snake/game.html"><span class="tag">Classic</span><span class="arrow">↗</span><div class="card-copy"><h3>贪吃蛇</h3><p>熟悉的规则，纯粹的乐趣。</p></div></a>
+          <a class="card small" href="./JSGAME/cargame/index.html"><span class="tag">Racing</span><span class="arrow">↗</span><div class="card-copy"><h3>赛车游戏</h3><p>躲避障碍，挑战速度。</p></div></a>
+          <a class="card small" href="./JSGAME/box_bounces.html"><span class="tag">Physics</span><span class="arrow">↗</span><div class="card-copy"><h3>弹跳方块</h3><p>一个轻量的物理运动实验。</p></div></a>
+          <a class="card wide" href="./JSGAME/clicker.html"><span class="tag">Casual</span><span class="arrow">↗</span><div class="card-copy"><h3>点击挑战</h3><p>反应够快吗？点进去试试看。</p></div></a>
+          <a class="card wide" href="./JSTools/Lggpt/index.html"><span class="tag">Tool</span><span class="arrow">↗</span><div class="card-copy"><h3>Laogao GPT</h3><p>一个早期的 AI 对话界面实验。</p></div></a>
+        </div>
+      </section>
+
+      <section id="projects">
+        <div class="section-head"><h2>课程练习</h2><span class="count">06 studies</span></div>
+        <div class="grid">
+          <a class="card small" href="./asd-projects/shapes/index.html"><span class="tag">Canvas</span><span class="arrow">↗</span><div class="card-copy"><h3>Data Shapes</h3><p>形状与数据的可视化练习。</p></div></a>
+          <a class="card small" href="./asd-projects/debugging-exercise/index.html"><span class="tag">Debug</span><span class="arrow">↗</span><div class="card-copy"><h3>Debugging</h3><p>定位问题，理解代码行为。</p></div></a>
+          <a class="card small" href="./asd-projects/snake-fsd/index.html"><span class="tag">Game</span><span class="arrow">↗</span><div class="card-copy"><h3>Snake FSD</h3><p>另一种贪吃蛇实现方式。</p></div></a>
+          <a class="card small" href="./asd-projects/walker/index.html"><span class="tag">Motion</span><span class="arrow">↗</span><div class="card-copy"><h3>Random Walker</h3><p>观察随机运动生成的轨迹。</p></div></a>
+          <a class="card small" href="./asd-projects/image-filtering/index.html"><span class="tag">Image</span><span class="arrow">↗</span><div class="card-copy"><h3>Image Filtering</h3><p>用算法重新处理图像像素。</p></div></a>
+          <a class="card small" href="./asd-projects/sorting-exercise/index.html"><span class="tag">Algorithm</span><span class="arrow">↗</span><div class="card-copy"><h3>Sorting</h3><p>排序算法的交互式练习。</p></div></a>
+        </div>
+      </section>
+    </main>
+
+    <footer><span>© <span id="year"></span> GAO LAB</span><span>Built with curiosity and vanilla web.</span></footer>
+  </div>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 </body>
 </html>
