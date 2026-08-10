@@ -18,3 +18,17 @@ export function handValue(cards: PlayingCard[]): number {
 export function isNaturalBlackjack(cards: PlayingCard[]): boolean {
   return cards.length === 2 && handValue(cards) === 21;
 }
+
+export function compareHands(left: PlayingCard[], right: PlayingCard[]): number {
+  const totalDifference = handValue(left) - handValue(right);
+  if (totalDifference !== 0) return Math.sign(totalDifference);
+
+  const leftRanks = left.map(cardValue).sort((a, b) => b - a);
+  const rightRanks = right.map(cardValue).sort((a, b) => b - a);
+  const comparedLength = Math.max(leftRanks.length, rightRanks.length);
+  for (let index = 0; index < comparedLength; index += 1) {
+    const rankDifference = (leftRanks[index] ?? 0) - (rightRanks[index] ?? 0);
+    if (rankDifference !== 0) return Math.sign(rankDifference);
+  }
+  return 0;
+}

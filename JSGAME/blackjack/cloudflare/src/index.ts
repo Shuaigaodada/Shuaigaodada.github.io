@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { calculateRaise, calculateShortAllIn } from "../../game/economy/betting";
+import { compareHands } from "../../game/data/cards";
 
 type AppEnv = Cloudflare.Env;
 
@@ -628,8 +629,10 @@ export class BlackjackTable extends DurableObject<AppEnv> {
   }
 
   private async resolveRound() {
-    const [a, b] = this.table!.players; const av = value(a.hand); const bv = value(b.hand);
-    await this.finish(av === bv ? null : av > bv ? a.id : b.id, av === bv ? "本局同点，平局。" : `${this.byId(av > bv ? a.id : b.id)!.name} 获胜。`);
+    const [a, b] = this.table!.players;
+    const comparison = compareHands(a.hand, b.hand);
+    const winnerId = comparison === 0 ? null : comparison > 0 ? a.id : b.id;
+    await this.finish(winnerId, winnerId ? `${this.byId(winnerId)!.name} 获胜。` : "本局点数与牌面相同，平局。");
   }
 
   private async finish(winnerId: string | null, message: string) {
