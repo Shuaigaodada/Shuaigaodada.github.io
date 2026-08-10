@@ -1,4 +1,4 @@
 export const siteMetadata = {
-  title: "双人21点",
-  description: "双人回合制 21 点对战",
+  title: "BLACKJACK",
+  description: "BLACKJACK 回合制对战",
 };

@@ -59,7 +59,10 @@ export function BattleScreen({ tableId, onExit: returnToLobby }: BattleScreenPro
     window.setTimeout(returnToLobby, 120);
   };
 
-  useEffect(() => gateway.subscribe(setGame), [gateway]);
+  useEffect(() => {
+    const unsubscribe = gateway.subscribe(setGame);
+    return () => { unsubscribe(); gateway.dispose(); };
+  }, [gateway]);
   useEffect(() => {
     const timer = window.setInterval(() => setTableTime(new Date()), 1_000);
     return () => window.clearInterval(timer);
@@ -188,7 +191,7 @@ export function BattleScreen({ tableId, onExit: returnToLobby }: BattleScreenPro
     if (!point) window.setTimeout(finishDeal, 850);
   };
 
-  const performAction = (action: "STAND" | "DOUBLE") => {
+  const performAction = (action: "STAND") => {
     if (game.activePlayerId !== game.viewerPlayerId) return;
     gateway.sendAction(action);
   };
@@ -243,7 +246,7 @@ export function BattleScreen({ tableId, onExit: returnToLobby }: BattleScreenPro
   }, [game.players, pendingDeal]);
 
   useEffect(() => {
-    const shortcuts: Record<string, "STAND" | "DOUBLE"> = { s: "STAND", d: "DOUBLE" };
+    const shortcuts: Record<string, "STAND"> = { s: "STAND" };
     const onKeyDown = (event: KeyboardEvent) => {
       const action = shortcuts[event.key.toLowerCase()];
       if (action && game.status === "playing" && game.activePlayerId === game.viewerPlayerId && !pendingDeal) performAction(action);
@@ -272,20 +275,20 @@ export function BattleScreen({ tableId, onExit: returnToLobby }: BattleScreenPro
   const formattedTime = tableTime.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
   return (
     <main className="game-page">
-      <header className="masthead"><button className="lobby-return" type="button" onClick={onExit}>‹ 大厅</button><span className="brand-mark">21</span><div><p>PRIVATE TABLE · {tableId.replace("table-", "").padStart(2, "0")}</p><h1>双人 21 点</h1></div><time className="table-clock">{formattedTime}</time><span className="round">第 {game.round} 局</span></header>
+      <header className="masthead"><button className="lobby-return" type="button" onClick={onExit}>‹ 大厅</button><span className="brand-mark">21</span><div><p>PRIVATE TABLE · {tableId.replace("table-", "").padStart(2, "0")}</p><h1>BLACKJACK</h1></div><time className="table-clock">{formattedTime}</time><span className="round">第 {game.round} 局</span></header>
       <button className="stand-up" type="button" onClick={onExit}>站起</button>
       <div className="table-frame">
         <div className={`table-felt ${game.status === "betting" ? "table-felt--betting" : ""}`} ref={tableFeltRef}>
-          <PlayerSeat player={opponent} active={game.activePlayerId === opponent.id} winner={game.winnerId === opponent.id} position="top" hiddenCardIndexes={opponentHiddenCardIndexes} pendingCardId={pendingDeal?.playerId === opponent.id ? pendingDeal.card.id : undefined} pendingCard={pendingDeal?.playerId === opponent.id ? pendingDeal.card : undefined} pendingCardHidden={pendingDeal?.playerId === opponent.id && game.status !== "finished"} reservePendingCard={pendingDeal?.playerId === opponent.id && pendingDeal.settling} animatePendingCard={pendingDeal?.playerId === opponent.id && pendingDeal.settling && !pendingDeal.serverCardReceived} hideIncomingCard={pendingDeal?.playerId === opponent.id && !pendingDeal.revealed} pendingHandSizeBefore={pendingDeal?.playerId === opponent.id ? pendingDeal.handSizeBefore : 0} disableLayoutAnimation={pendingDeal?.playerId === opponent.id && !pendingDeal.revealed} visibleHandCount={openingVisibleCount(opponent.id)} arrivingCardId={openingDeal?.playerId === opponent.id ? openingDeal.cardId : undefined} forceHiddenCardId={openingDeal?.playerId === opponent.id ? openingDeal.cardId : undefined} showdownCardIds={showdownCardIds.opponent} />
+          <PlayerSeat player={opponent} active={game.status === "playing" && game.activePlayerId === opponent.id} winner={game.status === "finished" && game.winnerId === opponent.id} showHandState={game.status !== "betting" && game.status !== "waiting"} turnSeconds={game.activePlayerId === opponent.id ? game.turnSecondsRemaining : 0} position="top" hiddenCardIndexes={opponentHiddenCardIndexes} pendingCardId={pendingDeal?.playerId === opponent.id ? pendingDeal.card.id : undefined} pendingCard={pendingDeal?.playerId === opponent.id ? pendingDeal.card : undefined} pendingCardHidden={pendingDeal?.playerId === opponent.id && game.status !== "finished"} reservePendingCard={pendingDeal?.playerId === opponent.id && pendingDeal.settling} animatePendingCard={pendingDeal?.playerId === opponent.id && pendingDeal.settling && !pendingDeal.serverCardReceived} hideIncomingCard={pendingDeal?.playerId === opponent.id && !pendingDeal.revealed} pendingHandSizeBefore={pendingDeal?.playerId === opponent.id ? pendingDeal.handSizeBefore : 0} disableLayoutAnimation={pendingDeal?.playerId === opponent.id && !pendingDeal.revealed} visibleHandCount={openingVisibleCount(opponent.id)} arrivingCardId={openingDeal?.playerId === opponent.id ? openingDeal.cardId : undefined} forceHiddenCardId={openingDeal?.playerId === opponent.id ? openingDeal.cardId : undefined} showdownCardIds={showdownCardIds.opponent} />
           <section className="table-center" aria-live="polite">
             <span className="center-label">当前状态</span>
             <strong>{game.message}</strong>
             <div className="pot"><span>底池 <b>{self.bet + opponent.bet} $</b></span></div>
           </section>
-          <PlayerSeat player={self} active={game.activePlayerId === self.id} winner={game.winnerId === self.id} position="bottom" pendingCardId={pendingDeal?.playerId === self.id ? pendingDeal.card.id : undefined} pendingCard={pendingDeal?.playerId === self.id ? pendingDeal.card : undefined} pendingCardHidden={pendingDeal?.playerId === self.id && !pendingDeal.revealed} reservePendingCard={pendingDeal?.playerId === self.id && pendingDeal.settling} animatePendingCard={pendingDeal?.playerId === self.id && pendingDeal.settling && !pendingDeal.serverCardReceived} hideIncomingCard={pendingDeal?.playerId === self.id && !pendingDeal.revealed} pendingHandSizeBefore={pendingDeal?.playerId === self.id ? pendingDeal.handSizeBefore : 0} disableLayoutAnimation={pendingDeal?.playerId === self.id && !pendingDeal.revealed} visibleHandCount={openingVisibleCount(self.id)} arrivingCardId={openingDeal?.playerId === self.id ? openingDeal.cardId : undefined} forceHiddenCardId={openingDeal?.playerId === self.id ? openingDeal.cardId : undefined} showdownCardIds={showdownCardIds.self} />
+          <PlayerSeat player={self} active={game.status === "playing" && game.activePlayerId === self.id} winner={game.status === "finished" && game.winnerId === self.id} showHandState={game.status !== "betting" && game.status !== "waiting"} turnSeconds={game.activePlayerId === self.id ? game.turnSecondsRemaining : 0} position="bottom" pendingCardId={pendingDeal?.playerId === self.id ? pendingDeal.card.id : undefined} pendingCard={pendingDeal?.playerId === self.id ? pendingDeal.card : undefined} pendingCardHidden={pendingDeal?.playerId === self.id && !pendingDeal.revealed} reservePendingCard={pendingDeal?.playerId === self.id && pendingDeal.settling} animatePendingCard={pendingDeal?.playerId === self.id && pendingDeal.settling && !pendingDeal.serverCardReceived} hideIncomingCard={pendingDeal?.playerId === self.id && !pendingDeal.revealed} pendingHandSizeBefore={pendingDeal?.playerId === self.id ? pendingDeal.handSizeBefore : 0} disableLayoutAnimation={pendingDeal?.playerId === self.id && !pendingDeal.revealed} visibleHandCount={openingVisibleCount(self.id)} arrivingCardId={openingDeal?.playerId === self.id ? openingDeal.cardId : undefined} forceHiddenCardId={openingDeal?.playerId === self.id ? openingDeal.cardId : undefined} showdownCardIds={showdownCardIds.self} />
           <DeckPile disabled={isShuffling || isOpeningDeal || game.status !== "playing" || game.activePlayerId !== game.viewerPlayerId || (pendingDeal !== null && !pendingDeal.dragging)} remaining={game.deck.length} shuffling={isShuffling} onDraw={drawFromDeck} onMove={movePendingCard} onRelease={releasePendingCard} />
           <BankrollStacks playerABankroll={self.bankroll} playerBBankroll={opponent.bankroll} />
-          <BettingChips amount={self.bet} winnerId={game.winnerId} pendingTopAmount={opponent.requestedBet} pendingBottomAmount={self.requestedBet} totalAmount={self.bet + opponent.bet || self.requestedBet + opponent.requestedBet} />
+          <BettingChips topAmount={opponent.bet} bottomAmount={self.bet} winnerPosition={game.status === "finished" ? game.winnerId === self.id ? "bottom" : game.winnerId === opponent.id ? "top" : null : null} />
           {pendingDeal && !pendingDeal.settling && (
             <div className={`dealt-card dealt-card--${pendingDeal.playerId === opponent.id ? "top" : "bottom"} ${pendingDeal.dragging ? "is-dragging" : ""}`} style={pendingDeal.dragging ? { left: pendingDeal.x, top: pendingDeal.y } : undefined}>
               <PlayingCard card={pendingDeal.revealed ? pendingDeal.card : undefined} hidden={!pendingDeal.revealed} />
@@ -298,13 +301,17 @@ export function BattleScreen({ tableId, onExit: returnToLobby }: BattleScreenPro
         enabled={!isOpeningDeal && game.status === "playing" && game.activePlayerId === game.viewerPlayerId && pendingDeal === null}
         bet={selectedBet}
         bankroll={self.bankroll}
+        committedBet={self.bet}
         previousBet={previousBet}
         bettingTurn={game.bettingPlayerId === self.id}
         currentBet={game.currentBet}
         onAction={performAction}
-        onSetBet={(value) => setSelectedBet(Math.min(Math.max(0, Math.floor(value)), game.currentBet ? Math.max(0, self.bankroll - game.currentBet) : self.bankroll))}
-        onUsePreviousBet={() => setSelectedBet(Math.min(previousBet, game.currentBet ? Math.max(0, self.bankroll - game.currentBet) : self.bankroll))}
-        onConfirmBet={() => gateway.sendAction("PLACE_BET", game.currentBet ? game.currentBet + selectedBet : selectedBet)}
+        onSetBet={(value) => setSelectedBet(Math.min(Math.max(0, Math.floor(value)), game.currentBet ? Math.max(0, self.bankroll - Math.max(0, game.currentBet - self.bet)) : self.bankroll))}
+        onUsePreviousBet={() => setSelectedBet(Math.min(previousBet, game.currentBet ? Math.max(0, self.bankroll - Math.max(0, game.currentBet - self.bet)) : self.bankroll))}
+        onConfirmBet={() => {
+          gateway.sendAction("PLACE_BET", game.currentBet ? game.currentBet + selectedBet : selectedBet);
+          setSelectedBet(0);
+        }}
         onCall={() => gateway.sendAction("CALL")}
         onAllIn={() => gateway.sendAction("ALL_IN")}
         onFold={() => gateway.sendAction("FOLD")}

@@ -1,18 +1,4 @@
-import type { PlayingCard, Rank, Suit } from "../contracts/types";
-
-const suits: Suit[] = ["hearts", "diamonds", "clubs", "spades"];
-const ranks: Rank[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
-
-export function createDeck(): PlayingCard[] {
-  const deck = suits.flatMap((suit) =>
-    ranks.map((rank) => ({ id: `${rank}-${suit}`, rank, suit })),
-  );
-  for (let index = deck.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(Math.random() * (index + 1));
-    [deck[index], deck[randomIndex]] = [deck[randomIndex], deck[index]];
-  }
-  return deck;
-}
+import type { PlayingCard } from "../contracts/types";
 
 export function cardValue(card: PlayingCard): number {
   if (card.rank === "A") return 11;
@@ -27,4 +13,8 @@ export function handValue(cards: PlayingCard[]): number {
     aces -= 1;
   }
   return value;
+}
+
+export function isNaturalBlackjack(cards: PlayingCard[]): boolean {
+  return cards.length === 2 && handValue(cards) === 21;
 }
