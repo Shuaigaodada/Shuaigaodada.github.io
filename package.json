@@ -1,7 +1,23 @@
 {
+  "scripts": {
+    "lggpt": "node JSTools/Lggpt/server.js",
+    "dev:lggpt:worker": "wrangler dev --config JSTools/Lggpt/wrangler.jsonc",
+    "deploy:lggpt": "wrangler deploy --config JSTools/Lggpt/wrangler.jsonc",
+    "deploy:lggpt:dry": "wrangler deploy --dry-run --config JSTools/Lggpt/wrangler.jsonc",
+    "typegen:lggpt": "wrangler types JSTools/Lggpt/worker-configuration.d.ts --config JSTools/Lggpt/wrangler.jsonc",
+    "test:lggpt": "node --test JSTools/Lggpt/tests/server.test.js JSTools/Lggpt/tests/worker.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260810.1",
+    "@types/node": "^26.2.0",
+    "wrangler": "^4.120.0"
   }
 }

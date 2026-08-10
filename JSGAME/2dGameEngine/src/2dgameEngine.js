@@ -10,15 +10,16 @@ class Vector2 {
         this._x = x;
         /** y 坐标 @type {number} */
         this._y = y;
-        /** 设置x函数 */
-        this.__setx__ = (value) => { this._x = value; };
-        /** 设置y函数 */
-        this.__sety__ = (value) => { this._y = value; };
-        /** 获取x函数 */
-        this.__getx__ = () => { return this._x; };
-        /** 获取y函数 */
-        this.__gety__ = () => { return this._y; };
     }
+
+    /** 设置x函数 */
+    __setx__(value) { this._x = value; }
+    /** 设置y函数 */
+    __sety__(value) { this._y = value; }
+    /** 获取x函数 */
+    __getx__() { return this._x; }
+    /** 获取y函数 */
+    __gety__() { return this._y; }
 
     copy() {
         return new Vector2(this.x, this.y);
@@ -66,19 +67,20 @@ class Vector3 {
         /** z 坐标 @type {number} */
         this._z = z;
 
-        /** 设置x函数 */
-        this.__setx__ = (value) => { this._x = value; };
-        /** 设置y函数 */
-        this.__sety__ = (value) => { this._y = value; };
-        /** 设置z函数 */
-        this.__setz__ = (value) => { this._z = value; };
-        /** 获取x函数 */
-        this.__getx__ = () => { return this._x; };
-        /** 获取y函数 */
-        this.__gety__ = () => { return this._y; };
-        /** 获取z函数 */
-        this.__getz__ = () => { return this._z; };
     }
+
+    /** 设置x函数 */
+    __setx__(value) { this._x = value; }
+    /** 设置y函数 */
+    __sety__(value) { this._y = value; }
+    /** 设置z函数 */
+    __setz__(value) { this._z = value; }
+    /** 获取x函数 */
+    __getx__() { return this._x; }
+    /** 获取y函数 */
+    __gety__() { return this._y; }
+    /** 获取z函数 */
+    __getz__() { return this._z; }
 
     copy() {
         return new Vector3(this.x, this.y, this.z);
@@ -170,6 +172,10 @@ class ResourcesObject {
         /** 默认路径 @type {string} */
         this.defaultPath = "";
         this.__loadalldone__ = false;
+        /** 当前批次的加载任务 @type {Promise} */
+        this.__loadPromise__ = Promise.resolve();
+        /** 正在加载或已经加载的资源 @type {Object.<string, Promise>} */
+        this.__loading__ = {};
     }
 
     /**
@@ -178,10 +184,7 @@ class ResourcesObject {
      * @example await Resources.loadDone();
      */
     async loadDone() {
-        return new Promise((resolve, reject) => {
-            if(this.__loadalldone__) resolve();
-            else setTimeout(() => { this.loadDone().then(resolve); }, 0);
-        });
+        return this.__loadPromise__;
     }
 
     /**
@@ -196,30 +199,38 @@ class ResourcesObject {
         const files = this.__files__;
         const totalFiles = this.countFiles(files);
         let loadedFiles = 0;
+        let filenames = [];
 
-        const loadFile = async (path, object) => {
-            if(typeof object === "object" && !Array.isArray(object)) {
+        const collectFile = (path, object) => {
+            const isFolder = object && typeof object === "object" && !Array.isArray(object) &&
+                Object.getPrototypeOf(object) === Object.prototype;
+            if(isFolder) {
                 for(const key in object) {
-                    await loadFile([...path, key], object[key]);
+                    collectFile([...path, key], object[key]);
                 }
             } else {
-                const filename = path.join("/");
-                await this.load(filename);
-                loadedFiles++;
-                try {
-                    updateProgress && updateProgress(loadedFiles / totalFiles * 100);
-                } catch(error) {
-                    console.error("Resources.LoadAll: Error in updateProgress callback");
-                    console.error(error);
-                }
+                filenames.push(path.join("/"));
             }
         };
 
-        await loadFile([], files);
-        this.__loadalldone__ = true;
-        if(_async)
-            callback && await callback();
-        else callback && callback();
+        collectFile([], files);
+        this.__loadalldone__ = false;
+        this.__loadPromise__ = Promise.all(filenames.map(async filename => {
+            await this.load(filename);
+            loadedFiles++;
+            try {
+                updateProgress && updateProgress(totalFiles ? loadedFiles / totalFiles * 100 : 100);
+            } catch(error) {
+                console.error("Resources.LoadAll: Error in updateProgress callback");
+                console.error(error);
+            }
+        })).then(async () => {
+            this.__loadalldone__ = true;
+            if(_async)
+                callback && await callback();
+            else callback && callback();
+        });
+        return this.__loadPromise__;
     }
 
     /**
@@ -230,14 +241,18 @@ class ResourcesObject {
      */
     add(filename, src) {
         // 规范化路径
-        filename = this.normalizePath(this.defaultPath + filename);
+        filename = this.resolvePath(filename);
+        delete this.__loading__[filename];
         
         let path = filename.split("/");
         filename = path.pop();
 
-        if(path) {
-            this.cdPath(path)[filename] = src
-        } else this.__files__[filename] = src;
+        let current = this.__files__;
+        for(const folder of path) {
+            if(current[folder] === undefined) current[folder] = {};
+            current = current[folder];
+        }
+        current[filename] = src;
     }
 
     /**
@@ -247,7 +262,7 @@ class ResourcesObject {
      */
     createFolder(folder) {
         // 规范化路径
-        folder = this.normalizePath(this.defaultPath + folder);
+        folder = this.resolvePath(folder);
 
         let path = folder.split("/");
         let current = this.__files__;
@@ -267,13 +282,15 @@ class ResourcesObject {
      * @example Resources.load("player.jpg");
      */
     load(filename) {
-        return new Promise((resolve, reject) => {
-            // 规范化路径
-            filename = this.normalizePath(filename);
+        // 规范化路径
+        const resourcePath = this.resolvePath(filename);
+        if(this.__loading__[resourcePath]) return this.__loading__[resourcePath];
+
+        const promise = new Promise((resolve, reject) => {
 
             // 将filename转换为路径
-            let path = filename.split("/");
-            filename = path.pop();
+            let path = resourcePath.split("/");
+            const filename = path.pop();
 
             // 切换到指定路径
             let current = this.cdPath(path);
@@ -286,7 +303,16 @@ class ResourcesObject {
             }
 
             let src = current[filename];
-            let type = filename.split(".").pop();
+            let type = filename.split(".").pop().toLowerCase();
+            const supportedTypes = [
+                ...ResourcesObject.ImageTypes,
+                ...ResourcesObject.AudioTypes,
+                ...ResourcesObject.AnimationTypes,
+                ...ResourcesObject.AnimatorTypes,
+                ...ResourcesObject.FontTypes
+            ].map(type => type.toLowerCase());
+            if(!supportedTypes.includes(type) && typeof src === "string")
+                type = src.split("?")[0].split(".").pop().toLowerCase();
             
             if(ResourcesObject.ImageTypes.includes(type)) {
                 this.handleLoadImage(path, filename, src, resolve, reject);
@@ -296,7 +322,7 @@ class ResourcesObject {
                 this.handleLoadAnimation(path, filename, src, resolve, reject);
             } else if(ResourcesObject.AnimatorTypes.includes(type)) {
                 this.handleLoadAnimator(path, filename, src, resolve, reject);
-            } else if(Resources) {
+            } else if(ResourcesObject.FontTypes.includes(type)) {
                 this.handleLoadFont(path, filename, src, resolve, reject);
             } else {
                 // 当资源文件类型不支持时，记录错误并返回
@@ -304,6 +330,9 @@ class ResourcesObject {
                 reject(new Error(`Resource.Load: ${filename} type not supported`));
             }
         });
+        this.__loading__[resourcePath] = promise;
+        promise.catch(() => { delete this.__loading__[resourcePath]; });
+        return promise;
     }  
     
     /**
@@ -383,15 +412,14 @@ class ResourcesObject {
      * @example Resources.handleLoadAnimation(current, "player.anim", frames, resolve, reject);
      */
     handleLoadAnimation(path, filename, frames, resolve, reject) {
-        let framePromises = frames.map(frame => {
-            return new Promise(async (resolveFrame, rejectFrame) => {
-                if(typeof this.rawfind(frame) === "string")
-                    await this.load(frame);
-                resolveFrame(this.rawfind(frame));
-            });
+        let framePromises = frames.map(async frame => {
+            if(typeof this.rawfind(frame) === "string")
+                await this.load(frame);
+            return this.rawfind(frame);
         });
 
         Promise.all(framePromises).then((frames) => {
+            this.cdPath(path)[filename] = frames;
             resolve(frames);
         }).catch(error => {
             console.error(`Resource.Load: Failed to load animation ${error}`);
@@ -409,13 +437,12 @@ class ResourcesObject {
      * @example Resources.handleLoadAnimator(current, "player.animator", anims, resolve, reject);
      */
     handleLoadAnimator(path, filename, anims, resolve, reject) {
-        let animPromises = anims.map(anim => {
-            return new Promise(async (resolveAnim, rejectAnim) => {
-                await this.load(anim);
-                resolveAnim(this.rawfind(anim));
-            });
+        let animPromises = anims.map(async anim => {
+            await this.load(anim);
+            return anim;
         });
         Promise.all(animPromises).then(() => {
+            this.cdPath(path)[filename] = anims;
             resolve(anims);
         }).catch(error => {
             console.error(`Resource.Load: Failed to load animator ${error}`);
@@ -431,7 +458,7 @@ class ResourcesObject {
      */
     rawfind(filename) {
         // 规范化路径
-        filename = this.normalizePath(filename);
+        filename = this.resolvePath(filename);
 
         // 将filename转换为路径
         let path = filename.split("/");
@@ -440,7 +467,7 @@ class ResourcesObject {
         // 切换到指定路径
         let current = this.cdPath(path);
 
-        return current[filename];
+        return current ? current[filename] : undefined;
     }
 
     /**
@@ -451,7 +478,7 @@ class ResourcesObject {
      */
     find(filename) {
         // 规范化路径
-        filename = this.normalizePath(filename);
+        filename = this.resolvePath(filename);
 
         // 将filename转换为路径
         let path = filename.split("/");
@@ -489,10 +516,6 @@ class ResourcesObject {
         let current = this.__files__;
 
         p = this.normalizePath(p);
-        // 切换到默认路径
-        if(this.defaultPath !== "")
-            for(let dp of this.defaultPath.split("/")) 
-                current = current[dp];
 
         // 将路径转为数组
         let path = null
@@ -505,7 +528,7 @@ class ResourcesObject {
             if(current[path[i]] === undefined) {
                 // 当路径不存在时，记录错误并返回
                 console.error(`Path ${path.slice(0, i + 1).join("/")} does not exist`);
-                return this.__files__;
+                return null;
             }
             current = current[path[i]];
         }
@@ -522,11 +545,27 @@ class ResourcesObject {
     countFiles(obj) {
         let count = 0;
         for(const key in obj) {
-            if(typeof obj[key] === 'object')
-                count += this.countFiles(obj[key]);
+            const value = obj[key];
+            const isFolder = value && typeof value === "object" && !Array.isArray(value) &&
+                Object.getPrototypeOf(value) === Object.prototype;
+            if(isFolder)
+                count += this.countFiles(value);
             else count++;
         }
         return count;
+    }
+
+    /**
+     * 获取包含默认目录的规范资源路径
+     * @param {string} path - 资源路径
+     * @returns {string} - 完整资源路径
+     */
+    resolvePath(path) {
+        path = this.normalizePath(path);
+        const defaultPath = this.normalizePath(this.defaultPath);
+        if(!defaultPath || path === defaultPath || path.startsWith(`${defaultPath}/`))
+            return path;
+        return this.normalizePath(`${defaultPath}/${path}`);
     }
 
     /**
@@ -562,6 +601,14 @@ class GameEngine {
         this.__time__ = 0.0;
         /** 时间增量 @type {number} */
         this.deltaTime = 0.0;
+        /** 游戏循环是否正在运行 @type {boolean} */
+        this.__running__ = false;
+        /** 当前动画帧编号 @type {number|null} */
+        this.__animationFrame__ = null;
+        /** 绘制顺序是否需要更新 @type {boolean} */
+        this.__orderDirty__ = true;
+        /** 上一帧的碰撞组合 @type {Map<string, CollisionBox[]>} */
+        this.__collisionPairs__ = new Map();
 
         /** 初始画布宽度 @type {number} */
         this.initalWidth = 0;
@@ -577,6 +624,12 @@ class GameEngine {
      * @example engine.init("canvas", 800, 600);
      */
     init(canvas, width, height) {
+        if(this.canvas) {
+            this.canvas.removeEventListener("pointerdown", this.__mouseDown__);
+            this.canvas.removeEventListener("pointerup", this.__mouseUp__);
+            this.canvas.removeEventListener("pointercancel", this.__mouseUp__);
+            this.canvas.removeEventListener("pointermove", this.__mouseMove__);
+        }
         this.canvas = document.getElementById(canvas);
         this.ctx = this.canvas.getContext("2d");
         this.canvas.width = width;
@@ -593,10 +646,10 @@ class GameEngine {
 
         
         this.canvas.setAttribute("tabindex", "0");
-        this.canvas.addEventListener("mousedown", this.__mouseDown__);
-        this.canvas.addEventListener("mouseup", this.__mouseUp__);
-        this.canvas.addEventListener("mousemove", this.__mouseMove__);
-        this.canvas.addEventListener("resize", this.__resize__);
+        this.canvas.addEventListener("pointerdown", this.__mouseDown__);
+        this.canvas.addEventListener("pointerup", this.__mouseUp__);
+        this.canvas.addEventListener("pointercancel", this.__mouseUp__);
+        this.canvas.addEventListener("pointermove", this.__mouseMove__);
 
         Input.initialize();        
     }
@@ -640,7 +693,7 @@ class GameEngine {
      * @example engine.saveLevel("level1");
      */
     saveLevel(name) {
-        this.savedLevels[name] = this.objects;
+        this.savedLevels[name] = [...this.objects];
     }
 
     /**
@@ -649,7 +702,9 @@ class GameEngine {
      * @example engine.loadLevel("level1");
      */
     loadLevel(name) {
-        this.objects = this.savedLevels[name];
+        this.objects = this.savedLevels[name] ? [...this.savedLevels[name]] : [];
+        this.__collisionPairs__.clear();
+        this.__orderDirty__ = true;
     }
 
     /**
@@ -658,6 +713,8 @@ class GameEngine {
      */
     clearLevel() {
         this.objects = [];
+        this.__collisionPairs__.clear();
+        this.__orderDirty__ = true;
     }
 
     /**
@@ -675,9 +732,31 @@ class GameEngine {
      * @example engine.loop();
      */
     loop() {
-        setInterval(() => {
-            this.__update__();
-        }, 1000 / this.fps);
+        if(this.__running__) return;
+        this.__running__ = true;
+        this.__time__ = performance.now();
+
+        const frame = (time) => {
+            if(!this.__running__) return;
+            const frameTime = 1000 / Math.max(1, this.fps);
+            const elapsed = time - this.__time__;
+            if(elapsed >= frameTime)
+                this.__update__(time - elapsed % frameTime);
+            this.__animationFrame__ = requestAnimationFrame(frame);
+        };
+        this.__animationFrame__ = requestAnimationFrame(frame);
+    }
+
+    /**
+     * 停止游戏循环
+     * @example engine.stop();
+     */
+    stop() {
+        this.__running__ = false;
+        if(this.__animationFrame__ !== null) {
+            cancelAnimationFrame(this.__animationFrame__);
+            this.__animationFrame__ = null;
+        }
     }
 
     /**
@@ -688,7 +767,7 @@ class GameEngine {
      */
     handleSlider(object) {
         this.ctx.beginPath();
-        this.ctx.rect(object.position.x, object.position.y, object.width * object.sliders.x, object.height * object.sliders.y);
+        this.ctx.rect(-object.width / 2, -object.height / 2, object.width * object.sliders.x, object.height * object.sliders.y);
         this.ctx.clip();
     }
 
@@ -699,7 +778,9 @@ class GameEngine {
      * @private
      */
     handleRotation(object) {
-        this.ctx.translate(object.position.x + object.width / 2, object.position.y + object.height / 2);
+        const x = object.position.x - Camera.main.position.x;
+        const y = object.position.y - Camera.main.position.y;
+        this.ctx.translate(x + object.width / 2, y + object.height / 2);
         this.ctx.scale(object.flip.x ? -1 : 1, object.flip.y ? -1 : 1);
         this.ctx.rotate(object.rotation * Mathf.PI / 180);
     }
@@ -711,9 +792,12 @@ class GameEngine {
      * @private
      */
     handleText(object) {
+        this.ctx.save();
         this.ctx.font = object.style.font;
         this.ctx.fillStyle = object.style.color;
-        this.ctx.fillText(object.text, object.position.x, object.position.y);
+        this.ctx.globalAlpha = object.opacity;
+        this.ctx.fillText(object.text, object.position.x - Camera.main.position.x, object.position.y - Camera.main.position.y);
+        this.ctx.restore();
     }
 
     /**
@@ -727,11 +811,15 @@ class GameEngine {
         // 处理文字对象
         if(object.text) this.handleText(object);
         if(!object.image) return;
+        const x = object.position.x - Camera.main.position.x;
+        const y = object.position.y - Camera.main.position.y;
+        if(!object.rotation && (x + object.width < 0 || y + object.height < 0 || x > this.width || y > this.height))
+            return;
         // 处理图片对象
         this.ctx.save();
         this.ctx.globalAlpha = object.opacity !== undefined ? object.opacity : 1;
-        this.handleSlider(object);
         this.handleRotation(object);
+        this.handleSlider(object);
         this.ctx.drawImage(object.image, -object.width / 2, -object.height / 2, object.width, object.height); // 绘制图像
         this.ctx.restore();
     }
@@ -740,23 +828,90 @@ class GameEngine {
      * 更新游戏状态
      * @private
      */
-    __update__() {
+    __update__(time = performance.now()) {
         this.ctx.clearRect(0, 0, this.width, this.height);
 
         // 更新deltaTime
-        this.deltaTime = (Date.now() - this.__time) / 1000;
-        this.__time = Date.now();
+        this.deltaTime = Math.min((time - this.__time__) / 1000, 0.1);
+        this.__time__ = time;
 
-        this.objects.sort((a, b) => a.order - b.order);
-        for(let object of this.objects) {
+        if(this.__orderDirty__) {
+            this.objects.sort((a, b) => a.order - b.order);
+            this.__orderDirty__ = false;
+        }
+        for(let object of [...this.objects]) {
             if(!object.available) continue;
             object.__update__ && object.__update__();
-            if(object.visible) this.__draw__(object);
         }
+
+        this.__handleCollisions__();
+        Camera.main.__update__();
+
+        for(let object of this.objects)
+            if(object.available && object.visible) this.__draw__(object);
 
         // 特殊注册事件 此事件在所有对象更新之后update结尾调用
         for(let gameEvent of Object.values(this.updateEvents))
             gameEvent();
+    }
+
+    /**
+     * 统一处理碰撞事件，确保每对碰撞箱每帧只检测一次
+     * @private
+     */
+    __handleCollisions__() {
+        const colliders = this.objects
+            .filter(object => object.available && !object.destroyed && object.collisionBox && object.collisionBox.available)
+            .map(object => object.collisionBox);
+        const currentPairs = new Map();
+
+        for(let i = 0; i < colliders.length; i++) {
+            for(let j = i + 1; j < colliders.length; j++) {
+                const box1 = colliders[i];
+                const box2 = colliders[j];
+                if(!box1.available || !box2.available || box1.parent.destroyed || box2.parent.destroyed)
+                    continue;
+                if(!box1.isCollideWith(box2)) continue;
+
+                const key = box1.id < box2.id ? `${box1.id}:${box2.id}` : `${box2.id}:${box1.id}`;
+                currentPairs.set(key, [box1, box2]);
+                if(this.__collisionPairs__.has(key)) {
+                    box1.onCollisionStay(box2.parent);
+                    box2.onCollisionStay(box1.parent);
+                } else {
+                    box1.__enter__.add(box2.parent);
+                    box2.__enter__.add(box1.parent);
+                    box1.onCollisionEnter(box2.parent);
+                    box2.onCollisionEnter(box1.parent);
+                }
+            }
+        }
+
+        for(const [key, boxes] of this.__collisionPairs__) {
+            if(currentPairs.has(key)) continue;
+            const [box1, box2] = boxes;
+            box1.__enter__.delete(box2.parent);
+            box2.__enter__.delete(box1.parent);
+            box1.onCollisionExit(box2.parent);
+            box2.onCollisionExit(box1.parent);
+        }
+        this.__collisionPairs__ = currentPairs;
+    }
+
+    /**
+     * 将页面坐标转换为游戏世界坐标
+     * @param {PointerEvent} event - 指针事件
+     * @returns {Vector2} - 世界坐标
+     * @private
+     */
+    __getPointerPosition__(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = rect.width ? this.canvas.width / rect.width : 1;
+        const scaleY = rect.height ? this.canvas.height / rect.height : 1;
+        return new Vector2(
+            (event.clientX - rect.left) * scaleX + Camera.main.position.x,
+            (event.clientY - rect.top) * scaleY + Camera.main.position.y
+        );
     }
 
     /**
@@ -765,13 +920,14 @@ class GameEngine {
      * @private
      */
     __mouseDown__(event) {
-        const rect = this.canvas.getBoundingClientRect();
-        let mouseX = event.clientX - rect.left;
-        let mouseY = event.clientY - rect.top;
+        const position = this.__getPointerPosition__(event);
+        if(this.canvas.setPointerCapture && event.pointerId !== undefined)
+            this.canvas.setPointerCapture(event.pointerId);
         for(let object of this.objects)
-            object.onMouseDown(new Vector2(mouseX, mouseY));
+            if(object.available) object.onMouseDown(position);
         Input.mouseState = true;
-        Input.mousePosition = new Vector2(mouseX, mouseY);
+        Input.mouseUp = false;
+        Input.mousePosition = position;
     }
 
     /**
@@ -780,13 +936,12 @@ class GameEngine {
      * @private
      */
     __mouseUp__(event) {
-        const rect = this.canvas.getBoundingClientRect();
-        let mouseX = event.clientX - rect.left;
-        let mouseY = event.clientY - rect.top;
+        const position = this.__getPointerPosition__(event);
         for(let object of this.objects)
-            object.onMouseUp(new Vector2(mouseX, mouseY));
+            if(object.available) object.onMouseUp(position);
         Input.mouseState = false;
-        Input.mousePosition = new Vector2(mouseX, mouseY);
+        Input.mouseUp = true;
+        Input.mousePosition = position;
     }
 
     /**
@@ -795,13 +950,10 @@ class GameEngine {
      * @private
      */
     __mouseMove__(event) {
-        const rect = this.canvas.getBoundingClientRect();
-        let mouseX = event.clientX - rect.left;
-        let mouseY = event.clientY - rect.top;
+        const position = this.__getPointerPosition__(event);
         for(let object of this.objects)
-            object.onMouseMove(new Vector2(mouseX, mouseY));
-        Input.mouseState = true;
-        Input.mousePosition = new Vector2(mouseX, mouseY);
+            if(object.available) object.onMouseMove(position);
+        Input.mousePosition = position;
     }
 
     /**
@@ -850,7 +1002,7 @@ class GameObject {
         /** 标签 @type {string} */
         this.tag = "";
         /** 绘制顺序 @type {number} */
-        this.order = 0;
+        this.__order__ = 0;
         /** 旋转角度 @type {number} */
         this.rotation = 0;
         /** 不透明度 @type {number} */
@@ -882,7 +1034,21 @@ class GameObject {
         this.position.__sety__ = this.__sety__.bind(this);
 
         engine.objects.push(this);
+        engine.__orderDirty__ = true;
     }
+
+    /**
+     * 更新绘制顺序
+     * @param {number} value - 绘制顺序
+     */
+    set order(value) {
+        if(this.__order__ === value) return;
+        this.__order__ = value;
+        engine.__orderDirty__ = true;
+    }
+
+    /** 获取绘制顺序 @returns {number} */
+    get order() { return this.__order__; }
 
     /**
      * 更新对象可见性
@@ -927,12 +1093,11 @@ class GameObject {
     __setx__(value) {
         if(!this.parent)
             this.position._x = value;
-        else this.offset.x = value;
-
-        if(this.collisionBox) 
-            this.collisionBox.position.x = this.position.x + this.offset.x + (this.collisionBox.offset.x || 0);
-        for(let child of this.childs)
-            child.position._x = this.position.x + child.offset.x;
+        else {
+            this.offset._x = value;
+            this.position._x = this.parent.position.x + value;
+        }
+        this.__syncTransform__();
     }
 
     /**
@@ -943,12 +1108,24 @@ class GameObject {
     __sety__(value) {
         if(!this.parent)
             this.position._y = value;
-        else this.offset.y = value;
+        else {
+            this.offset._y = value;
+            this.position._y = this.parent.position.y + value;
+        }
+        this.__syncTransform__();
+    }
 
-        if(this.collisionBox) 
-            this.collisionBox.position.y = this.position.y + this.offset.y + (this.collisionBox.offset.y || 0);
-        for(let child of this.childs)
+    /**
+     * 同步子对象与碰撞盒的位置
+     * @private
+     */
+    __syncTransform__() {
+        if(this.collisionBox) this.collisionBox.syncPosition();
+        for(let child of this.childs) {
+            child.position._x = this.position.x + child.offset.x;
             child.position._y = this.position.y + child.offset.y;
+            child.__syncTransform__();
+        }
     }
 
     /**
@@ -958,9 +1135,14 @@ class GameObject {
      */
     setAsChild() {
         for(let child of arguments) {
+            if(child.parent) {
+                const index = child.parent.childs.indexOf(child);
+                if(index !== -1) child.parent.childs.splice(index, 1);
+            }
             child.parent = this;
             child.offset = new Vector2(child.position.x - this.position.x, child.position.y - this.position.y);
-            this.childs.push(child);
+            if(!this.childs.includes(child)) this.childs.push(child);
+            child.__syncTransform__();
         }
     }
 
@@ -976,6 +1158,7 @@ class GameObject {
         this.collisionBox.offset = offset ? offset : new Vector2(0, 0);
         this.collisionBox.width = (offset_w || 0) + this.width;
         this.collisionBox.height = (offset_h || 0) + this.height;
+        this.collisionBox.syncPosition();
     }
 
     /**
@@ -995,6 +1178,7 @@ class GameObject {
         this.collisionBox.offset = offset ? offset : new Vector2(0, 0);
         this.collisionBox.width = (offset_w || 0) + this.width;
         this.collisionBox.height = (offset_h || 0) + this.height;
+        this.collisionBox.syncPosition();
     }
 
     /**
@@ -1002,7 +1186,10 @@ class GameObject {
      * @example object.destroyCollisionBox();
      */
     destroyCollisionBox() {
-        this.collisionBox.destroy();
+        if(this.collisionBox) {
+            this.collisionBox.destroy();
+            this.collisionBox = null;
+        }
     }
 
     /**
@@ -1021,25 +1208,26 @@ class GameObject {
     copy(available = true) {
         const cloneObject = new GameObject(this.image, this.position.copy(), this.width, this.height);
         cloneObject.text = this.text;
-        cloneObject.style = this.style;
+        cloneObject.style = {...this.style};
         cloneObject.tag = this.tag;
         cloneObject.order = this.order;
         cloneObject.rotation = this.rotation;
         cloneObject.opacity = this.opacity;
-        cloneObject.sliders = this.sliders;
-        cloneObject.flip = this.flip;
-        cloneObject.collisionBox = this.collisionBox ? this.collisionBox.copy(): null;
+        cloneObject.sliders = {...this.sliders};
+        cloneObject.flip = {...this.flip};
+        if(this.collisionBox)
+            cloneObject.collisionBox = this.collisionBox.copy(cloneObject);
 
         let childs = [];
         for(let child of this.childs)
-            childs.push(child.copy());
-        cloneObject.childs = childs;
+            childs.push(child.copy(available));
+        cloneObject.setAsChild(...childs);
 
-        cloneObject.parent = this.parent ? this.parent: null;
+        cloneObject.parent = null;
         cloneObject.__visible__ = this.__visible__;
-        cloneObject.destroyed = this.destroyed;
+        cloneObject.destroyed = false;
         cloneObject.offset = this.offset.copy();
-        cloneObject.animator = this.animator ? this.animator.copy(): null;
+        cloneObject.animator = this.animator ? this.animator.copy(cloneObject): null;
         cloneObject.__prefab__ = this.__prefab__;
         cloneObject.update = this.update;
         cloneObject.onMouseDown = this.onMouseDown;
@@ -1091,6 +1279,7 @@ class GameObject {
         else console.error("GameObject.destroy: object not found");
         object.destroyed = true;
         object.collisionBox && object.collisionBox.destroy();
+        engine.__orderDirty__ = true;
     }
 
     /**
@@ -1100,7 +1289,6 @@ class GameObject {
     __update__() {
         this.__animator__();
         this.__anim__();
-        this.collisionBox && this.collisionBox.__event__();
         this.update();
     }
 
@@ -1184,8 +1372,27 @@ class Animation {
     __load__(frames) {
         let framesArray = Array(frames.length);
         for(let i = 0; i < frames.length; i++)
-            framesArray[i] = Resources.find(frames[i]);
+            framesArray[i] = typeof frames[i] === "string" ? Resources.find(frames[i]) : frames[i];
         return framesArray;
+    }
+
+    /**
+     * 复制动画
+     * @param {GameObject} object - 新的父对象
+     * @returns {Animation} - 动画副本
+     */
+    copy(object) {
+        const animation = new Animation(object, this.frames);
+        animation.__index__ = this.__index__;
+        animation.speed = this.speed;
+        animation.loop = this.loop;
+        animation.frameCounter = this.frameCounter;
+        animation.frameUpdate = this.frameUpdate;
+        animation.stoped = this.stoped;
+        animation.next = this.next.map(next => new AnimatorConnection(
+            next.anim, next.condition, next.transition, next.callback
+        ));
+        return animation;
     }
 
     /**
@@ -1221,10 +1428,11 @@ class Animation {
      */
     __update__() {
         if(this.stoped) return;
-        this.frameCounter++;
-        const framesToUpdate = Mathf.Floor(this.frameUpdate / this.speed);
+        if(this.speed <= 0 || !this.frames.length) return;
+        this.frameCounter += engine.deltaTime;
+        const framesToUpdate = this.frameUpdate / (Math.max(1, engine.fps) * this.speed);
         if(this.frameCounter >= framesToUpdate) {
-            this.frameCounter = 0;
+            this.frameCounter %= framesToUpdate;
             this.__index__++;
             if(this.__index__ >= this.frames.length) {
                 if(this.loop) this.__index__ = 0;
@@ -1262,7 +1470,7 @@ class Animator {
     }
 
     add(name, anim) {
-        if(typeof anim === "Animation")
+        if(anim instanceof Animation)
             this.animations[name] = anim;
         else this.animations[name] = new Animation(this.parent, anim);
     }
@@ -1276,8 +1484,17 @@ class Animator {
      * @param {boolean} transition - 是否过渡
      * @example animator.connect("idle", "run", (values) => {return values["speed"] > 0;}, true);
      */
-    connect(anim1, anim2, condition, valueName, transition = false) {
-        anim1.next.push(AnimatorConnection(anim2, condition, valueName, transition));
+    connect(anim1, anim2, condition, valueName = null, transition = false, callback = null) {
+        const source = typeof anim1 === "string" ? this.animations[anim1] : anim1;
+        const target = typeof anim2 === "string"
+            ? anim2
+            : Object.keys(this.animations).find(name => this.animations[name] === anim2);
+        if(typeof valueName === "boolean") transition = valueName;
+        if(!source || !target) {
+            console.error("Animator.connect: animation not found");
+            return;
+        }
+        source.next.push(new AnimatorConnection(target, condition, transition, callback));
     }
 
     /**
@@ -1335,6 +1552,7 @@ class Animator {
             this.current.reset();
             this.current = this.animations[this.exit.anim];
             this.exit.callback && this.exit.callback();
+            this.current && this.current.play();
         }
         return;
     }
@@ -1353,6 +1571,28 @@ class Animator {
             animsDict[animName] = new Animation(object, Resources.find(anim));
         }
         return animsDict;
+    }
+
+    /**
+     * 复制动画控制器
+     * @param {GameObject} object - 新的父对象
+     * @returns {Animator} - 动画控制器副本
+     */
+    copy(object) {
+        const animator = new Animator([], object, this.enter);
+        for(const [name, animation] of Object.entries(this.animations))
+            animator.animations[name] = animation.copy(object);
+        animator.values = {...this.values};
+        animator.exit = this.exit ? new AnimatorConnection(
+            this.exit.anim, this.exit.condition, this.exit.transition, this.exit.callback
+        ) : null;
+
+        const currentName = Object.keys(this.animations)
+            .find(name => this.animations[name] === this.current);
+        animator.current = currentName ? animator.animations[currentName] : null;
+        if(animator.current && !animator.current.stoped)
+            animator.current.play();
+        return animator;
     }
 }
 
@@ -1376,8 +1616,8 @@ class CollisionBox {
         this.isTrigger = false;
         /** 父对象 @type {GameObject|null} */
         this.parent = object;
-        /** 碰撞进入对象数组 @type {GameObject[]} */
-        this.__enter__ = [];
+        /** 碰撞进入对象集合 @type {Set<GameObject>} */
+        this.__enter__ = new Set();
         /** 碰撞盒ID @type {number} */
         this.id = CollisionBox.__id__++;
         /** 碰撞箱是否可用 @type {boolean} */
@@ -1398,15 +1638,24 @@ class CollisionBox {
     }
 
     /**
+     * 同步碰撞箱与父对象的位置
+     */
+    syncPosition() {
+        this.position.x = this.parent.position.x + this.offset.x;
+        this.position.y = this.parent.position.y + this.offset.y;
+    }
+
+    /**
      * 返回碰撞盒的副本
      * @returns {CollisionBox} - 返回碰撞盒的副本
      */
-    copy() {
-        const box = new CollisionBox(this.parent);
+    copy(parent = this.parent) {
+        const box = new CollisionBox(parent);
         box.width = this.width;
         box.height = this.height;
         box.offset = this.offset.copy();
         box.isTrigger = this.isTrigger;
+        box.syncPosition();
         return box;
     }
 
@@ -1529,10 +1778,13 @@ class CollisionBox {
     }
 
     isCollideWith(object) {
-        if(object instanceof CollisionBox) {
-            return this.isCollideWithPoint(object.position)
-        } else if(object instanceof CircleCollisionBox) {
+        if(object instanceof CircleCollisionBox) {
             return this.isCollideWithCircle(object);
+        } else if(object instanceof CollisionBox) {
+            return this.position.x < object.position.x + object.width &&
+                this.position.x + this.width > object.position.x &&
+                this.position.y < object.position.y + object.height &&
+                this.position.y + this.height > object.position.y;
         } else {
             return object.isCollideWith(this);
         }
@@ -1544,20 +1796,18 @@ class CollisionBox {
      */
     __event__() {
         if(!this.available) return;
-        const destroyed = this.__enter__.filter(obj => !engine.objects.includes(obj));
-        const objects = destroyed.concat(engine.objects);
-
-        for(let object of objects) {
+        const current = new Set();
+        for(let object of engine.objects) {
             if(object.collisionBox && object.collisionBox !== this && !object.destroyed && this.isCollideWith(object.collisionBox)) {
-                if(!this.__enter__.includes(object)) {
-                    this.__enter__.push(object);
+                current.add(object);
+                if(!this.__enter__.has(object)) {
                     this.onCollisionEnter(object);
                 } else this.onCollisionStay(object);
-            } else if(this.__enter__.includes(object)) {
-                this.__enter__.splice(this.__enter__.indexOf(object), 1);
-                this.onCollisionExit(object);
-            } else continue;
+            }
         }
+        for(const object of this.__enter__)
+            if(!current.has(object)) this.onCollisionExit(object);
+        this.__enter__ = current;
         // TODO: 重力检测
     }
 
@@ -1605,6 +1855,21 @@ class CircleCollisionBox extends CollisionBox {
     }
 
     /**
+     * 返回圆形碰撞盒的副本
+     * @param {GameObject} parent - 新的父对象
+     * @returns {CircleCollisionBox} - 碰撞盒副本
+     */
+    copy(parent = this.parent) {
+        const box = new CircleCollisionBox(parent, this.radius);
+        box.width = this.width;
+        box.height = this.height;
+        box.offset = this.offset.copy();
+        box.isTrigger = this.isTrigger;
+        box.syncPosition();
+        return box;
+    }
+
+    /**
      * 检测与另一个碰撞盒是否发生碰撞
      * @param {CollisionBox|CircleCollisionBox} box - 另一个碰撞盒实例
      * @returns {boolean} - 是否发生碰撞
@@ -1615,8 +1880,8 @@ class CircleCollisionBox extends CollisionBox {
             // 圆形碰撞盒与圆形碰撞盒碰撞检测
             let dx = (this.position.x + this.radius) - (box.position.x + box.radius);
             let dy = (this.position.y + this.radius) - (box.position.y + box.radius);
-            let distance = Mathf.Sqrt(dx * dx + dy * dy);
-            return distance < this.radius + box.radius;
+            const radius = this.radius + box.radius;
+            return dx * dx + dy * dy < radius * radius;
         } else if(box instanceof CollisionBox) {
             // 圆形碰撞盒与方形碰撞盒碰撞检测
             let circleDistanceX = Mathf.Abs((this.position.x + this.radius) - (box.position.x + box.width / 2));
@@ -1680,7 +1945,7 @@ class CircleCollisionBox extends CollisionBox {
     isCollideWithPoint(vector) {
         let dx = this.position.x + this.radius - vector.x;
         let dy = this.position.y + this.radius - vector.y;
-        return Mathf.Sqrt(dx * dx + dy * dy) < this.radius;
+        return dx * dx + dy * dy < this.radius * this.radius;
     }
 
     /**
@@ -1690,14 +1955,14 @@ class CircleCollisionBox extends CollisionBox {
     __debugshow__() {
         if(this.debug.__drawedbox__) {
             engine.ctx.save();
-            engine.ctx.strokeStyle = this.__hided_box ? this.debug.hide_color : this.debug.show_color;
+            engine.ctx.strokeStyle = this.debug.__hidedbox__ ? this.debug.hide_color : this.debug.show_color;
             engine.ctx.lineWidth = 1;
             engine.ctx.beginPath();
             engine.ctx.arc(this.position.x + this.radius, this.position.y + this.radius, this.radius, 0, Mathf.PI * 2);
             engine.ctx.stroke();
             engine.ctx.restore();
         } else {
-            engine.RegisterEvent(`collision_debug_${this.id}`, () => { this.__debugshow__(); });
+            engine.registerEvent(`collision_debug_${this.id}`, () => { this.__debugshow__(); });
             this.debug.__drawedbox__ = true;
         }
     }
@@ -1710,6 +1975,8 @@ class Input {
     static keyUp = {};
     /** 鼠标状态 @type {boolean} */
     static mouseState = false;
+    /** 鼠标是否在当前帧松开 @type {boolean} */
+    static mouseUp = false;
     /** 鼠标位置 @type {Vector2} */
     static mousePosition = new Vector2(0, 0);
 
@@ -1728,7 +1995,11 @@ class Input {
     }
 
     static getMouseUp() {
-        return Input.mouseState;
+        if(Input.mouseUp) {
+            Input.mouseUp = false;
+            return true;
+        }
+        return false;
     }
 
     static getMouseMove() {
@@ -1750,6 +2021,8 @@ class Input {
     }
 
     static initialize() {
+        if(Input.__initialized__) return;
+        Input.__initialized__ = true;
         window.addEventListener("keydown", event => {
             Input.keyDown[event.code] = true;
             Input.keyUp[event.code] = false;
@@ -1758,8 +2031,17 @@ class Input {
             Input.keyDown[event.code] = false;
             Input.keyUp[event.code] = true;
         });
+        window.addEventListener("blur", () => {
+            Input.keyDown = {};
+            Input.keyUp = {};
+            Input.mouseState = false;
+            Input.mouseUp = false;
+        });
     }
 }
+
+/** 输入监听是否已经初始化 @type {boolean} */
+Input.__initialized__ = false;
 
 class Camera {
     /** 
@@ -1790,18 +2072,17 @@ class Camera {
      * @param {GameObject} object - 跟随对象
      */
     set followObject(object) {
-        // TODO: 修改以下代码 
         this.__follow__ = object; 
-        const baseSetX = this.__follow__.position.__setx__;
-        const baseSetY = this.__follow__.position.__sety__;
-        this.__follow__.position.__setx__ = (value) => {
-            baseSetX.call(this.__follow__.position, value);
-            this.__setx__(value);
-        };
-        this.__follow__.position.__sety__ = (value) => {
-            baseSetY.call(this.__follow__.position, value);
-            this.__sety__(value);
-        }
+    }
+
+    /**
+     * 更新相机跟随位置
+     * @private
+     */
+    __update__() {
+        if(!this.__follow__ || this.__follow__.destroyed) return;
+        this.position._x = this.__follow__.position.x;
+        this.position._y = this.__follow__.position.y;
     }
 
     /**
@@ -1810,9 +2091,7 @@ class Camera {
      * @private
      */
     __setx__(value) {
-        for(let object of engine.objects)
-            object.position.x -= value - this.position.x;
-        this._x = value;
+        this.position._x = value;
     }
 
     /**
@@ -1821,9 +2100,7 @@ class Camera {
      * @private
      */
     __sety__(value) {
-        for(let object of engine.objects)
-            object.position.y -= value - this.position.y;
-        this._y = value;
+        this.position._y = value;
     }
 
     /**
@@ -1832,11 +2109,7 @@ class Camera {
      * @private
      */
     __setz__(value) {
-        for(let object of engine.objects) {
-            object.width += value - this.position.z;
-            object.height += value - this.position.z;
-        }
-        this._z = value;
+        this.position._z = value;
     }
 }
 
@@ -2385,7 +2658,7 @@ class KeyCode {
     /** 回车键 @type {string} */
     static Enter = "Enter";
     /** Tab键 @type {string} */
-    static Tab = "Tap";
+    static Tab = "Tab";
     /** Esc键 @type {string} */
     static Escape = "Escape";
     /** Backspace键 @type {string} */

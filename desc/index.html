@@ -1,33 +1,80 @@
-<DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="zh-CN">
 <head>
     <meta charset="utf-8">
-    <title></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="关于 Zhenzhe（老高）：个人介绍、练习方式与联系方式。">
+    <meta name="theme-color" content="#0b0d12">
+    <title>关于我 — GAO LAB</title>
     <link rel="stylesheet" href="./src/css/index_style.css">
-    <script src="./src/scripts/loadtext.js"></script>
 </head>
 <body>
-    <div class="background">
-        <center>
-            <div class="wrapper">
-                <div class="item">
-                    <div class="polaroid">
-                        <img class="pic_item" src="./src/FHS.jpg" alt="pictures load error"></img>
-                        <div class="caption">Zhenzhe's website</div>
-                    </div>
+    <div class="shell">
+        <header>
+            <a class="brand" href="../index.html" aria-label="返回首页"><span class="brand-mark">G</span>GAO LAB</a>
+            <a class="back-link" href="../index.html">返回首页 <span aria-hidden="true">↗</span></a>
+        </header>
+
+        <main>
+            <section class="hero">
+                <div class="hero-copy">
+                    <p class="eyebrow">About me · 关于我</p>
+                    <h1>你好，我是<br><span>Zhenzhe，也可以叫我老高。</span></h1>
+                    <p class="lead">我喜欢把脑海里的想法变成真正能运行的东西。从小游戏、交互页面到实用工具，每一个项目都是一次探索，也是我持续学习和表达自己的方式。</p>
                 </div>
-                <div class="item">
-                    <div class="polaroid">
-                        <img class="pic_item" src="./src/FHS1.jpg" alt="picture load error">
-                        <div class="caption">Welcome to Zhenzhe's webpage :)</div>
-                    </div>
+                <figure class="photo-card">
+                    <img src="./src/FHS.jpg" alt="Fontainebleau High School 2022 届毕业纪念">
+                    <figcaption><span>Class of 2022</span><span>Keep moving forward.</span></figcaption>
+                </figure>
+            </section>
+
+            <section class="section" aria-labelledby="practice-title">
+                <div class="section-heading">
+                    <p class="eyebrow">How I practice</p>
+                    <h2 id="practice-title">我的练习方式</h2>
                 </div>
-                <div class="textbox">
-                    <div class="caption">About FHS</div>
-                    <p id="FHS-content"></p>
+                <div class="practice-grid">
+                    <article class="practice-card">
+                        <span class="number">01</span>
+                        <h3>从实践开始</h3>
+                        <p>比起只停留在教程里，我更喜欢先做出一个能运行的版本，在真实问题中理解知识。</p>
+                    </article>
+                    <article class="practice-card">
+                        <span class="number">02</span>
+                        <h3>拆解与复盘</h3>
+                        <p>把复杂目标拆成小步骤，记录遇到的问题，再回头整理能够复用的方法和经验。</p>
+                    </article>
+                    <article class="practice-card">
+                        <span class="number">03</span>
+                        <h3>持续迭代</h3>
+                        <p>作品没有真正的终点。每一次重构、修复和优化，都会让想法变得更完整一些。</p>
+                    </article>
                 </div>
-            </div>
-        </center>
+            </section>
+
+            <section class="section contact-section" aria-labelledby="contact-title">
+                <div class="contact-intro">
+                    <p class="eyebrow">Say hello</p>
+                    <h2 id="contact-title">保持联系</h2>
+                    <p>欢迎交流编程、游戏和有趣的创意。如果你有新的想法、合作建议，或者只是想认识一下，都可以通过下面的方式找到我。</p>
+                </div>
+                <address class="contact-list">
+                    <a class="contact-item" href="tel:+19856669856"><span>美国电话</span><strong>+1 9856669856</strong><i aria-hidden="true">↗</i></a>
+                    <a class="contact-item" href="mailto:2983536011@qq.com"><span>邮箱</span><strong>2983536011@qq.com</strong><i aria-hidden="true">↗</i></a>
+                    <a class="contact-item" href="tel:+8618350037813"><span>中国电话</span><strong>+86 18350037813</strong><i aria-hidden="true">↗</i></a>
+                    <div class="contact-item"><span>微信</span><strong>Laogao0113_</strong><i aria-hidden="true">—</i></div>
+                    <div class="contact-item"><span>抖音</span><strong>laogao01131003</strong><i aria-hidden="true">—</i></div>
+                </address>
+            </section>
+
+            <section class="closing">
+                <p>我始终相信，好作品来自好奇心、耐心和一次次认真打磨。希望在不断学习的路上，认识更多真诚而有趣的人，也做出更多值得留下来的东西。</p>
+                <a href="../index.html">看看我的作品 <span aria-hidden="true">→</span></a>
+            </section>
+        </main>
+
+        <footer><span>© <span id="year"></span> GAO LAB</span><span>Stay curious. Keep building.</span></footer>
     </div>
+    <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 </body>
 </html>
