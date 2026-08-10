@@ -4,11 +4,9 @@ import type { CSSProperties } from "react";
 export const CHIP_VALUES = [1, 5, 10, 25, 50, 100, 200, 500, 1000, 2000] as const;
 
 interface BettingChipsProps {
-  amount: number;
-  winnerId: string | null;
-  pendingTopAmount?: number;
-  pendingBottomAmount?: number;
-  totalAmount?: number;
+  topAmount: number;
+  bottomAmount: number;
+  winnerPosition: "top" | "bottom" | null;
 }
 
 interface BankrollStacksProps {
@@ -44,22 +42,10 @@ function ChipBundle({ player, chips }: { player: "a" | "b"; chips: number[] }) {
   );
 }
 
-export function BettingChips({ amount, winnerId, pendingTopAmount = 0, pendingBottomAmount = 0, totalAmount }: BettingChipsProps) {
-  if (!amount && !pendingTopAmount && !pendingBottomAmount) return null;
-  const total = totalAmount ?? (amount ? amount * 2 : pendingTopAmount + pendingBottomAmount);
-  const totalLabel = <span className="betting-chips__total">总赌资 <b>{total.toLocaleString()} $</b></span>;
-  if (!amount) {
-    return (
-      <div className="betting-chips betting-chips--pending" aria-label="正在推入的下注筹码">
-        {totalLabel}
-        {pendingTopAmount > 0 && <ChipBundle player="b" chips={splitIntoChips(pendingTopAmount)} />}
-        {pendingBottomAmount > 0 && <ChipBundle player="a" chips={splitIntoChips(pendingBottomAmount)} />}
-      </div>
-    );
-  }
-  const chips = splitIntoChips(amount);
-  const winnerClass = winnerId === "player-a" ? "is-won-a" : winnerId === "player-b" ? "is-won-b" : "";
-  return <div className={`betting-chips ${winnerClass}`} aria-label="双方下注筹码">{totalLabel}<ChipBundle player="b" chips={chips} /><ChipBundle player="a" chips={chips} /></div>;
+export function BettingChips({ topAmount, bottomAmount, winnerPosition }: BettingChipsProps) {
+  if (!topAmount && !bottomAmount) return null;
+  const winnerClass = winnerPosition === "bottom" ? "is-won-a" : winnerPosition === "top" ? "is-won-b" : "";
+  return <div className={`betting-chips ${winnerClass}`} aria-label="双方下注筹码">{topAmount > 0 && <ChipBundle player="b" chips={splitIntoChips(topAmount)} />}{bottomAmount > 0 && <ChipBundle player="a" chips={splitIntoChips(bottomAmount)} />}</div>;
 }
 
 function BankrollStack({ player, amount }: { player: "a" | "b"; amount: number }) {

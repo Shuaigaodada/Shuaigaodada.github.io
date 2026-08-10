@@ -40,14 +40,13 @@ export interface GameState {
 }
 
 export type GameCommand =
-  | { type: "SIT_DOWN"; seatIndex: number }
+  | { type: "SIT_DOWN" }
   | { type: "LEAVE_SEAT" }
   | { type: "READY" }
   | { type: "HIT" }
   | { type: "HIT_PREVIEW" }
   | { type: "HIT_COMMIT" }
   | { type: "STAND" }
-  | { type: "DOUBLE" }
   | { type: "PLACE_BET"; amount: number }
   | { type: "CALL" }
   | { type: "ALL_IN" }
