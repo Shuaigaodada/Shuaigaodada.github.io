@@ -254,7 +254,9 @@ export class BlackjackTable extends DurableObject<AppEnv> {
         return {
           id: player.id, name: player.name, avatarData: player.avatarData, seatIndex: player.seatIndex, isBot: Boolean(player.isBot),
           hand: cards, hiddenCardCount: canSee ? 0 : Math.max(0, player.hand.length - cards.length),
-          hasStood: player.hasStood, isBusted: player.isBusted, bankroll: player.bankroll,
+          // Keep the wire value bounded so clients cached before the isBot UI existed
+          // never try to render Number.MAX_SAFE_INTEGER as millions of chips.
+          hasStood: player.hasStood, isBusted: player.isBusted, bankroll: player.isBot ? CHIP_START : player.bankroll,
           bet: player.bet, requestedBet: player.requestedBet,
         };
       }),
