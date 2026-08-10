@@ -23,6 +23,7 @@ interface ActionPanelProps {
 }
 
 export function ActionPanel({ mode, enabled, bet, bankroll, committedBet, previousBet, bettingTurn, currentBet, onAction, onSetBet, onUsePreviousBet, onConfirmBet, onCall, onAllIn, onFold, onContinue, seated, onSitDown, onCallBot, nextRoundConfirmations, nextRoundConfirmed }: ActionPanelProps) {
+  if (!seated) return <nav className="action-panel"><button className="action action--hit" type="button" onClick={onSitDown}>坐下</button></nav>;
   if (mode === "waiting") return <nav className="action-panel">{seated ? <><span className="deck-empty-note">已入座，等待另一名玩家加入。</span><button className="action action--double" type="button" onClick={onCallBot}>呼叫人机</button></> : <button className="action action--hit" type="button" onClick={onSitDown}>坐下</button>}</nav>;
   if (mode === "betting") {
     return (
