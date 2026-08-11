@@ -41,3 +41,5 @@ npm.cmd run lggpt
 Worker 使用 Cloudflare Rate Limiting binding，每个匿名访问者每分钟最多请求 12 次。允许访问 API 的网页来源配置在 `wrangler.jsonc` 的 `ALLOWED_ORIGINS` 中。
 
 完整页面与 API 已同域部署到 `https://laogao-gpt-api.laogao0113.workers.dev`。GitHub Pages 版本的前端会使用该地址下的 `/api`，本地开发仍使用本地同源 `/api`。管理页位于 `/JSTools/Lggpt/admin.html`，支持统计、内容搜索、分页和单条删除。不要把真实密钥写入代码、Wrangler 配置或 Git 仓库。
+
+GitHub Pages 版本会优先通过 `blackjack-duel.laogao0113.workers.dev/api/lggpt` 网关访问服务，并在网络错误时回退到原始 Lggpt Worker。网关通过 Cloudflare Service Binding 内部转发，不持有或复制 OpenAI 密钥。

@@ -11,6 +11,12 @@
 		"enabled": true,
 		"head_sampling_rate": 1
 	},
+	"services": [
+		{
+			"binding": "LGGPT_API",
+			"service": "laogao-gpt-api"
+		}
+	],
 	"durable_objects": {
 		"bindings": [
 			{

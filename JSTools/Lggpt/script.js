@@ -1,5 +1,8 @@
-const PRODUCTION_API_BASE = "https://laogao-gpt-api.laogao0113.workers.dev/api";
-const API_BASE = location.hostname === "shuaigaodada.github.io" ? PRODUCTION_API_BASE : "/api";
+const PRODUCTION_API_BASES = [
+    "https://blackjack-duel.laogao0113.workers.dev/api/lggpt",
+    "https://laogao-gpt-api.laogao0113.workers.dev/api"
+];
+const API_BASES = location.hostname === "shuaigaodada.github.io" ? PRODUCTION_API_BASES : ["/api"];
 const MAX_HISTORY = 20;
 const STORAGE_KEY = "laogao-gpt-session-v2";
 const CONVERSATION_ID_KEY = "laogao-gpt-conversation-id-v1";
@@ -31,6 +34,24 @@ let conversationId = loadConversationId();
 let activeController = null;
 let isGenerating = false;
 let canRetry = false;
+let activeApiBaseIndex = 0;
+
+async function fetchApi(path, options = {}) {
+    let lastError;
+    const indexes = [activeApiBaseIndex, ...API_BASES.map((_, index) => index)
+        .filter(index => index !== activeApiBaseIndex)];
+    for(const index of indexes) {
+        try {
+            const response = await fetch(`${API_BASES[index]}${path}`, options);
+            activeApiBaseIndex = index;
+            return response;
+        } catch(error) {
+            if(error.name === "AbortError") throw error;
+            lastError = error;
+        }
+    }
+    throw lastError || new Error("所有后端线路均不可用。");
+}
 
 function loadConversation() {
     try {
@@ -81,7 +102,7 @@ function setConnection(status, text) {
 
 async function checkService() {
     try {
-        const response = await fetch(`${API_BASE}/health`, {headers: {"Accept": "application/json"}});
+        const response = await fetchApi("/health", {headers: {"Accept": "application/json"}});
         if(!response.ok) throw new Error("Service unavailable");
         const data = await response.json();
         elements.modelName.textContent = data.model || "AI Assistant";
@@ -360,7 +381,7 @@ async function requestAssistant() {
 
     try {
         const lastUserMessage = [...conversation].reverse().find(message => message.role === "user");
-        const response = await fetch(`${API_BASE}/chat`, {
+        const response = await fetchApi("/chat", {
             method: "POST",
             headers: {"Content-Type": "application/json", "Accept": "application/x-ndjson"},
             body: JSON.stringify({
