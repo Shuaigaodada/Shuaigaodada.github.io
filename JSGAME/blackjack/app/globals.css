@@ -248,3 +248,7 @@ button { font: inherit; }
 .bankroll-stack__label { display: none; }.bankroll-stacks .chip-rack { background: transparent; border: 0; box-shadow: none; }.bankroll-stacks .chip-rack__slot { overflow: visible; border: 0; background: transparent; }.bankroll-stack__chip { box-shadow: inset 0 0 0 2px #6e2024, 0 3px 6px #000b; }
 
 .stand-up { position: absolute; z-index: 4; top: 30px; right: clamp(112px, 10vw, 180px); padding: 7px 12px; cursor: pointer; color: #ffe6b1; border: 1px solid #bd8c49; border-radius: 5px; background: #4d2c24; font: inherit; font-size: 12px; }.stand-up:hover { background: #69392c; }
+
+.lobby-table__region { position: absolute; top: 10px; right: 11px; padding: 3px 7px; border: 1px solid currentColor; border-radius: 999px; font-size: 10px; letter-spacing: .08em; opacity: .86; }
+.lobby-table__region.is-tencent { color: #f0cb65; }
+.lobby-table__region.is-cloudflare { color: #9ec9ff; }
