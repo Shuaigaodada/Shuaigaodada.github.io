@@ -1,5 +1,5 @@
 interface ActionPanelProps {
-  mode: "waiting" | "betting" | "playing" | "finished" | "deck-empty";
+  mode: "waiting" | "betting" | "playing" | "showdown" | "finished" | "deck-empty";
   enabled: boolean;
   bet: number;
   bankroll: number;
@@ -44,6 +44,7 @@ export function ActionPanel({ mode, enabled, bet, bankroll, committedBet, previo
     );
   }
   if (mode === "finished") return <nav className="action-panel"><button className="action action--hit" type="button" onClick={onContinue} disabled={nextRoundConfirmed}>{nextRoundConfirmed ? "已确认" : "继续下一局"}</button>{nextRoundConfirmations > 0 && <span className="next-round-wait">等待确认 {nextRoundConfirmations}/2</span>}</nav>;
+  if (mode === "showdown") return <nav className="action-panel"><span className="next-round-wait">正在翻开手牌并核对结果…</span></nav>;
   if (mode === "deck-empty") return <nav className="action-panel"><span className="deck-empty-note">牌堆不足，准备重新洗牌。</span><button className="action action--hit" type="button" onClick={onContinue}>洗牌并继续</button></nav>;
   return (
     <nav className="action-panel" aria-label="游戏操作">

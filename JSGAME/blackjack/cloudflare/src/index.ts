@@ -6,7 +6,7 @@ type AppEnv = Cloudflare.Env;
 
 type Suit = "hearts" | "diamonds" | "clubs" | "spades";
 type Rank = "A" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10";
-type Status = "waiting" | "betting" | "playing" | "finished" | "deck-empty";
+type Status = "waiting" | "betting" | "playing" | "showdown" | "finished" | "deck-empty";
 type CommandType = "SIT_DOWN" | "PLACE_BET" | "CALL" | "ALL_IN" | "FOLD" | "NEXT_ROUND" | "HIT" | "HIT_PREVIEW" | "HIT_COMMIT" | "STAND" | "LEAVE_SEAT" | "CALL_BOT";
 
 interface Card { id: string; rank: Rank; suit: Suit; }
@@ -15,7 +15,8 @@ interface TableState {
   players: [Player, Player]; deck: Card[]; status: Status; activePlayerId: string | null;
   bettingPlayerId: string | null; currentBet: number; revealedPlayerId: string | null;
   nextRoundReadyPlayerIds: string[]; pendingHitPlayerId: string | null; winnerId: string | null;
-  message: string; round: number; turnDeadline: number | null; tableId?: string;
+  message: string; round: number; turnDeadline: number | null; botActionDeadline: number | null;
+  showdownDeadline: number | null; tableId?: string;
 }
 interface Command { type: CommandType; amount?: number; commandId?: string; }
 interface UserRow {
@@ -27,6 +28,9 @@ interface UnifiedUser { id: string; email?: string | null; phoneNumber?: string 
 const CHIP_START = 500;
 const BOT_BANKROLL = Number.MAX_SAFE_INTEGER;
 const TURN_LIMIT_MS = 60_000;
+const BOT_ACTION_MIN_MS = 1_500;
+const BOT_ACTION_SPREAD_MS = 900;
+const SHOWDOWN_CARD_MS = 480;
 const DEFAULT_PLAYER_NAMES = ["玩家 A", "玩家 B"] as const;
 const BOT_CLIENT_PREFIX = "bot:";
 // 第一阶段只创建 5 个可用对局；大厅保留 20 个视觉桌位，日后扩容时修改此值即可。
@@ -245,6 +249,7 @@ function initialState(): TableState {
     players: [newPlayer("player-a", DEFAULT_PLAYER_NAMES[0], 0), newPlayer("player-b", DEFAULT_PLAYER_NAMES[1], 1)], deck: deck(),
     status: "waiting", activePlayerId: null, bettingPlayerId: null, currentBet: 0, revealedPlayerId: null,
     nextRoundReadyPlayerIds: [], pendingHitPlayerId: null, winnerId: null, round: 1, turnDeadline: null,
+    botActionDeadline: null, showdownDeadline: null,
     message: "等待两名玩家进入房间。",
   };
 }
@@ -282,6 +287,8 @@ export class BlackjackTable extends DurableObject<AppEnv> {
       // 兼容部署前已经持久化的空座资料和等待文案。
       for (const player of this.table.players) if (!player.clientId) this.resetSeat(player);
       if (this.table.status === "waiting") this.table.message = this.waitingMessage();
+      this.table.botActionDeadline ??= null;
+      this.table.showdownDeadline ??= null;
       if (stateChanged) await this.save();
     }
     return this.table;
@@ -297,7 +304,14 @@ export class BlackjackTable extends DurableObject<AppEnv> {
     const table = this.table!;
     table.activePlayerId = playerId;
     table.turnDeadline = playerId ? Date.now() + TURN_LIMIT_MS : null;
-    if (table.turnDeadline) await this.ctx.storage.setAlarm(table.turnDeadline);
+    await this.scheduleAlarm();
+  }
+
+  private async scheduleAlarm() {
+    const table = this.table!;
+    const deadlines = [table.turnDeadline, table.botActionDeadline, table.showdownDeadline]
+      .filter((deadline): deadline is number => typeof deadline === "number");
+    if (deadlines.length) await this.ctx.storage.setAlarm(Math.min(...deadlines));
     else await this.ctx.storage.deleteAlarm();
   }
 
@@ -307,7 +321,7 @@ export class BlackjackTable extends DurableObject<AppEnv> {
     const ordered = viewer ? [viewer, this.other(viewer)] : table.players;
     return {
       players: ordered.map((player) => {
-        const canSee = viewer?.id === player.id || table.status === "finished";
+        const canSee = viewer?.id === player.id || table.status === "showdown" || table.status === "finished";
         const cards = canSee ? player.hand : player.id === table.revealedPlayerId ? player.hand.slice(0, 1) : [];
         return {
           id: player.id, name: player.name, avatarData: player.avatarData, seatIndex: player.seatIndex, isBot: Boolean(player.isBot),
@@ -323,7 +337,8 @@ export class BlackjackTable extends DurableObject<AppEnv> {
       nextRoundConfirmations: table.nextRoundReadyPlayerIds.length,
       nextRoundConfirmed: Boolean(viewer && table.nextRoundReadyPlayerIds.includes(viewer.id)),
       turnSecondsRemaining: table.turnDeadline ? Math.max(0, Math.ceil((table.turnDeadline - Date.now()) / 1000)) : 0,
-      status: table.status, message: table.message, round: table.round, deckCount: table.deck.length, winnerId: table.winnerId,
+      status: table.status, message: table.message, round: table.round, deckCount: table.deck.length,
+      remainingCards: table.deck, winnerId: table.winnerId,
     };
   }
 
@@ -399,14 +414,25 @@ export class BlackjackTable extends DurableObject<AppEnv> {
   async alarm() {
     await this.load();
     const table = this.table!;
-    if (table.status !== "playing" || !table.turnDeadline || Date.now() < table.turnDeadline) return;
-    const player = this.byId(table.activePlayerId);
-    if (!player) return;
-    player.hasStood = true;
-    await this.nextTurn(player, `${player.name} 行动超时，自动停牌。`);
+    const now = Date.now();
+    if (table.showdownDeadline && now >= table.showdownDeadline) {
+      table.showdownDeadline = null;
+      await this.resolveRound();
+    } else if (table.botActionDeadline && now >= table.botActionDeadline) {
+      table.botActionDeadline = null;
+      await this.performBotAction();
+    } else if (table.status === "playing" && table.turnDeadline && now >= table.turnDeadline) {
+      table.turnDeadline = null;
+      const player = this.byId(table.activePlayerId);
+      if (player) {
+        player.hasStood = true;
+        await this.nextTurn(player, `${player.name} 行动超时，自动停牌。`);
+      }
+    }
     await this.advanceBots();
     await this.save();
     await this.broadcast();
+    await this.scheduleAlarm();
   }
 
   private async handle(clientId: string, command: Command, ticket?: string | null) {
@@ -467,7 +493,7 @@ export class BlackjackTable extends DurableObject<AppEnv> {
   }
 
   private async leave(player: Player) {
-    if ((this.table!.status === "betting" || this.table!.status === "playing") && this.table!.players.some((seat) => seat.bet > 0)) {
+    if (["betting", "playing", "showdown"].includes(this.table!.status) && this.table!.players.some((seat) => seat.bet > 0)) {
       await this.finish(this.other(player).id, `${player.name} 离开牌桌，对方获得底池。`);
     }
     if (player.userId) {
@@ -484,7 +510,7 @@ export class BlackjackTable extends DurableObject<AppEnv> {
     if (!this.table!.players.some((seat) => seat.clientId && !seat.isBot)) {
       for (const seat of this.table!.players) if (seat.isBot) this.resetSeat(seat);
     }
-    Object.assign(this.table!, { status: "waiting", bettingPlayerId: null, currentBet: 0, revealedPlayerId: null, nextRoundReadyPlayerIds: [], message: this.waitingMessage() });
+    Object.assign(this.table!, { status: "waiting", bettingPlayerId: null, currentBet: 0, revealedPlayerId: null, nextRoundReadyPlayerIds: [], botActionDeadline: null, showdownDeadline: null, message: this.waitingMessage() });
     await this.setTurn(null);
   }
 
@@ -545,29 +571,36 @@ export class BlackjackTable extends DurableObject<AppEnv> {
 
   private async advanceBots() {
     const table = this.table!;
-    for (let step = 0; step < 12; step++) {
-      const bettingBot = table.status === "betting" ? this.byId(table.bettingPlayerId) : null;
-      if (bettingBot?.isBot) {
-        if (table.currentBet === 0) await this.placeBet(bettingBot, Math.min(100, bettingBot.bankroll));
-        else if (table.currentBet - bettingBot.bet <= bettingBot.bankroll) await this.call(bettingBot);
-        else await this.fold(bettingBot);
-        continue;
-      }
-      const activeBot = table.status === "playing" ? this.byId(table.activePlayerId) : null;
-      if (activeBot?.isBot) {
-        if (value(activeBot.hand) < 17 && table.deck.length) await this.hit(activeBot);
-        else await this.stand(activeBot);
-        continue;
-      }
-      if (table.status === "finished" || table.status === "deck-empty") {
-        const bot = table.players.find((item) => item.isBot);
-        if (bot && !table.nextRoundReadyPlayerIds.includes(bot.id)) {
-          await this.nextRound(bot);
-          continue;
-        }
-      }
-      break;
+    const bettingBot = table.status === "betting" ? this.byId(table.bettingPlayerId) : null;
+    const activeBot = table.status === "playing" ? this.byId(table.activePlayerId) : null;
+    const readyBot = table.status === "finished"
+      ? table.players.find((item) => item.isBot && !table.nextRoundReadyPlayerIds.includes(item.id))
+      : null;
+    const shouldAct = Boolean(bettingBot?.isBot || activeBot?.isBot || readyBot);
+    if (!shouldAct) table.botActionDeadline = null;
+    else if (!table.botActionDeadline) table.botActionDeadline = Date.now() + BOT_ACTION_MIN_MS + secureIndex(BOT_ACTION_SPREAD_MS);
+    await this.scheduleAlarm();
+  }
+
+  private async performBotAction() {
+    const table = this.table!;
+    const bettingBot = table.status === "betting" ? this.byId(table.bettingPlayerId) : null;
+    if (bettingBot?.isBot) {
+      if (table.currentBet === 0) await this.placeBet(bettingBot, Math.min(100, bettingBot.bankroll));
+      else if (table.currentBet - bettingBot.bet <= bettingBot.bankroll) await this.call(bettingBot);
+      else await this.fold(bettingBot);
+      return;
     }
+    const activeBot = table.status === "playing" ? this.byId(table.activePlayerId) : null;
+    if (activeBot?.isBot) {
+      if (value(activeBot.hand) < 17) await this.hit(activeBot);
+      else await this.stand(activeBot);
+      return;
+    }
+    const readyBot = table.status === "finished"
+      ? table.players.find((item) => item.isBot && !table.nextRoundReadyPlayerIds.includes(item.id))
+      : null;
+    if (readyBot) await this.nextRound(readyBot);
   }
 
   private async placeBet(player: Player, amount: number, commandId: string = crypto.randomUUID()) {
@@ -618,7 +651,7 @@ export class BlackjackTable extends DurableObject<AppEnv> {
 
   private async startRound(first: Player, revealed: Player) {
     const table = this.table!;
-    if (table.deck.length < 2) table.deck = deck();
+    if (table.deck.length < 10) table.deck = deck();
     for (const player of table.players) Object.assign(player, { requestedBet: 0, hand: [table.deck.pop()!], hasStood: false, isBusted: false });
     Object.assign(table, { status: "playing", bettingPlayerId: null, currentBet: 0, revealedPlayerId: revealed.id, winnerId: null, message: `${revealed.name} 跟注成功，${first.name} 先行动。` });
     await this.setTurn(first.id);
@@ -629,9 +662,9 @@ export class BlackjackTable extends DurableObject<AppEnv> {
     if (table.status !== "finished" && table.status !== "deck-empty") return;
     if (!table.nextRoundReadyPlayerIds.includes(player.id)) table.nextRoundReadyPlayerIds.push(player.id);
     if (table.nextRoundReadyPlayerIds.length < 2) { table.message = `等待另一位玩家确认下一局（${table.nextRoundReadyPlayerIds.length}/2）。`; return; }
-    if (table.deck.length < 2) table.deck = deck();
+    if (table.deck.length < 10) table.deck = deck();
     for (const seated of table.players) Object.assign(seated, { bet: 0, requestedBet: 0, hand: [], hasStood: false, isBusted: false });
-    Object.assign(table, { status: "betting", winnerId: null, pendingHitPlayerId: null, currentBet: 0, revealedPlayerId: null, nextRoundReadyPlayerIds: [], round: table.round + 1 });
+    Object.assign(table, { status: "betting", winnerId: null, pendingHitPlayerId: null, currentBet: 0, revealedPlayerId: null, nextRoundReadyPlayerIds: [], showdownDeadline: null, round: table.round + 1 });
     table.bettingPlayerId = table.players[secureIndex(table.players.length)].id;
     table.message = `随机选择 ${this.byId(table.bettingPlayerId)!.name} 先下底注。`;
     await this.setTurn(null);
@@ -640,7 +673,7 @@ export class BlackjackTable extends DurableObject<AppEnv> {
   private async hit(player: Player) {
     const table = this.table!;
     if (table.status !== "playing" || table.activePlayerId !== player.id) return;
-    if (!table.deck.length) { table.status = "deck-empty"; await this.setTurn(null); table.message = "牌堆已用尽，请重新洗牌。"; return; }
+    if (!table.deck.length) this.refillDuringRound();
     player.hand.push(table.deck.pop()!);
     await this.resolveHit(player);
   }
@@ -648,7 +681,7 @@ export class BlackjackTable extends DurableObject<AppEnv> {
   private async previewHit(player: Player) {
     const table = this.table!;
     if (table.status !== "playing" || table.activePlayerId !== player.id || table.pendingHitPlayerId) return;
-    if (!table.deck.length) { table.status = "deck-empty"; await this.setTurn(null); table.message = "牌堆已用尽，请重新洗牌。"; return; }
+    if (!table.deck.length) this.refillDuringRound();
     player.hand.push(table.deck.pop()!);
     table.pendingHitPlayerId = player.id;
     table.message = `${player.name} 正在摸牌…`;
@@ -664,11 +697,7 @@ export class BlackjackTable extends DurableObject<AppEnv> {
   private async resolveHit(player: Player) {
     const handScore = value(player.hand);
     if (handScore > 21) { player.isBusted = true; player.hasStood = true; await this.finish(this.other(player).id, `${player.name} 爆牌，另一方获胜。`); return; }
-    if (handScore === 21) {
-      player.hasStood = true;
-      await this.nextTurn(player, player.hand.length === 2 ? `${player.name} Blackjack！自动停牌。` : `${player.name} 达到 21 点，自动停牌。`);
-      return;
-    }
+    if (handScore === 21) { await this.nextTurn(player, `${player.name} 达到 21 点，仍可选择摸牌或停牌。`); return; }
     if (player.hand.length >= 5) player.hasStood = true;
     await this.nextTurn(player, player.hasStood ? `${player.name} 已有五张牌，自动停牌。` : undefined);
   }
@@ -682,7 +711,23 @@ export class BlackjackTable extends DurableObject<AppEnv> {
     const other = this.other(previous);
     if (!other.hasStood) { await this.setTurn(other.id); this.table!.message = message ? `${message} 轮到 ${other.name}。` : `轮到 ${other.name}。`; }
     else if (!previous.hasStood) { await this.setTurn(previous.id); this.table!.message = `轮到 ${previous.name}。`; }
-    else await this.resolveRound();
+    else await this.beginShowdown();
+  }
+
+  private refillDuringRound() {
+    const used = new Set(this.table!.players.flatMap((player) => player.hand.map((card) => card.id)));
+    this.table!.deck = deck().filter((card) => !used.has(card.id));
+    this.table!.message = "牌堆不足，已自动洗牌并继续本局。";
+  }
+
+  private async beginShowdown() {
+    const table = this.table!;
+    await this.setTurn(null);
+    table.status = "showdown";
+    table.message = "双方已停牌，正在翻开手牌…";
+    const cardCount = Math.max(...table.players.map((player) => player.hand.length), 1);
+    table.showdownDeadline = Date.now() + cardCount * SHOWDOWN_CARD_MS + 350;
+    await this.scheduleAlarm();
   }
 
   private async resolveRound() {
@@ -702,7 +747,7 @@ export class BlackjackTable extends DurableObject<AppEnv> {
         if (player.bet) await this.changeWallet(player, player.bet, "refund", `refund:${table.tableId ?? this.ctx.id.toString()}:${table.round}:${player.id}`);
       }
     }
-    Object.assign(table, { status: "finished", winnerId, message }); await this.setTurn(null);
+    Object.assign(table, { status: "finished", winnerId, message, pendingHitPlayerId: null, showdownDeadline: null }); await this.setTurn(null);
   }
 }
 

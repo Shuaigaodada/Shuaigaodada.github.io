@@ -21,7 +21,7 @@ export interface Player {
   requestedBet: number;
 }
 
-export type RoundStatus = "waiting" | "betting" | "playing" | "finished" | "deck-empty";
+export type RoundStatus = "waiting" | "betting" | "playing" | "showdown" | "finished" | "deck-empty";
 
 export interface GameState {
   players: [Player, Player];

@@ -33,6 +33,7 @@ interface RemoteTableState {
   message: string;
   round: number;
   deckCount: number;
+  remainingCards?: PlayingCard[];
   winnerId: string | null;
 }
 
@@ -282,7 +283,7 @@ export class WebSocketGameGateway implements GameGateway {
       status: remote.status,
       message: remote.message,
       round: remote.round,
-      deck: Array.from({ length: remote.deckCount }, (_, index) => ({ id: `deck-${index}`, rank: "A" as const, suit: "spades" as const })),
+      deck: remote.remainingCards ?? Array.from({ length: remote.deckCount }, (_, index) => ({ id: `deck-${index}`, rank: "A" as const, suit: "spades" as const })),
       winnerId: remote.winnerId,
     };
   }
