@@ -27,12 +27,17 @@ test("serves the app and reports missing server configuration", async t => {
     assert.match(page.headers.get("content-security-policy"), /script-src 'self'/);
     assert.match(await page.text(), /Laogao GPT/);
 
+    const adminPage = await fetch(`${baseUrl}/JSTools/Lggpt/admin.html`);
+    assert.equal(adminPage.status, 200);
+    assert.match(await adminPage.text(), /用户消息记录/);
+
     const health = await fetch(`${baseUrl}/api/health`);
     assert.equal(health.status, 200);
     assert.deepEqual(await health.json(), {
         ok: true,
         configured: false,
-        model: process.env.OPENAI_MODEL || "gpt-5.6-luna"
+        model: process.env.OPENAI_MODEL || "gpt-5.6-luna",
+        recording: true
     });
 
     const invalid = await fetch(`${baseUrl}/api/chat`, {
@@ -54,7 +59,9 @@ test("serves the app and reports missing server configuration", async t => {
 test("relays typed Responses API text events as NDJSON", async t => {
     const originalFetch = global.fetch;
     const originalKey = process.env.OPENAI_API_KEY;
+    const originalAdminToken = process.env.ADMIN_TOKEN;
     process.env.OPENAI_API_KEY = "test-key";
+    process.env.ADMIN_TOKEN = "test-admin-token";
     let upstreamRequest;
 
     global.fetch = async (url, options) => {
@@ -78,6 +85,8 @@ test("relays typed Responses API text events as NDJSON", async t => {
         global.fetch = originalFetch;
         if(originalKey === undefined) delete process.env.OPENAI_API_KEY;
         else process.env.OPENAI_API_KEY = originalKey;
+        if(originalAdminToken === undefined) delete process.env.ADMIN_TOKEN;
+        else process.env.ADMIN_TOKEN = originalAdminToken;
         await new Promise(resolve => server.close(resolve));
     });
 
@@ -85,7 +94,11 @@ test("relays typed Responses API text events as NDJSON", async t => {
     const response = await originalFetch(`http://127.0.0.1:${address.port}/api/chat`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({messages: [{role: "user", content: "打个招呼"}]})
+        body: JSON.stringify({
+            messages: [{role: "user", content: "打个招呼"}],
+            conversationId: "conversation_local",
+            messageId: "message_local_123"
+        })
     });
 
     assert.equal(response.status, 200);
@@ -98,4 +111,19 @@ test("relays typed Responses API text events as NDJSON", async t => {
     assert.equal(upstreamRequest.store, false);
     assert.equal(upstreamRequest.stream, true);
     assert.deepEqual(upstreamRequest.input, [{role: "user", content: "打个招呼"}]);
+
+    const unauthorized = await originalFetch(`http://127.0.0.1:${address.port}/api/admin/messages`);
+    assert.equal(unauthorized.status, 401);
+    const adminHeaders = {Authorization: "Bearer test-admin-token"};
+    const list = await originalFetch(`http://127.0.0.1:${address.port}/api/admin/messages`, {headers: adminHeaders});
+    assert.equal(list.status, 200);
+    const listData = await list.json();
+    assert.equal(listData.messages[0].content, "打个招呼");
+    assert.equal(listData.stats.total, 1);
+
+    const removed = await originalFetch(`http://127.0.0.1:${address.port}/api/admin/messages/${listData.messages[0].id}`, {
+        method: "DELETE",
+        headers: adminHeaders
+    });
+    assert.equal(removed.status, 200);
 });

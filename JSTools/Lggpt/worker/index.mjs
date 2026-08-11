@@ -5,6 +5,8 @@ const MAX_BODY_BYTES = 40 * 1024;
 const MAX_MESSAGES = 20;
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_TOTAL_LENGTH = 24000;
+const MAX_ADMIN_PAGE_SIZE = 100;
+const RECORD_ID_PATTERN = /^[a-zA-Z0-9_-]{8,64}$/;
 
 class RequestError extends Error {
     constructor(status, message) {
@@ -23,8 +25,8 @@ function getAllowedOrigins(env) {
 function getCorsHeaders(request, env) {
     const origin = request.headers.get("Origin");
     const headers = new Headers({
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
         "Access-Control-Max-Age": "86400"
     });
 
@@ -33,6 +35,34 @@ function getCorsHeaders(request, env) {
         headers.set("Vary", "Origin");
     }
     return headers;
+}
+
+function getBearerToken(request) {
+    const authorization = request.headers.get("Authorization") || "";
+    return authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
+}
+
+async function secretsMatch(actual, expected) {
+    if(!actual || !expected) return false;
+    const encoder = new TextEncoder();
+    const [actualHash, expectedHash] = await Promise.all([
+        crypto.subtle.digest("SHA-256", encoder.encode(actual)),
+        crypto.subtle.digest("SHA-256", encoder.encode(expected))
+    ]);
+    const actualBytes = new Uint8Array(actualHash);
+    const expectedBytes = new Uint8Array(expectedHash);
+    let difference = 0;
+    for(let index = 0; index < actualBytes.length; index++)
+        difference |= actualBytes[index] ^ expectedBytes[index];
+    return difference === 0;
+}
+
+async function requireAdmin(request, env) {
+    if(!env.ADMIN_TOKEN)
+        return jsonResponse(request, env, {error: "管理员令牌尚未配置。"}, 503);
+    if(!await secretsMatch(getBearerToken(request), env.ADMIN_TOKEN))
+        return jsonResponse(request, env, {error: "管理员身份验证失败。"}, 401, {"WWW-Authenticate": "Bearer"});
+    return null;
 }
 
 function isOriginAllowed(request, env) {
@@ -133,6 +163,81 @@ async function createSafetyIdentifier(request, env) {
     return sha256(`${salt}|${address}|${userAgent}`);
 }
 
+function normalizeRecordId(value) {
+    return typeof value === "string" && RECORD_ID_PATTERN.test(value) ? value : crypto.randomUUID();
+}
+
+async function recordUserMessage(env, body, messages, visitorId) {
+    if(!env.MESSAGE_DB) return;
+    const lastMessage = messages[messages.length - 1];
+    const id = await sha256(`${visitorId}|${normalizeRecordId(body.messageId)}`);
+    await env.MESSAGE_DB.prepare(`
+        INSERT INTO user_messages (id, conversation_id, visitor_id, content, model)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO NOTHING
+    `).bind(
+        id,
+        normalizeRecordId(body.conversationId),
+        visitorId,
+        lastMessage.content,
+        env.OPENAI_MODEL || DEFAULT_MODEL
+    ).run();
+}
+
+function escapeLike(value) {
+    return value.replace(/[\\%_]/g, character => `\\${character}`);
+}
+
+async function handleAdminMessages(request, env, url) {
+    const authError = await requireAdmin(request, env);
+    if(authError) return authError;
+    if(!env.MESSAGE_DB)
+        return jsonResponse(request, env, {error: "消息数据库尚未配置。"}, 503);
+
+    if(request.method === "GET") {
+        const page = Math.max(1, Math.min(100000, Number.parseInt(url.searchParams.get("page") || "1", 10) || 1));
+        const pageSize = Math.max(1, Math.min(MAX_ADMIN_PAGE_SIZE, Number.parseInt(url.searchParams.get("pageSize") || "25", 10) || 25));
+        const search = (url.searchParams.get("search") || "").trim().slice(0, 200);
+        const where = search ? "WHERE content LIKE ? ESCAPE '\\' OR visitor_id = ?" : "";
+        const parameters = search ? [`%${escapeLike(search)}%`, search] : [];
+        const [countResult, messagesResult, statsResult] = await env.MESSAGE_DB.batch([
+            env.MESSAGE_DB.prepare(`SELECT COUNT(*) AS total FROM user_messages ${where}`).bind(...parameters),
+            env.MESSAGE_DB.prepare(`
+                SELECT id, conversation_id, visitor_id, content, model, created_at
+                FROM user_messages ${where}
+                ORDER BY created_at DESC, id DESC
+                LIMIT ? OFFSET ?
+            `).bind(...parameters, pageSize, (page - 1) * pageSize),
+            env.MESSAGE_DB.prepare(`
+                SELECT COUNT(*) AS total,
+                    SUM(CASE WHEN created_at >= datetime('now', 'start of day') THEN 1 ELSE 0 END) AS today,
+                    COUNT(DISTINCT visitor_id) AS visitors
+                FROM user_messages
+            `)
+        ]);
+        const total = Number(countResult.results[0]?.total || 0);
+        const stats = statsResult.results[0] || {};
+        return jsonResponse(request, env, {
+            messages: messagesResult.results,
+            pagination: {page, pageSize, total, pages: Math.max(1, Math.ceil(total / pageSize))},
+            stats: {
+                total: Number(stats.total || 0),
+                today: Number(stats.today || 0),
+                visitors: Number(stats.visitors || 0)
+            }
+        });
+    }
+
+    const id = decodeURIComponent(url.pathname.slice("/api/admin/messages/".length));
+    if(request.method === "DELETE" && RECORD_ID_PATTERN.test(id)) {
+        const result = await env.MESSAGE_DB.prepare("DELETE FROM user_messages WHERE id = ?").bind(id).run();
+        if(!result.meta.changes)
+            return jsonResponse(request, env, {error: "消息不存在。"}, 404);
+        return jsonResponse(request, env, {ok: true});
+    }
+    return jsonResponse(request, env, {error: "接口不存在。"}, 404);
+}
+
 function createEventStream(upstreamBody) {
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
@@ -194,7 +299,7 @@ function createEventStream(upstreamBody) {
     return upstreamBody.pipeThrough(transform);
 }
 
-async function handleChat(request, env) {
+async function handleChat(request, env, ctx) {
     if(!request.headers.get("Content-Type")?.toLowerCase().startsWith("application/json"))
         return jsonResponse(request, env, {error: "Content-Type 必须是 application/json。"}, 415);
 
@@ -216,6 +321,11 @@ async function handleChat(request, env) {
     const rateLimit = await env.API_RATE_LIMITER.limit({key: safetyIdentifier});
     if(!rateLimit.success)
         return jsonResponse(request, env, {error: "请求过于频繁，请稍后再试。"}, 429, {"Retry-After": "60"});
+
+    const recording = recordUserMessage(env, body, validation.messages, safetyIdentifier)
+        .catch(error => console.error(JSON.stringify({event: "message_record_failed", message: error.message})));
+    if(ctx?.waitUntil) ctx.waitUntil(recording);
+    else await recording;
 
     const upstream = await fetch(OPENAI_RESPONSES_URL, {
         method: "POST",
@@ -252,23 +362,33 @@ async function handleChat(request, env) {
     });
 }
 
-export async function handleRequest(request, env) {
+export async function handleRequest(request, env, ctx) {
     if(!isOriginAllowed(request, env))
         return jsonResponse(request, env, {error: "不允许的请求来源。"}, 403);
     if(request.method === "OPTIONS")
         return createResponse(request, env, null, {status: 204});
 
-    const {pathname} = new URL(request.url);
+    const url = new URL(request.url);
+    const {pathname} = url;
     if(pathname === "/api/health" && request.method === "GET") {
         return jsonResponse(request, env, {
             ok: true,
             configured: Boolean(env.OPENAI_API_KEY),
-            model: env.OPENAI_MODEL || DEFAULT_MODEL
+            model: env.OPENAI_MODEL || DEFAULT_MODEL,
+            recording: Boolean(env.MESSAGE_DB)
         });
+    }
+    if(pathname === "/api/admin/messages" || pathname.startsWith("/api/admin/messages/")) {
+        try {
+            return await handleAdminMessages(request, env, url);
+        } catch(error) {
+            console.error(JSON.stringify({event: "admin_api_error", message: error.message}));
+            return jsonResponse(request, env, {error: "无法读取消息记录。"}, 500);
+        }
     }
     if(pathname === "/api/chat" && request.method === "POST") {
         try {
-            return await handleChat(request, env);
+            return await handleChat(request, env, ctx);
         } catch(error) {
             console.error(JSON.stringify({event: "worker_error", message: error.message}));
             return jsonResponse(request, env, {error: "服务暂时不可用，请稍后重试。"}, 502);
@@ -278,7 +398,7 @@ export async function handleRequest(request, env) {
 }
 
 export default {
-    async fetch(request, env) {
-        return handleRequest(request, env);
+    async fetch(request, env, ctx) {
+        return handleRequest(request, env, ctx);
     }
 };

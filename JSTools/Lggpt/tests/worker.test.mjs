@@ -12,6 +12,51 @@ function createEnv(overrides = {}) {
     };
 }
 
+class FakeD1 {
+    constructor() {
+        this.rows = [];
+    }
+
+    prepare(sql) {
+        const database = this;
+        return {
+            sql,
+            parameters: [],
+            bind(...parameters) {
+                this.parameters = parameters;
+                return this;
+            },
+            async run() {
+                if(sql.includes("INSERT INTO user_messages")) {
+                    const [id, conversation_id, visitor_id, content, model] = this.parameters;
+                    if(!database.rows.some(row => row.id === id))
+                        database.rows.push({id, conversation_id, visitor_id, content, model, created_at: "2026-08-11 03:00:00"});
+                    return {meta: {changes: 1}};
+                }
+                if(sql.includes("DELETE FROM user_messages")) {
+                    const index = database.rows.findIndex(row => row.id === this.parameters[0]);
+                    if(index < 0) return {meta: {changes: 0}};
+                    database.rows.splice(index, 1);
+                    return {meta: {changes: 1}};
+                }
+                throw new Error(`Unexpected run: ${sql}`);
+            }
+        };
+    }
+
+    async batch(statements) {
+        return statements.map(statement => {
+            if(statement.sql.includes("COUNT(*) AS total FROM user_messages"))
+                return {results: [{total: this.rows.length}]};
+            if(statement.sql.includes("SELECT id, conversation_id"))
+                return {results: [...this.rows].reverse()};
+            if(statement.sql.includes("COUNT(DISTINCT visitor_id)"))
+                return {results: [{total: this.rows.length, today: this.rows.length, visitors: new Set(this.rows.map(row => row.visitor_id)).size}]};
+            throw new Error(`Unexpected batch query: ${statement.sql}`);
+        });
+    }
+}
+
 test("Worker validates conversation input", () => {
     assert.deepEqual(validateMessages([{role: "user", content: "你好"}]), {
         messages: [{role: "user", content: "你好"}]
@@ -28,7 +73,7 @@ test("Worker health and CORS only allow configured origins", async () => {
     }), env);
     assert.equal(allowed.status, 200);
     assert.equal(allowed.headers.get("Access-Control-Allow-Origin"), "https://shuaigaodada.github.io");
-    assert.deepEqual(await allowed.json(), {ok: true, configured: false, model: "gpt-5.6-luna"});
+    assert.deepEqual(await allowed.json(), {ok: true, configured: false, model: "gpt-5.6-luna", recording: false});
 
     const blocked = await handleRequest(new Request("https://worker.example/api/health", {
         headers: {Origin: "https://example.com"}
@@ -109,4 +154,52 @@ test("Worker emits only one client error for a failed stream", async t => {
 
     const events = (await response.text()).trim().split("\n").map(line => JSON.parse(line));
     assert.deepEqual(events, [{type: "error", error: "AI 服务返回了一个错误。"}]);
+});
+
+test("Worker records one user message and protects admin listing and deletion", async t => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response([
+        'data: {"type":"response.output_text.delta","delta":"收到"}\n\n'
+    ].join(""), {headers: {"Content-Type": "text/event-stream"}});
+    t.after(() => { globalThis.fetch = originalFetch; });
+
+    const database = new FakeD1();
+    const env = createEnv({
+        OPENAI_API_KEY: "test-key",
+        ADMIN_TOKEN: "a-long-admin-token",
+        MESSAGE_DB: database
+    });
+    const pending = [];
+    const response = await handleRequest(new Request("https://worker.example/api/chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.1"},
+        body: JSON.stringify({
+            messages: [{role: "user", content: "请记录这条消息"}],
+            conversationId: "conversation_1234",
+            messageId: "message_12345678"
+        })
+    }), env, {waitUntil(promise) { pending.push(promise); }});
+    assert.equal(response.status, 200);
+    await Promise.all(pending);
+    assert.equal(database.rows.length, 1);
+    assert.equal(database.rows[0].content, "请记录这条消息");
+    assert.notEqual(database.rows[0].visitor_id, "192.0.2.1");
+
+    const unauthorized = await handleRequest(new Request("https://worker.example/api/admin/messages"), env);
+    assert.equal(unauthorized.status, 401);
+
+    const list = await handleRequest(new Request("https://worker.example/api/admin/messages", {
+        headers: {Authorization: "Bearer a-long-admin-token"}
+    }), env);
+    assert.equal(list.status, 200);
+    const payload = await list.json();
+    assert.equal(payload.messages.length, 1);
+    assert.deepEqual(payload.stats, {total: 1, today: 1, visitors: 1});
+
+    const removed = await handleRequest(new Request(`https://worker.example/api/admin/messages/${payload.messages[0].id}`, {
+        method: "DELETE",
+        headers: {Authorization: "Bearer a-long-admin-token"}
+    }), env);
+    assert.equal(removed.status, 200);
+    assert.equal(database.rows.length, 0);
 });

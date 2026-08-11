@@ -2,6 +2,7 @@ const PRODUCTION_API_BASE = "https://laogao-gpt-api.laogao0113.workers.dev/api";
 const API_BASE = location.hostname === "shuaigaodada.github.io" ? PRODUCTION_API_BASE : "/api";
 const MAX_HISTORY = 20;
 const STORAGE_KEY = "laogao-gpt-session-v2";
+const CONVERSATION_ID_KEY = "laogao-gpt-conversation-id-v1";
 
 const elements = {
     messages: document.getElementById("messages"),
@@ -26,6 +27,7 @@ const elements = {
 };
 
 let conversation = loadConversation();
+let conversationId = loadConversationId();
 let activeController = null;
 let isGenerating = false;
 let canRetry = false;
@@ -36,15 +38,37 @@ function loadConversation() {
         if(!Array.isArray(saved)) return [];
         return saved
             .filter(message => ["user", "assistant"].includes(message.role) && typeof message.content === "string")
+            .map(message => ({
+                role: message.role,
+                content: message.content,
+                ...(message.role === "user" ? {id: normalizeClientId(message.id)} : {})
+            }))
             .slice(-MAX_HISTORY);
     } catch(error) {
         return [];
     }
 }
 
+function createClientId() {
+    return crypto.randomUUID();
+}
+
+function normalizeClientId(value) {
+    return typeof value === "string" && /^[a-zA-Z0-9_-]{8,64}$/.test(value) ? value : createClientId();
+}
+
+function loadConversationId() {
+    try {
+        return normalizeClientId(sessionStorage.getItem(CONVERSATION_ID_KEY));
+    } catch(error) {
+        return createClientId();
+    }
+}
+
 function saveConversation() {
     try {
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(conversation.slice(-MAX_HISTORY)));
+        sessionStorage.setItem(CONVERSATION_ID_KEY, conversationId);
     } catch(error) {
         // 隐私模式或存储空间不足时仍可继续当前对话
     }
@@ -335,10 +359,15 @@ async function requestAssistant() {
     };
 
     try {
+        const lastUserMessage = [...conversation].reverse().find(message => message.role === "user");
         const response = await fetch(`${API_BASE}/chat`, {
             method: "POST",
             headers: {"Content-Type": "application/json", "Accept": "application/x-ndjson"},
-            body: JSON.stringify({messages: conversation.slice(-MAX_HISTORY)}),
+            body: JSON.stringify({
+                messages: conversation.slice(-MAX_HISTORY),
+                conversationId,
+                messageId: lastUserMessage?.id
+            }),
             signal: activeController.signal
         });
 
@@ -403,7 +432,7 @@ async function sendMessage(text) {
     if(!message || isGenerating) return;
 
     if(!conversation.length) elements.messages.replaceChildren();
-    conversation.push({role: "user", content: message});
+    conversation.push({role: "user", content: message, id: createClientId()});
     conversation = conversation.slice(-MAX_HISTORY);
     saveConversation();
     updateConversationTitle();
@@ -417,6 +446,7 @@ async function sendMessage(text) {
 function newConversation() {
     if(activeController) activeController.abort();
     conversation = [];
+    conversationId = createClientId();
     saveConversation();
     hideError();
     renderConversation();
