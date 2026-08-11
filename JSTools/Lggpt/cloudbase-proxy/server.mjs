@@ -18,6 +18,8 @@ const BLACKJACK_FALLBACK_IPS = (process.env.BLACKJACK_FALLBACK_IPS || "104.21.62
 const ALLOWED_MODELS = new Set(["deepseek-v4-flash"]);
 const DEFAULT_DAILY_QUOTA = 50;
 const MAX_DAILY_QUOTA = 500;
+const MAX_BLACKJACK_BANKROLL = 1_000_000_000;
+const MAX_BLACKJACK_PLAY_SECONDS = 315_360_000;
 const SESSION_DAYS = 30;
 const MAX_MESSAGES = 20;
 const MAX_USER_CONTENT_LENGTH = 4000;
@@ -170,14 +172,14 @@ function databaseResult(result, fallback) {
 
 async function findUserByEmail(email) {
     const result = await getDatabase().from("app_users")
-        .select("id, email, phone_number, display_name, daily_limit, is_disabled, created_at")
+        .select("id, email, phone_number, display_name, daily_limit, is_disabled, created_at, blackjack_bankroll, blackjack_play_seconds, blackjack_avatar_data")
         .eq("email", email).limit(1);
     return databaseResult(result, "读取用户失败。")[0] || null;
 }
 
 async function findUserByPhoneNumber(phoneNumber) {
     const result = await getDatabase().from("app_users")
-        .select("id, email, phone_number, display_name, daily_limit, is_disabled, created_at")
+        .select("id, email, phone_number, display_name, daily_limit, is_disabled, created_at, blackjack_bankroll, blackjack_play_seconds, blackjack_avatar_data")
         .eq("phone_number", phoneNumber).limit(1);
     return databaseResult(result, "读取用户失败。")[0] || null;
 }
@@ -277,7 +279,7 @@ async function verifyLoginAndCreateSession(verificationId, verificationCode, dis
 
 async function findUserById(id) {
     const result = await getDatabase().from("app_users")
-        .select("id, email, phone_number, display_name, daily_limit, is_disabled, created_at").eq("id", id).limit(1);
+        .select("id, email, phone_number, display_name, daily_limit, is_disabled, created_at, blackjack_bankroll, blackjack_play_seconds, blackjack_avatar_data").eq("id", id).limit(1);
     return databaseResult(result, "读取用户失败。")[0] || null;
 }
 
@@ -312,9 +314,9 @@ function blackjackProfile(user) {
             email: user.email || "",
             phoneNumber: user.phone_number || null,
             displayName: user.display_name || user.email?.split("@")[0] || user.phone_number || "GAO 玩家",
-            avatarData: null,
-            bankroll: 500,
-            playSeconds: 0
+            avatarData: user.blackjack_avatar_data || null,
+            bankroll: Number(user.blackjack_bankroll ?? 500),
+            playSeconds: Number(user.blackjack_play_seconds ?? 0)
         };
         blackjackProfiles.set(user.id, profile);
     } else if(user.display_name && profile.displayName !== user.display_name) {
@@ -339,6 +341,17 @@ const mainlandBlackjack = new MainlandBlackjackEngine({
     updateBankroll: async (userId, bankroll) => {
         const profile = blackjackProfiles.get(userId);
         if(profile) profile.bankroll = bankroll;
+        const result = await getDatabase().from("app_users").update({blackjack_bankroll: bankroll}).eq("id", userId);
+        databaseResult(result, "保存 Blackjack 赌资失败。");
+    },
+    updatePlaySeconds: async (userId, seconds) => {
+        if(!Number.isSafeInteger(seconds) || seconds <= 0) return;
+        const user = await findUserById(userId);
+        if(!user) return;
+        const next = Math.min(MAX_BLACKJACK_PLAY_SECONDS, Number(user.blackjack_play_seconds || 0) + seconds);
+        databaseResult(await getDatabase().from("app_users").update({blackjack_play_seconds: next}).eq("id", userId), "保存 Blackjack 游玩时长失败。");
+        const profile = blackjackProfiles.get(userId);
+        if(profile) profile.playSeconds = next;
     }
 });
 
@@ -444,7 +457,7 @@ async function getAllMessages() {
 async function getAllUsers() {
     const db = getDatabase();
     const usersResult = await db.from("app_users")
-        .select("id, email, phone_number, display_name, daily_limit, is_disabled, created_at")
+        .select("id, email, phone_number, display_name, daily_limit, is_disabled, created_at, blackjack_bankroll, blackjack_play_seconds")
         .order("created_at", {ascending: false})
         .limit(5000);
     const users = databaseResult(usersResult, "读取用户失败。");
@@ -465,6 +478,8 @@ async function getAllUsers() {
             dailyLimit,
             usedToday,
             remainingToday: Math.max(0, dailyLimit - usedToday),
+            blackjackBankroll: Number(user.blackjack_bankroll ?? 500),
+            blackjackPlaySeconds: Number(user.blackjack_play_seconds ?? 0),
             disabled: Boolean(user.is_disabled),
             createdAt: user.created_at
         };
@@ -489,6 +504,16 @@ async function updateManagedUser(userId, body) {
             throw Object.assign(new Error("禁用状态必须为布尔值。"), {status: 400});
         updates.is_disabled = body.disabled;
     }
+    if(Object.hasOwn(body, "blackjackBankroll")) {
+        if(!Number.isSafeInteger(body.blackjackBankroll) || body.blackjackBankroll < 0 || body.blackjackBankroll > MAX_BLACKJACK_BANKROLL)
+            throw Object.assign(new Error(`Blackjack 赌资必须为 0 至 ${MAX_BLACKJACK_BANKROLL} 的整数。`), {status: 400});
+        updates.blackjack_bankroll = body.blackjackBankroll;
+    }
+    if(Object.hasOwn(body, "blackjackPlaySeconds")) {
+        if(!Number.isSafeInteger(body.blackjackPlaySeconds) || body.blackjackPlaySeconds < 0 || body.blackjackPlaySeconds > MAX_BLACKJACK_PLAY_SECONDS)
+            throw Object.assign(new Error("Blackjack 游玩时长不是有效整数。"), {status: 400});
+        updates.blackjack_play_seconds = body.blackjackPlaySeconds;
+    }
     if(Object.keys(updates).length) {
         const result = await getDatabase().from("app_users").update(updates).eq("id", userId);
         databaseResult(result, "更新用户失败。");
@@ -508,6 +533,7 @@ async function updateManagedUser(userId, body) {
         const result = await getDatabase().from("app_sessions").delete().eq("user_id", userId);
         databaseResult(result, "注销用户会话失败。");
     }
+    if(Object.hasOwn(updates, "blackjack_bankroll") || Object.hasOwn(updates, "blackjack_play_seconds") || Object.hasOwn(updates, "display_name")) blackjackProfiles.delete(userId);
     const user = await findUserById(userId);
     if(!user) throw Object.assign(new Error("用户不存在。"), {status: 404});
     return {user: publicUser(user), quota: await quotaStatus(user)};
@@ -683,8 +709,16 @@ async function handleMainlandBlackjack(request, response, url, origin) {
         const profile = blackjackProfile(user);
         if(request.method === "POST") {
             const body = await readJson(request);
-            if(typeof body.displayName === "string" && body.displayName.trim()) profile.displayName = body.displayName.trim().slice(0, 20);
-            if(typeof body.avatarData === "string" && body.avatarData.length <= 140_000) profile.avatarData = body.avatarData;
+            const updates = {};
+            if(typeof body.displayName === "string" && body.displayName.trim()) {
+                profile.displayName = body.displayName.trim().slice(0, 20);
+                updates.display_name = profile.displayName;
+            }
+            if(typeof body.avatarData === "string" && body.avatarData.length <= 140_000) {
+                profile.avatarData = body.avatarData;
+                updates.blackjack_avatar_data = body.avatarData;
+            }
+            if(Object.keys(updates).length) databaseResult(await getDatabase().from("app_users").update(updates).eq("id", user.id), "保存 Blackjack 资料失败。");
         }
         return sendJson(response, 200, {user: profile}, origin);
     }
@@ -694,6 +728,7 @@ async function handleMainlandBlackjack(request, response, url, origin) {
         const profile = blackjackProfile(user);
         if(profile.bankroll >= 100) return sendJson(response, 400, {message: "赌资不少于 100，暂时不能领取。", user: profile}, origin);
         profile.bankroll += 100;
+        databaseResult(await getDatabase().from("app_users").update({blackjack_bankroll: profile.bankroll}).eq("id", user.id), "保存 Blackjack 赌资失败。");
         return sendJson(response, 200, {message: "已领取 100 赌资。", user: profile}, origin);
     }
     if(path === "/api/auth/ws-ticket" && request.method === "POST") {

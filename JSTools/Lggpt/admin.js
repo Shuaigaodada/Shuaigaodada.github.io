@@ -199,7 +199,9 @@ function createUserCard(user) {
     fields.append(
         field("昵称", "user-display-name", user.displayName),
         field("每日额度", "user-daily-limit", user.dailyLimit, "number"),
-        field("今日已用", "user-used-today", user.usedToday, "number")
+        field("今日已用", "user-used-today", user.usedToday, "number"),
+        field("Blackjack 赌资", "user-blackjack-bankroll", user.blackjackBankroll, "number"),
+        field("Blackjack 时长（秒）", "user-blackjack-play-seconds", user.blackjackPlaySeconds, "number")
     );
 
     const actions = document.createElement("div");
@@ -293,8 +295,10 @@ async function manageUser(button) {
     const displayName = card.querySelector(".user-display-name").value.trim();
     const dailyLimit = Number(card.querySelector(".user-daily-limit").value);
     const usedToday = Number(card.querySelector(".user-used-today").value);
+    const blackjackBankroll = Number(card.querySelector(".user-blackjack-bankroll").value);
+    const blackjackPlaySeconds = Number(card.querySelector(".user-blackjack-play-seconds").value);
     let options;
-    if(action === "save") options = {method: "PATCH", body: JSON.stringify({displayName, dailyLimit, usedToday})};
+    if(action === "save") options = {method: "PATCH", body: JSON.stringify({displayName, dailyLimit, usedToday, blackjackBankroll, blackjackPlaySeconds})};
     if(action === "reset") {
         if(!confirm("确定将该用户今日用量重置为 0 吗？")) return;
         options = {method: "PATCH", body: JSON.stringify({usedToday: 0})};
