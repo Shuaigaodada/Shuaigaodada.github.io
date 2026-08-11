@@ -1,5 +1,13 @@
 # Laogao GPT
 
+## 邮箱验证码登录与用户管理
+
+- 登录页使用 CloudBase Authentication v2 邮箱验证码，首次验证自动创建账号。
+- 在 CloudBase 控制台的“身份认证 → 登录方式”中启用“邮箱验证码”，并配置发件身份和包含 `{{.VerificationCode}}` 的邮件模板。
+- 验证码有效期 10 分钟，同一邮箱 60 秒内只能发送一次。
+- 管理页面 `admin.html` 可以搜索用户、修改昵称、每日额度和今日用量，也可以立即禁用、启用或删除账号。
+- 国内 DeepSeek 与海外 ChatGPT 共用同一登录状态和每日额度。
+
 一个带安全服务端代理、连续对话和流式输出的轻量 AI 聊天页面。
 
 ## 本地启动
@@ -23,6 +31,16 @@ npm.cmd run lggpt
 ```
 
 本地 Express 服务会在进程内记录最近 5000 条消息，重启后清空；线上 Worker 使用 D1 持久化。记录中只保留经过加盐哈希的访客标识，不保存原始 IP。管理员令牌仅保存在管理页面当前标签页的 `sessionStorage` 中。
+
+### CloudBase 国内入口
+
+`cloudbase-proxy` 是可部署到腾讯云 CloudBase Run 的国内后端，使用 DeepSeek API，并将邮箱账号、每日额度和用户消息写入 CloudBase PostgreSQL。海外 ChatGPT 请求仍由 Cloudflare Worker 处理，两条线路通过 CloudBase 共用登录状态和每日额度。
+
+```powershell
+tcb cloudrun deploy -e laogao-github-pages-d4bk62ce3432 -s laogao-gpt-proxy --port 8080 --source JSTools/Lggpt/cloudbase-proxy
+```
+
+在 CloudBase 服务端环境变量中设置 `DEEPSEEK_API_KEY`、`DEEPSEEK_MODEL` 和 `ADMIN_TOKEN`，同时通过控制台的“API key 设置”注入 `CLOUDBASE_APIKEY`。不要把任何服务端密钥放进前端配置。
 
 不要把真实密钥写入 `script.js`、提交到 Git，或部署到 GitHub Pages 的静态文件中。
 

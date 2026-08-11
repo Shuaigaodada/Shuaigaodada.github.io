@@ -1,11 +1,21 @@
 const PRODUCTION_API_BASES = [
-    "https://blackjack-duel.laogao0113.workers.dev/api/lggpt",
-    "https://laogao-gpt-api.laogao0113.workers.dev/api"
+    "https://laogao-gpt-api.laogao0113.workers.dev/api",
+    "https://laogao-gpt-proxy-295046-9-1403518541.sh.run.tcloudbase.com/api"
 ];
-const API_BASES = location.hostname === "shuaigaodada.github.io" ? PRODUCTION_API_BASES : ["/api"];
+const IS_LOCAL_PREVIEW = ["localhost", "127.0.0.1"].includes(location.hostname);
+const API_BASES = IS_LOCAL_PREVIEW ? ["/api"] : PRODUCTION_API_BASES;
+const AUTH_API_BASE = API_BASES.length > 1 ? API_BASES[1] : API_BASES[0];
 const MAX_HISTORY = 20;
 const STORAGE_KEY = "laogao-gpt-session-v2";
 const CONVERSATION_ID_KEY = "laogao-gpt-conversation-id-v1";
+const MODEL_KEY = "laogao-gpt-model-v1";
+const AUTH_TOKEN_KEY = "laogao-gpt-auth-token-v1";
+const MODEL_OPTIONS = {
+    "deepseek-v4-flash": {provider: "deepseek", apiIndex: 1},
+    "gpt-5.6-luna": {provider: "openai", apiIndex: 0},
+    "gpt-5-mini": {provider: "openai", apiIndex: 0},
+    "gpt-5-nano": {provider: "openai", apiIndex: 0}
+};
 
 const elements = {
     messages: document.getElementById("messages"),
@@ -22,7 +32,20 @@ const elements = {
     retry: document.getElementById("retry-button"),
     statusDot: document.getElementById("status-dot"),
     connectionText: document.getElementById("connection-text"),
-    modelName: document.getElementById("model-name"),
+    modelSelect: document.getElementById("model-select"),
+    modelNetworkNotice: document.getElementById("model-network-notice"),
+    authForm: document.getElementById("auth-form"),
+    authEmail: document.getElementById("auth-email"),
+    authCode: document.getElementById("auth-code"),
+    sendCodeButton: document.getElementById("send-code-button"),
+    authDisplayName: document.getElementById("auth-display-name"),
+    authTitle: document.getElementById("auth-title"),
+    authCopy: document.getElementById("auth-copy"),
+    authError: document.getElementById("auth-error"),
+    authSubmit: document.getElementById("auth-submit"),
+    signedInEmail: document.getElementById("signed-in-email"),
+    logoutButton: document.getElementById("logout-button"),
+    quotaBadge: document.getElementById("quota-badge"),
     sidebar: document.getElementById("sidebar"),
     sidebarBackdrop: document.getElementById("sidebar-backdrop"),
     openSidebar: document.getElementById("open-sidebar"),
@@ -34,23 +57,197 @@ let conversationId = loadConversationId();
 let activeController = null;
 let isGenerating = false;
 let canRetry = false;
-let activeApiBaseIndex = 0;
+let selectedModel = loadSelectedModel();
+let authToken = loadAuthToken();
+let currentUser = null;
+let emailVerificationId = "";
+let resendTimer = null;
+let currentQuota = {limit: 50, used: 0, remaining: 50};
 
 async function fetchApi(path, options = {}) {
+    const {timeoutMs = 30000, model = selectedModel, ...fetchOptions} = options;
     let lastError;
-    const indexes = [activeApiBaseIndex, ...API_BASES.map((_, index) => index)
-        .filter(index => index !== activeApiBaseIndex)];
+    const productionIndex = MODEL_OPTIONS[model]?.apiIndex ?? MODEL_OPTIONS["deepseek-v4-flash"].apiIndex;
+    const indexes = API_BASES.length > 1 ? [productionIndex] : [0];
     for(const index of indexes) {
+        const timeoutController = new AbortController();
+        const timeout = setTimeout(() => timeoutController.abort(), timeoutMs);
+        const signal = fetchOptions.signal
+            ? AbortSignal.any([fetchOptions.signal, timeoutController.signal])
+            : timeoutController.signal;
         try {
-            const response = await fetch(`${API_BASES[index]}${path}`, options);
-            activeApiBaseIndex = index;
+            const headers = new Headers(fetchOptions.headers);
+            if(authToken) headers.set("Authorization", `Bearer ${authToken}`);
+            const response = await fetch(`${API_BASES[index]}${path}`, {...fetchOptions, headers, signal});
             return response;
         } catch(error) {
-            if(error.name === "AbortError") throw error;
+            if(fetchOptions.signal?.aborted) throw error;
             lastError = error;
+        } finally {
+            clearTimeout(timeout);
         }
     }
     throw lastError || new Error("所有后端线路均不可用。");
+}
+
+function loadSelectedModel() {
+    try {
+        const saved = localStorage.getItem(MODEL_KEY);
+        return saved && MODEL_OPTIONS[saved] ? saved : "deepseek-v4-flash";
+    } catch(error) {
+        return "deepseek-v4-flash";
+    }
+}
+
+function updateModelSelection() {
+    elements.modelSelect.value = selectedModel;
+    elements.modelNetworkNotice.hidden = MODEL_OPTIONS[selectedModel].provider !== "openai";
+}
+
+async function selectModel(model) {
+    if(!MODEL_OPTIONS[model] || model === selectedModel) return;
+    if(activeController) activeController.abort();
+    selectedModel = model;
+    try { localStorage.setItem(MODEL_KEY, selectedModel); } catch(error) { /* Storage may be unavailable. */ }
+    updateModelSelection();
+    await checkService();
+}
+
+function loadAuthToken() {
+    try { return localStorage.getItem(AUTH_TOKEN_KEY) || ""; }
+    catch(error) { return ""; }
+}
+
+function saveAuthToken(token) {
+    authToken = token;
+    try {
+        if(token) localStorage.setItem(AUTH_TOKEN_KEY, token);
+        else localStorage.removeItem(AUTH_TOKEN_KEY);
+    } catch(error) { /* Storage may be unavailable. */ }
+}
+
+function updateQuota(quota = currentQuota) {
+    currentQuota = quota || currentQuota;
+    elements.quotaBadge.textContent = `今日剩余 ${currentQuota.remaining} / ${currentQuota.limit}`;
+}
+
+function showAuth(user, quota) {
+    currentUser = user;
+    elements.signedInEmail.textContent = user.email;
+    updateQuota(quota);
+    document.body.classList.remove("auth-pending", "auth-required");
+    document.body.classList.add("authenticated");
+}
+
+function requireAuth(message = "") {
+    currentUser = null;
+    document.body.classList.remove("auth-pending", "authenticated");
+    document.body.classList.add("auth-required");
+    elements.authError.textContent = message;
+    elements.authError.hidden = !message;
+}
+
+async function authRequest(path, options = {}) {
+    const headers = new Headers(options.headers);
+    headers.set("Accept", "application/json");
+    if(options.body) headers.set("Content-Type", "application/json");
+    if(authToken) headers.set("Authorization", `Bearer ${authToken}`);
+    const response = await fetch(`${AUTH_API_BASE}${path}`, {...options, headers});
+    let payload = {};
+    try { payload = await response.json(); } catch(error) { /* Handled below. */ }
+    if(!response.ok) throw Object.assign(new Error(payload.error || "登录服务暂时不可用。"), {status: response.status});
+    return payload;
+}
+
+async function initializeAuth() {
+    if(!authToken) {
+        requireAuth();
+        return;
+    }
+    try {
+        const payload = await authRequest("/auth/me");
+        showAuth(payload.user, payload.quota);
+        await checkService();
+    } catch(error) {
+        saveAuthToken("");
+        requireAuth(error.status === 401 ? "登录已过期，请重新登录。" : "暂时无法连接登录服务。请稍后重试。");
+    }
+}
+
+function showAuthError(message = "") {
+    elements.authError.textContent = message;
+    elements.authError.hidden = !message;
+}
+
+function startResendCountdown(seconds = 60) {
+    if(resendTimer) clearInterval(resendTimer);
+    let remaining = seconds;
+    elements.sendCodeButton.disabled = true;
+    elements.sendCodeButton.textContent = `${remaining} 秒后重发`;
+    resendTimer = setInterval(() => {
+        remaining -= 1;
+        if(remaining <= 0) {
+            clearInterval(resendTimer);
+            resendTimer = null;
+            elements.sendCodeButton.disabled = false;
+            elements.sendCodeButton.textContent = "重新发送";
+            return;
+        }
+        elements.sendCodeButton.textContent = `${remaining} 秒后重发`;
+    }, 1000);
+}
+
+async function sendEmailCode() {
+    if(!elements.authEmail.reportValidity()) return;
+    elements.sendCodeButton.disabled = true;
+    showAuthError();
+    try {
+        const payload = await authRequest("/auth/email-code", {
+            method: "POST",
+            body: JSON.stringify({email: elements.authEmail.value})
+        });
+        emailVerificationId = payload.verificationId;
+        elements.authEmail.readOnly = true;
+        elements.authCode.disabled = false;
+        elements.authSubmit.disabled = false;
+        elements.authCode.focus();
+        startResendCountdown(60);
+    } catch(error) {
+        showAuthError(error.message);
+        elements.sendCodeButton.disabled = false;
+    }
+}
+
+async function submitAuth(event) {
+    event.preventDefault();
+    elements.authSubmit.disabled = true;
+    elements.authError.hidden = true;
+    try {
+        if(!emailVerificationId) throw new Error("请先获取邮箱验证码。");
+        const payload = await authRequest("/auth/verify-email", {
+            method: "POST",
+            body: JSON.stringify({
+                verificationId: emailVerificationId,
+                code: elements.authCode.value,
+                displayName: elements.authDisplayName.value
+            })
+        });
+        saveAuthToken(payload.token);
+        showAuth(payload.user, payload.quota);
+        elements.authCode.value = "";
+        await checkService();
+    } catch(error) {
+        elements.authError.textContent = error.message;
+        elements.authError.hidden = false;
+    } finally {
+        elements.authSubmit.disabled = false;
+    }
+}
+
+async function logout() {
+    try { await authRequest("/auth/logout", {method: "POST"}); } catch(error) { /* Local logout still succeeds. */ }
+    saveAuthToken("");
+    requireAuth();
 }
 
 function loadConversation() {
@@ -102,10 +299,9 @@ function setConnection(status, text) {
 
 async function checkService() {
     try {
-        const response = await fetchApi("/health", {headers: {"Accept": "application/json"}});
+        const response = await fetchApi("/health", {headers: {"Accept": "application/json"}, timeoutMs: 4000});
         if(!response.ok) throw new Error("Service unavailable");
         const data = await response.json();
-        elements.modelName.textContent = data.model || "AI Assistant";
         if(data.configured) setConnection("online", "服务已连接");
         else setConnection("offline", "服务尚未配置");
     } catch(error) {
@@ -387,17 +583,26 @@ async function requestAssistant() {
             body: JSON.stringify({
                 messages: conversation.slice(-MAX_HISTORY),
                 conversationId,
-                messageId: lastUserMessage?.id
+                messageId: lastUserMessage?.id,
+                model: selectedModel
             }),
             signal: activeController.signal
         });
 
         if(!response.ok) {
             const message = await readError(response);
+            if(response.status === 401) {
+                saveAuthToken("");
+                requireAuth(message);
+            }
             const error = new Error(message);
             error.status = response.status;
             throw error;
         }
+        const remaining = Number(response.headers.get("X-Daily-Remaining"));
+        const limit = Number(response.headers.get("X-Daily-Limit"));
+        if(Number.isFinite(remaining) && Number.isFinite(limit))
+            updateQuota({limit, remaining, used: Math.max(0, limit - remaining)});
         if(!response.body) throw new Error("浏览器不支持流式响应。");
 
         const reader = response.body.getReader();
@@ -491,6 +696,13 @@ elements.form.addEventListener("submit", event => {
     event.preventDefault();
     sendMessage(elements.input.value);
 });
+elements.modelSelect.addEventListener("change", () => selectModel(elements.modelSelect.value));
+elements.authForm.addEventListener("submit", submitAuth);
+elements.sendCodeButton.addEventListener("click", sendEmailCode);
+elements.authEmail.addEventListener("input", () => {
+    if(!elements.authEmail.readOnly) emailVerificationId = "";
+});
+elements.logoutButton.addEventListener("click", logout);
 
 elements.input.addEventListener("input", updateComposerState);
 elements.input.addEventListener("keydown", event => {
@@ -517,6 +729,7 @@ for(const button of document.querySelectorAll(".suggestion")) {
     });
 }
 
+updateModelSelection();
 renderConversation();
 updateComposerState();
-checkService();
+initializeAuth();

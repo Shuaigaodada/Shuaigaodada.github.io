@@ -8,6 +8,10 @@ function createEnv(overrides = {}) {
         ALLOWED_ORIGINS: "https://shuaigaodada.github.io",
         OPENAI_SAFETY_SALT: "test-salt",
         API_RATE_LIMITER: {limit: async () => ({success: true})},
+        AUTH_SERVICE: {fetch: async () => Response.json({
+            user: {id: "test-user", email: "test@example.com", displayName: "Test"},
+            quota: {limit: 50, used: 1, remaining: 49}
+        })},
         ...overrides
     };
 }
@@ -73,7 +77,14 @@ test("Worker health and CORS only allow configured origins", async () => {
     }), env);
     assert.equal(allowed.status, 200);
     assert.equal(allowed.headers.get("Access-Control-Allow-Origin"), "https://shuaigaodada.github.io");
-    assert.deepEqual(await allowed.json(), {ok: true, configured: false, model: "gpt-5.6-luna", recording: false});
+    assert.deepEqual(await allowed.json(), {
+        ok: true,
+        configured: false,
+        model: "gpt-5.6-luna",
+        models: ["gpt-5.6-luna", "gpt-5-mini", "gpt-5-nano"],
+        provider: "openai",
+        recording: false
+    });
 
     const blocked = await handleRequest(new Request("https://worker.example/api/health", {
         headers: {Origin: "https://example.com"}
@@ -85,14 +96,14 @@ test("Worker health and CORS only allow configured origins", async () => {
 test("Worker enforces request validation and rate limiting", async () => {
     const invalid = await handleRequest(new Request("https://worker.example/api/chat", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: {"Content-Type": "application/json", Authorization: "Bearer test-session"},
         body: JSON.stringify({messages: []})
     }), createEnv({OPENAI_API_KEY: "test-key"}));
     assert.equal(invalid.status, 400);
 
     const limited = await handleRequest(new Request("https://worker.example/api/chat", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: {"Content-Type": "application/json", Authorization: "Bearer test-session"},
         body: JSON.stringify({messages: [{role: "user", content: "你好"}]})
     }), createEnv({
         OPENAI_API_KEY: "test-key",
@@ -120,7 +131,8 @@ test("Worker relays typed Responses API events as NDJSON", async t => {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "User-Agent": "test"
+            "User-Agent": "test",
+            Authorization: "Bearer test-session"
         },
         body: JSON.stringify({messages: [{role: "user", content: "打个招呼"}]})
     }), createEnv({OPENAI_API_KEY: "test-key"}));
@@ -148,7 +160,7 @@ test("Worker emits only one client error for a failed stream", async t => {
 
     const response = await handleRequest(new Request("https://worker.example/api/chat", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: {"Content-Type": "application/json", Authorization: "Bearer test-session"},
         body: JSON.stringify({messages: [{role: "user", content: "你好"}]})
     }), createEnv({OPENAI_API_KEY: "test-key"}));
 
@@ -172,7 +184,7 @@ test("Worker records one user message and protects admin listing and deletion", 
     const pending = [];
     const response = await handleRequest(new Request("https://worker.example/api/chat", {
         method: "POST",
-        headers: {"Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.1"},
+        headers: {"Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.1", Authorization: "Bearer test-session"},
         body: JSON.stringify({
             messages: [{role: "user", content: "请记录这条消息"}],
             conversationId: "conversation_1234",

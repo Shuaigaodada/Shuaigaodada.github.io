@@ -9,7 +9,26 @@
     <link rel="stylesheet" href="./style.css">
     <script src="./script.js" defer></script>
 </head>
-<body>
+<body class="auth-pending">
+    <section class="auth-gate" id="auth-gate" aria-labelledby="auth-title">
+        <div class="auth-card">
+            <a class="auth-brand" href="../../index.html"><span class="brand-mark">G</span><strong>GAO LAB</strong></a>
+            <p class="eyebrow">LAOGAO GPT</p>
+            <h1 id="auth-title">邮箱验证码登录</h1>
+            <p class="auth-copy" id="auth-copy">首次验证会自动创建账号，每个账号每天默认拥有 50 次对话额度。</p>
+            <form class="auth-form" id="auth-form">
+                <label>邮箱<input id="auth-email" type="email" maxlength="254" autocomplete="email" required placeholder="name@example.com"></label>
+                <div class="verification-row">
+                    <label>验证码<input id="auth-code" type="text" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" pattern="[0-9]{6}" required disabled placeholder="6 位验证码"></label>
+                    <button class="code-button" id="send-code-button" type="button">获取验证码</button>
+                </div>
+                <label>昵称（首次登录选填）<input id="auth-display-name" type="text" maxlength="30" autocomplete="nickname" placeholder="你的昵称"></label>
+                <p class="auth-error" id="auth-error" role="alert" hidden></p>
+                <button class="auth-submit" id="auth-submit" type="submit" disabled>验证并登录</button>
+            </form>
+            <p class="auth-hint">验证码 10 分钟内有效，60 秒后可重新发送。</p>
+        </div>
+    </section>
     <div class="app-shell">
         <aside class="sidebar" id="sidebar" aria-label="对话导航">
             <div class="sidebar-top">
@@ -36,6 +55,7 @@
             </div>
 
             <div class="sidebar-footer">
+                <div class="signed-in-user"><span id="signed-in-email"></span><button id="logout-button" type="button">退出</button></div>
                 <div class="connection-state">
                     <span class="status-dot" id="status-dot" aria-hidden="true"></span>
                     <span id="connection-text">正在检查服务</span>
@@ -55,8 +75,21 @@
                     <h1>Laogao GPT</h1>
                     <p>你的灵感与编程助手</p>
                 </div>
-                <span class="model-badge"><span></span><b id="model-name">AI Assistant</b></span>
+                <label class="model-picker" for="model-select">
+                    <span aria-hidden="true"></span>
+                    <select id="model-select" aria-label="选择 AI 模型">
+                        <option value="deepseek-v4-flash">DeepSeek V4 Flash</option>
+                        <option value="gpt-5.6-luna">ChatGPT · GPT-5.6 Luna</option>
+                        <option value="gpt-5-mini">ChatGPT · GPT-5 Mini</option>
+                        <option value="gpt-5-nano">ChatGPT · GPT-5 Nano</option>
+                    </select>
+                </label>
+                <span class="quota-badge" id="quota-badge">今日剩余 -- / 50</span>
             </header>
+
+            <p class="model-network-notice" id="model-network-notice" role="status" hidden>
+                ChatGPT 需要启用 VPN 或使用海外网络环境才可连接；中国大陆网络请使用 DeepSeek。
+            </p>
 
             <div class="messages" id="messages" role="log" aria-live="polite" aria-label="聊天消息">
                 <section class="welcome" id="welcome">

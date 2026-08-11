@@ -38,6 +38,7 @@ input { width: 100%; min-width: 0; padding: 11px 13px; color: var(--text); backg
 .token-row input { flex: 1; }
 .form-error { margin-top: 10px !important; color: var(--danger) !important; }
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 28px 0; }
+.stats-grid.two-columns { grid-template-columns: repeat(2, 1fr); }
 .stats-grid article { padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
 .stats-grid span { display: block; color: var(--muted); font-size: 12px; }
 .stats-grid strong { display: block; margin-top: 8px; font-size: 30px; line-height: 1; }
@@ -54,13 +55,32 @@ input { width: 100%; min-width: 0; padding: 11px 13px; color: var(--text); backg
 .notice, .loading, .empty-state { margin: 18px 0; padding: 18px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; text-align: center; }
 .notice { color: #ffd4cf; border-color: rgba(255, 138, 128, .25); }
 .pagination { justify-content: center; margin-top: 24px; color: var(--muted); }
+.dashboard-tabs { display: flex; gap: 8px; margin-top: 28px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.tab-button { padding: 9px 14px; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 10px; font-weight: 750; cursor: pointer; }
+.tab-button.active { color: #11150b; background: var(--accent); }
+.user-list { display: grid; gap: 12px; }
+.user-card { padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 15px; }
+.user-card.disabled { border-color: rgba(255, 138, 128, .28); }
+.user-heading, .user-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.user-heading strong { overflow-wrap: anywhere; }
+.user-heading span { color: var(--muted); font-size: 12px; }
+.user-fields { display: grid; grid-template-columns: minmax(180px, 1.4fr) repeat(2, minmax(110px, .6fr)); gap: 12px; margin: 16px 0; }
+.user-fields label { display: grid; gap: 6px; color: var(--muted); font-size: 11px; }
+.user-fields input { color: var(--text); }
+.user-actions { justify-content: flex-end; padding-top: 13px; border-top: 1px solid rgba(255,255,255,.06); }
+.danger-button { padding: 9px 12px; color: var(--danger); background: rgba(255, 138, 128, .08); border: 1px solid rgba(255, 138, 128, .18); border-radius: 9px; font-weight: 700; cursor: pointer; }
+.status-pill { padding: 4px 8px; color: #d8f9a9; background: rgba(184, 242, 106, .08); border-radius: 999px; font-size: 11px; }
+.status-pill.disabled { color: #ffd4cf; background: rgba(255, 138, 128, .1); }
 
 @media (max-width: 650px) {
     .admin-shell { width: min(100% - 24px, 1120px); padding-top: 22px; }
     .admin-header { align-items: flex-start; }
     .header-actions { flex-direction: column; }
     .stats-grid { grid-template-columns: 1fr; }
+    .stats-grid.two-columns { grid-template-columns: 1fr; }
     .toolbar { align-items: stretch; flex-direction: column; }
     .token-row, .search-form { align-items: stretch; flex-direction: column; }
     .message-meta { align-items: flex-start; flex-direction: column; gap: 3px; }
+    .user-heading, .user-actions { align-items: stretch; flex-direction: column; }
+    .user-fields { grid-template-columns: 1fr; }
 }
