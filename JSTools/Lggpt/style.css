@@ -34,6 +34,9 @@ body {
 .auth-card h1 { margin: 0; font-size: 34px; letter-spacing: -.04em; }
 .auth-copy { margin: 10px 0 24px; color: var(--muted); }
 .auth-form { display: grid; gap: 15px; }
+.auth-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; }
+.auth-method { padding: 9px; color: var(--muted); background: transparent; border: 0; border-radius: 8px; font-size: 13px; font-weight: 750; cursor: pointer; }
+.auth-method.active { color: var(--accent-dark); background: var(--accent); }
 .auth-form label { display: grid; gap: 7px; color: #c8cbd1; font-size: 12px; font-weight: 650; }
 .auth-form input { width: 100%; padding: 12px 13px; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; outline: 0; }
 .auth-form input:focus { border-color: rgba(184, 242, 106, .5); box-shadow: 0 0 0 3px rgba(184, 242, 106, .06); }
