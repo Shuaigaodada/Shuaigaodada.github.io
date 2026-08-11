@@ -2,7 +2,7 @@ export const MAINLAND_SERVER = "https://laogao-gpt-proxy-295046-9-1403518541.sh.
 export const GLOBAL_SERVER = "https://game-api.laogao.online";
 export const DEFAULT_SERVER = MAINLAND_SERVER;
 export const UNIFIED_AUTH_SERVER = "https://laogao-gpt-proxy-295046-9-1403518541.sh.run.tcloudbase.com/api";
-const ROUTE_CACHE_KEY = "blackjack-region-route-v1";
+const ROUTE_CACHE_KEY = "blackjack-region-route-v2";
 const ROUTE_CACHE_MS = 5 * 60_000;
 
 export function getGameServer() {
