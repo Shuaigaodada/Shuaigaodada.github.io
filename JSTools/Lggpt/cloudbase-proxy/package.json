@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test blackjack-engine.test.mjs"
+    "test": "node --test *.test.mjs"
   },
   "engines": {
     "node": ">=20"

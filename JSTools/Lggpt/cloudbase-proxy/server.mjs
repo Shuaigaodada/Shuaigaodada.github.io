@@ -4,6 +4,7 @@ import {createHash, randomBytes, randomUUID, timingSafeEqual} from "node:crypto"
 import cloudbase from "@cloudbase/node-sdk";
 import {WebSocket, WebSocketServer} from "ws";
 import {MainlandBlackjackEngine} from "./blackjack-engine.mjs";
+import {callCloudBaseRpc} from "./cloudbase-rpc.mjs";
 
 const PORT = Number.parseInt(process.env.PORT || "8080", 10);
 const ENV_ID = process.env.TCB_ENV_ID || "laogao-github-pages-d4bk62ce3432";
@@ -652,14 +653,18 @@ async function handleMainlandBlackjack(request, response, url, origin) {
         if(!mainlandBlackjack.isValidTable(tableId)) return sendJson(response, 403, {message: "该牌桌尚未开放。"}, origin);
         const body = await readJson(request);
         const latency = value => Math.min(10_000, Math.max(1, Math.round(Number(value) || 10_000)));
-        const result = await getDatabase().rpc("claim_blackjack_table_route", {
-            p_table_id: tableId,
-            p_user_id: user.id,
-            p_tencent_ms: latency(body?.latencies?.tencent),
-            p_cloudflare_ms: latency(body?.latencies?.cloudflare)
+        const route = await callCloudBaseRpc({
+            envId: ENV_ID,
+            apiKey: process.env.CLOUDBASE_APIKEY,
+            functionName: "claim_blackjack_table_route",
+            params: {
+                p_table_id: tableId,
+                p_user_id: user.id,
+                p_tencent_ms: latency(body?.latencies?.tencent),
+                p_cloudflare_ms: latency(body?.latencies?.cloudflare)
+            }
         });
-        if(result.error) throw new Error(result.error.message || "无法分配牌桌区域。");
-        return sendJson(response, 200, result.data, origin);
+        return sendJson(response, 200, route, origin);
     }
 
     if(path === "/api/auth/sso" && request.method === "POST") {

@@ -29,6 +29,21 @@ async function jsonRequest(url: string, options: RequestInit = {}) {
   return body;
 }
 
+async function timedJsonRequest(url: string, options: RequestInit = {}, timeoutMs = 4_000) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await jsonRequest(url, { ...options, signal: controller.signal });
+  } catch (requestError) {
+    if ((requestError as { name?: string })?.name === "AbortError") {
+      throw new Error("线路服务器响应超时，请重试。");
+    }
+    throw requestError;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 export function LobbyScreen({ onEnterTable }: LobbyScreenProps) {
   const [error, setError] = useState("");
   const [user, setUser] = useState<User | null>(null);
@@ -136,7 +151,7 @@ export function LobbyScreen({ onEnterTable }: LobbyScreenProps) {
     try {
       const latencies = await probeGameRegions();
       for (let attempt = 0; attempt < 12; attempt += 1) {
-        const route = await jsonRequest(`${MAINLAND_SERVER}/api/lobby/tables/${tableId}/join`, {
+        const route = await timedJsonRequest(`${MAINLAND_SERVER}/api/lobby/tables/${tableId}/join`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${sharedToken}` },
           body: JSON.stringify({ latencies }),
