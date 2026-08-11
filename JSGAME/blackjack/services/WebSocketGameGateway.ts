@@ -127,7 +127,11 @@ export class WebSocketGameGateway implements GameGateway {
     socket.addEventListener("close", () => {
       this.handleSocketFailure(socket, ticket);
     });
-    socket.addEventListener("error", () => this.update({ ...this.state, message: "无法连接游戏服务器，请稍后重试。" }));
+    socket.addEventListener("error", () => {
+      this.update({ ...this.state, message: "实时线路不可用，正在切换备用线路…" });
+      this.handleSocketFailure(socket, ticket);
+      try { socket.close(); } catch { /* Older browsers can reject close() while CONNECTING. */ }
+    });
   }
 
   private handleSocketFailure(socket: WebSocket, ticket: string) {
@@ -136,14 +140,14 @@ export class WebSocketGameGateway implements GameGateway {
     this.connectDeadline = null;
     this.socket = null;
     this.webSocketFailures += 1;
-    if (this.webSocketFailures >= 2 && this.apiBaseUrl !== MAINLAND_SERVER) {
+    if (this.webSocketFailures >= 1 && this.apiBaseUrl !== MAINLAND_SERVER) {
       this.routeOverride = MAINLAND_SERVER;
       this.apiBaseUrl = MAINLAND_SERVER;
       this.socketBaseUrl = MAINLAND_SERVER.replace(/^http/, "ws");
       this.scheduleReconnect();
       return;
     }
-    if (this.webSocketFailures >= 2 && this.apiBaseUrl === MAINLAND_SERVER) {
+    if (this.webSocketFailures >= 1 && this.apiBaseUrl === MAINLAND_SERVER) {
       void this.startPollingFallback(ticket);
       return;
     }
