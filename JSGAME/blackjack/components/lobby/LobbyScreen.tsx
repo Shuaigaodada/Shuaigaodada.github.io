@@ -3,7 +3,7 @@ import {
   clearAuthToken, clearUnifiedAuthToken, getAuthToken, getUnifiedAuthToken,
   setAuthToken, setUnifiedAuthToken,
 } from "../../services/authSession";
-import { getGameServer, UNIFIED_AUTH_SERVER } from "../../services/serverConfig";
+import { getGameServer, getTableAuthority, UNIFIED_AUTH_SERVER } from "../../services/serverConfig";
 
 interface LobbyScreenProps { onEnterTable: (tableId: string) => void; }
 interface User { account: string; displayName: string; email: string; bankroll: number; playSeconds: number; avatarData?: string | null; }
@@ -161,7 +161,8 @@ export function LobbyScreen({ onEnterTable }: LobbyScreenProps) {
       <section className="lobby-grid">
         {Array.from({ length: TABLE_CAPACITY }, (_, index) => {
           const number = index + 1; const open = number <= OPEN_TABLES;
-          return <button className={`lobby-table ${open ? "is-open" : "is-reserved"}`} disabled={!open || !user} onClick={() => onEnterTable(`table-${number}`)} key={number}><span className="lobby-table__number">{String(number).padStart(2, "0")}</span><span className="lobby-table__felt"><i>21</i></span><strong>{open ? "进入牌桌" : "预留桌位"}</strong><small>{open ? "最多 2 名玩家" : "即将开放"}</small></button>;
+          const tableId = `table-${number}`; const authority = getTableAuthority(tableId);
+          return <button className={`lobby-table ${open ? "is-open" : "is-reserved"}`} disabled={!open || !user} onClick={() => onEnterTable(tableId)} key={number}><span className="lobby-table__number">{String(number).padStart(2, "0")}</span>{open && <span className={`lobby-table__region is-${authority}`}>{authority === "tencent" ? "国内桌" : "海外桌"}</span>}<span className="lobby-table__felt"><i>21</i></span><strong>{open ? "进入牌桌" : "预留桌位"}</strong><small>{open ? "最多 2 名玩家" : "即将开放"}</small></button>;
         })}
       </section>
     </main>

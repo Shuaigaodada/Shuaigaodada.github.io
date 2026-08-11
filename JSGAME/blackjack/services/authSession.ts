@@ -1,4 +1,5 @@
 const GAME_TOKEN_KEY = "blackjack-auth-token";
+const GLOBAL_GAME_TOKEN_KEY = "blackjack-auth-token-global";
 const SHARED_TOKEN_KEY = "gao-lab-auth-token-v1";
 const LEGACY_SHARED_TOKEN_KEY = "laogao-gpt-auth-token-v1";
 const SHARED_COOKIE = "gao_lab_session";
@@ -55,5 +56,23 @@ export function setAuthToken(token: string) {
 
 export function clearAuthToken() {
   sessionStorage.removeItem(GAME_TOKEN_KEY);
+  sessionStorage.removeItem(GLOBAL_GAME_TOKEN_KEY);
   localStorage.removeItem(GAME_TOKEN_KEY);
+  localStorage.removeItem(GLOBAL_GAME_TOKEN_KEY);
+}
+
+function regionalTokenKey(server: string) {
+  return server.includes("game-api.laogao.online") ? GLOBAL_GAME_TOKEN_KEY : GAME_TOKEN_KEY;
+}
+
+export function getRegionalAuthToken(server: string) {
+  return sessionStorage.getItem(regionalTokenKey(server));
+}
+
+export function setRegionalAuthToken(server: string, token: string) {
+  sessionStorage.setItem(regionalTokenKey(server), token);
+}
+
+export function clearRegionalAuthToken(server: string) {
+  sessionStorage.removeItem(regionalTokenKey(server));
 }

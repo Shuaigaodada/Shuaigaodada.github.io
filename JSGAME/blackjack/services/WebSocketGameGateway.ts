@@ -1,6 +1,8 @@
 import type { GameCommand, GameGateway, GameState, Player, PlayingCard } from "../game/contracts/types";
-import { getAuthToken } from "./authSession";
-import { getGameServer, MAINLAND_SERVER, selectGameServer } from "./serverConfig";
+import {
+  clearRegionalAuthToken, getRegionalAuthToken, getUnifiedAuthToken, setRegionalAuthToken,
+} from "./authSession";
+import { getGameServer, selectGameServer } from "./serverConfig";
 
 interface RemotePlayer {
   id: string;
@@ -77,7 +79,6 @@ export class WebSocketGameGateway implements GameGateway {
   private apiBaseUrl: string;
   private socketBaseUrl: string;
   private webSocketFailures = 0;
-  private routeOverride: string | null = null;
 
   constructor(tableId = "demo-table") {
     this.tableId = tableId;
@@ -93,18 +94,44 @@ export class WebSocketGameGateway implements GameGateway {
   private async connect() {
     if (this.disposed) return;
     if (!this.polling) {
-      this.apiBaseUrl = this.routeOverride ?? await selectGameServer();
+      this.apiBaseUrl = await selectGameServer(this.tableId);
       this.socketBaseUrl = this.apiBaseUrl.replace(/^http/, "ws");
     }
-    const authToken = getAuthToken();
+    let authToken = getRegionalAuthToken(this.apiBaseUrl);
     let ticket = "";
+    const requestTicket = async (token: string) => fetch(`${this.apiBaseUrl}/api/auth/ws-ticket`, {
+      method: "POST", headers: { Authorization: `Bearer ${token}` },
+    });
     if (authToken) {
       try {
-        const response = await fetch(`${this.apiBaseUrl}/api/auth/ws-ticket`, { method: "POST", headers: { Authorization: `Bearer ${authToken}` } });
-        if (response.ok) ticket = String((await response.json() as { ticket: string }).ticket);
+        let response = await requestTicket(authToken);
+        if (!response.ok) {
+          clearRegionalAuthToken(this.apiBaseUrl);
+          authToken = null;
+        } else ticket = String((await response.json() as { ticket: string }).ticket);
       } catch {
         this.scheduleReconnect();
         return;
+      }
+    }
+    if (!authToken) {
+      const sharedToken = getUnifiedAuthToken();
+      if (sharedToken) {
+        try {
+          const exchange = await fetch(`${this.apiBaseUrl}/api/auth/sso`, {
+            method: "POST", headers: { Authorization: `Bearer ${sharedToken}`, Accept: "application/json" },
+          });
+          if (!exchange.ok) throw new Error("regional session exchange failed");
+          authToken = String((await exchange.json() as { token: string }).token);
+          setRegionalAuthToken(this.apiBaseUrl, authToken);
+          const response = await requestTicket(authToken);
+          if (!response.ok) throw new Error("regional ticket request failed");
+          ticket = String((await response.json() as { ticket: string }).ticket);
+        } catch {
+          this.update({ ...this.state, message: "登录状态同步失败，请返回大厅重新登录。" });
+          this.scheduleReconnect();
+          return;
+        }
       }
     }
     if (this.disposed) return;
@@ -140,14 +167,9 @@ export class WebSocketGameGateway implements GameGateway {
     this.connectDeadline = null;
     this.socket = null;
     this.webSocketFailures += 1;
-    if (this.webSocketFailures >= 1 && this.apiBaseUrl !== MAINLAND_SERVER) {
-      this.routeOverride = MAINLAND_SERVER;
-      this.apiBaseUrl = MAINLAND_SERVER;
-      this.socketBaseUrl = MAINLAND_SERVER.replace(/^http/, "ws");
-      this.scheduleReconnect();
-      return;
-    }
-    if (this.webSocketFailures >= 1 && this.apiBaseUrl === MAINLAND_SERVER) {
+    if (this.webSocketFailures >= 1) {
+      // The table authority is fixed for the whole match. Falling back to the
+      // other region would create a second table with the same visible number.
       void this.startPollingFallback(ticket);
       return;
     }
