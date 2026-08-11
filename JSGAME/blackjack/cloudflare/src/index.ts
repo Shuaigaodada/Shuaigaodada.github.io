@@ -22,6 +22,7 @@ interface UserRow {
   id: string; account: string; email: string; displayName: string; avatarData: string | null;
   bankroll: number; playSeconds: number; password_hash?: string; password_salt?: string;
 }
+interface UnifiedUser { id: string; email?: string | null; phoneNumber?: string | null; displayName?: string | null; disabled?: boolean; }
 
 const CHIP_START = 500;
 const BOT_BANKROLL = Number.MAX_SAFE_INTEGER;
@@ -91,6 +92,46 @@ async function authenticated(request: Request, env: AppEnv) {
   return env.blackjack_users.prepare("SELECT u.id, u.account, u.email, u.display_name AS displayName, u.avatar_data AS avatarData, u.bankroll, u.play_seconds AS playSeconds FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>?")
     .bind(await digest(token), Date.now()).first<UserRow>();
 }
+async function unifiedUser(request: Request, env: AppEnv) {
+  const token = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
+  if (!token) return null;
+  const result = await fetch(`${env.AUTH_SERVICE_URL}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  if (!result.ok) return null;
+  const payload = await result.json<{ user?: UnifiedUser }>();
+  return payload.user && !payload.user.disabled ? payload.user : null;
+}
+
+async function exchangeUnifiedSession(request: Request, env: AppEnv) {
+  const identity = await unifiedUser(request, env);
+  if (!identity) return response(request, env, { message: "统一登录已过期，请重新登录。" }, 401);
+  const externalId = String(identity.id);
+  const accountSuffix = externalId.replace(/[^a-zA-Z0-9]/g, "").slice(-18) || crypto.randomUUID().replaceAll("-", "").slice(0, 18);
+  const account = `gao_${accountSuffix}`;
+  const email = identity.email?.trim().toLowerCase() || `${account}@phone.gao.local`;
+  const displayName = identity.displayName?.trim().slice(0, 20) || identity.email?.split("@")[0] || identity.phoneNumber || "GAO 玩家";
+  let user = await env.blackjack_users.prepare("SELECT id,account,email,display_name AS displayName,avatar_data AS avatarData,bankroll,play_seconds AS playSeconds FROM users WHERE external_auth_id=?")
+    .bind(externalId).first<UserRow>();
+  if (!user && identity.email) {
+    user = await env.blackjack_users.prepare("SELECT id,account,email,display_name AS displayName,avatar_data AS avatarData,bankroll,play_seconds AS playSeconds FROM users WHERE email=?")
+      .bind(email).first<UserRow>();
+    if (user) await env.blackjack_users.prepare("UPDATE users SET external_auth_id=?,display_name=? WHERE id=?").bind(externalId, displayName, user.id).run();
+  }
+  if (!user) {
+    const id = crypto.randomUUID();
+    await env.blackjack_users.prepare("INSERT INTO users (id,account,email,password_hash,password_salt,display_name,avatar_data,bankroll,created_at,external_auth_id) VALUES (?,?,?,?,?,?,?,?,?,?)")
+      .bind(id, account, email, "unified-auth", "unified-auth", displayName, null, CHIP_START, Date.now(), externalId).run();
+    user = await env.blackjack_users.prepare("SELECT id,account,email,display_name AS displayName,avatar_data AS avatarData,bankroll,play_seconds AS playSeconds FROM users WHERE id=?").bind(id).first<UserRow>();
+  }
+  if (!user) return response(request, env, { message: "无法创建游戏账号。" }, 500);
+  const token = bytes(crypto.getRandomValues(new Uint8Array(32)));
+  await env.blackjack_users.batch([
+    env.blackjack_users.prepare("DELETE FROM sessions WHERE expires_at<=?").bind(Date.now()),
+    env.blackjack_users.prepare("INSERT INTO sessions (token_hash,user_id,expires_at) VALUES (?,?,?)").bind(await digest(token), user.id, Date.now() + 30 * 86400_000),
+  ]);
+  return response(request, env, { token, user: publicUser(user) });
+}
 async function enforceAuthRateLimit(request: Request, env: AppEnv) {
   const key = request.headers.get("CF-Connecting-IP") ?? "local";
   const now = Date.now();
@@ -105,6 +146,10 @@ async function enforceAuthRateLimit(request: Request, env: AppEnv) {
 }
 async function authApi(request: Request, env: AppEnv, path: string) {
   if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders(request, env) });
+  if (path === "/api/auth/sso") {
+    if (request.method !== "POST") return response(request, env, { message: "Method not allowed" }, 405);
+    return exchangeUnifiedSession(request, env);
+  }
   if (path === "/api/auth/me") {
     if (request.method !== "GET") return response(request, env, { message: "Method not allowed" }, 405);
     const user = await authenticated(request, env);
@@ -295,7 +340,7 @@ export class BlackjackTable extends DurableObject<AppEnv> {
     const requestedTableId = url.searchParams.get("table_id");
     if (requestedTableId && !this.table!.tableId) this.table!.tableId = requestedTableId;
     const clientId = url.searchParams.get("client_id");
-    if (url.pathname === "/state") return Response.json(this.stateFor(null));
+    if (url.pathname === "/state") return Response.json(this.stateFor(clientId));
     if (url.pathname === "/ws") {
       if (request.headers.get("Upgrade") !== "websocket" || !clientId) return new Response("WebSocket required", { status: 400 });
       const pair = new WebSocketPair();
@@ -669,7 +714,7 @@ async function handleRequest(request: Request, env: AppEnv): Promise<Response> {
     if (request.method === "OPTIONS") return new Response(null, { headers: accessHeaders });
     if (url.pathname === "/health") return response(request, env, { status: "ok" });
     if (url.pathname === LGGPT_GATEWAY_PREFIX || url.pathname.startsWith(`${LGGPT_GATEWAY_PREFIX}/`)) return lggptGateway(request, env, url);
-    if (["/api/auth/me", "/api/auth/profile", "/api/auth/login", "/api/auth/register", "/api/auth/claim-bankroll", "/api/auth/ws-ticket", "/api/auth/logout"].includes(url.pathname)) return authApi(request, env, url.pathname);
+    if (["/api/auth/sso", "/api/auth/me", "/api/auth/profile", "/api/auth/login", "/api/auth/register", "/api/auth/claim-bankroll", "/api/auth/ws-ticket", "/api/auth/logout"].includes(url.pathname)) return authApi(request, env, url.pathname);
     const match = url.pathname.match(/^\/(?:api\/)?tables\/([^/]+)\/(state|command)$/) ?? url.pathname.match(/^\/ws\/tables\/([^/]+)$/);
     if (!match) return new Response("Not found", { status: 404 });
     const tableId = decodeURIComponent(match[1]);

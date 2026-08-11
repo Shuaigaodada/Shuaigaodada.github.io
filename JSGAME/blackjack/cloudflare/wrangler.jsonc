@@ -5,7 +5,8 @@
 	"compatibility_date": "2026-08-08",
 	"compatibility_flags": ["nodejs_compat"],
 	"vars": {
-		"ALLOWED_ORIGINS": "https://shuaigaodada.github.io,http://localhost:5173,http://127.0.0.1:5173"
+		"ALLOWED_ORIGINS": "https://shuaigaodada.github.io,http://localhost:5173,http://127.0.0.1:5173",
+		"AUTH_SERVICE_URL": "https://laogao-gpt-proxy-295046-9-1403518541.sh.run.tcloudbase.com"
 	},
 	"observability": {
 		"enabled": true,
