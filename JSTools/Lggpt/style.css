@@ -144,6 +144,9 @@ button, a, textarea { -webkit-tap-highlight-color: transparent; }
 .conversation-icon { width: 7px; height: 7px; flex: none; background: var(--accent); border-radius: 50%; box-shadow: 0 0 0 4px rgba(184, 242, 106, .1); }
 .conversation-item span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-footer { margin-top: auto; padding: 18px 10px 2px; color: #707683; border-top: 1px solid var(--line); font-size: 12px; }
+.donate-button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 0 0 15px; padding: 9px 12px; color: #d8f9a9; background: rgba(184, 242, 106, .07); border: 1px solid rgba(184, 242, 106, .2); border-radius: 9px; font-weight: 750; cursor: pointer; }
+.donate-button:hover { color: var(--accent-dark); background: var(--accent); }
+.donate-button span { font-size: 17px; line-height: 1; }
 .connection-state { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; color: var(--muted); }
 .status-dot { width: 7px; height: 7px; background: #d2a64e; border-radius: 50%; box-shadow: 0 0 0 4px rgba(210, 166, 78, .1); }
 .status-dot.online { background: var(--accent); box-shadow: 0 0 0 4px rgba(184, 242, 106, .1); }
@@ -240,6 +243,14 @@ button, a, textarea { -webkit-tap-highlight-color: transparent; }
 .error-banner[hidden] { display: none; }
 .error-banner button { flex: none; padding: 4px 9px; color: #ffd4cf; background: rgba(255, 255, 255, .07); border: 0; border-radius: 6px; cursor: pointer; }
 
+.donate-modal { position: fixed; z-index: 90; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: grid; place-items: center; padding: 20px; overflow-y: auto; background: rgba(3, 5, 8, .78); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.donate-card { position: relative; width: min(100%, 410px); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); padding: 27px; overflow-y: auto; color: var(--text); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 22px; box-shadow: 0 30px 90px rgba(0, 0, 0, .55); text-align: center; }
+.donate-card h2 { margin: 0; font-size: 28px; letter-spacing: -.03em; }
+.donate-copy { margin: 7px 0 18px; color: var(--muted); font-size: 13px; }
+.donate-card img { display: block; width: 100%; height: auto; max-height: calc(100vh - 190px); max-height: calc(100dvh - 190px); margin: 0 auto; object-fit: contain; border-radius: 14px; }
+.donate-close { position: absolute; top: 13px; right: 13px; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; color: var(--muted); background: rgba(255, 255, 255, .05); border: 1px solid var(--line); border-radius: 9px; font-size: 22px; line-height: 1; cursor: pointer; }
+.donate-close:hover { color: var(--text); background: var(--surface-hover); }
+
 @media (max-width: 760px) {
     .app-shell { display: block; }
     .sidebar { position: fixed; inset: 0 auto 0 0; width: min(86vw, 310px); transform: translateX(-102%); transition: transform .25s ease; box-shadow: 24px 0 70px rgba(0, 0, 0, .45); }
@@ -267,6 +278,8 @@ button, a, textarea { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 420px) {
     .character-count { display: none; }
     .model-picker select { max-width: 112px; }
+    .donate-modal { padding: 10px; }
+    .donate-card { padding: 24px 16px 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

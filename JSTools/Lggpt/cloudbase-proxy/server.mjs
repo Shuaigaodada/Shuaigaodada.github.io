@@ -11,7 +11,8 @@ const DEFAULT_DAILY_QUOTA = 50;
 const MAX_DAILY_QUOTA = 500;
 const SESSION_DAYS = 30;
 const MAX_MESSAGES = 20;
-const MAX_CONTENT_LENGTH = 4000;
+const MAX_USER_CONTENT_LENGTH = 4000;
+const MAX_ASSISTANT_CONTENT_LENGTH = 12000;
 const EMAIL_CODE_TTL_SECONDS = 600;
 const CLOUDBASE_AUTH_URL = `https://${ENV_ID}.api.tcloudbasegateway.com/auth/v1`;
 const ALLOWED_ORIGINS = new Set([
@@ -115,8 +116,9 @@ function validateMessages(input) {
         if(!message || !["user", "assistant"].includes(message.role) || typeof message.content !== "string")
             throw Object.assign(new Error("消息格式不正确。"), {status: 400});
         const content = message.content.trim();
-        if(!content || content.length > MAX_CONTENT_LENGTH)
-            throw Object.assign(new Error(`单条消息必须为 1 到 ${MAX_CONTENT_LENGTH} 个字符。`), {status: 400});
+        const contentLimit = message.role === "assistant" ? MAX_ASSISTANT_CONTENT_LENGTH : MAX_USER_CONTENT_LENGTH;
+        if(!content || content.length > contentLimit)
+            throw Object.assign(new Error(`${message.role === "assistant" ? "AI 历史回复" : "用户消息"}必须为 1 到 ${contentLimit} 个字符。`), {status: 400});
         return {role: message.role, content};
     });
     if(messages.at(-1).role !== "user")

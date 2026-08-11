@@ -3,10 +3,11 @@ const DEFAULT_MODEL = "gpt-5.6-luna";
 const ALLOWED_MODELS = new Set(["gpt-5.6-luna", "gpt-5-mini", "gpt-5-nano"]);
 const DEFAULT_AUTH_SERVICE_URL = "https://laogao-gpt-proxy-295046-9-1403518541.sh.run.tcloudbase.com";
 const DEFAULT_ALLOWED_ORIGINS = "https://shuaigaodada.github.io";
-const MAX_BODY_BYTES = 40 * 1024;
+const MAX_BODY_BYTES = 96 * 1024;
 const MAX_MESSAGES = 20;
-const MAX_MESSAGE_LENGTH = 4000;
-const MAX_TOTAL_LENGTH = 24000;
+const MAX_USER_MESSAGE_LENGTH = 4000;
+const MAX_ASSISTANT_MESSAGE_LENGTH = 12000;
+const MAX_TOTAL_LENGTH = 32000;
 const MAX_ADMIN_PAGE_SIZE = 100;
 const RECORD_ID_PATTERN = /^[a-zA-Z0-9_-]{8,64}$/;
 
@@ -128,8 +129,9 @@ export function validateMessages(value) {
             return {error: "消息格式不正确。"};
 
         const content = message.content.trim();
-        if(!content || content.length > MAX_MESSAGE_LENGTH)
-            return {error: `每条消息必须在 1 到 ${MAX_MESSAGE_LENGTH} 个字符之间。`};
+        const messageLimit = message.role === "assistant" ? MAX_ASSISTANT_MESSAGE_LENGTH : MAX_USER_MESSAGE_LENGTH;
+        if(!content || content.length > messageLimit)
+            return {error: `${message.role === "assistant" ? "AI 历史回复" : "用户消息"}必须在 1 到 ${messageLimit} 个字符之间。`};
 
         totalLength += content.length;
         if(totalLength > MAX_TOTAL_LENGTH)

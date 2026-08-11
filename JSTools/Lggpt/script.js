@@ -6,6 +6,8 @@ const IS_LOCAL_PREVIEW = ["localhost", "127.0.0.1"].includes(location.hostname);
 const API_BASES = IS_LOCAL_PREVIEW ? ["/api"] : PRODUCTION_API_BASES;
 const AUTH_API_BASE = API_BASES.length > 1 ? API_BASES[1] : API_BASES[0];
 const MAX_HISTORY = 20;
+const MAX_REQUEST_HISTORY_LENGTH = 30000;
+const MAX_ASSISTANT_HISTORY_LENGTH = 12000;
 const STORAGE_KEY = "laogao-gpt-session-v2";
 const CONVERSATION_ID_KEY = "laogao-gpt-conversation-id-v1";
 const MODEL_KEY = "laogao-gpt-model-v1";
@@ -54,7 +56,10 @@ const elements = {
     sidebar: document.getElementById("sidebar"),
     sidebarBackdrop: document.getElementById("sidebar-backdrop"),
     openSidebar: document.getElementById("open-sidebar"),
-    closeSidebar: document.getElementById("close-sidebar")
+    closeSidebar: document.getElementById("close-sidebar"),
+    openDonate: document.getElementById("open-donate"),
+    closeDonate: document.getElementById("close-donate"),
+    donateModal: document.getElementById("donate-modal")
 };
 
 let conversation = loadConversation();
@@ -316,6 +321,30 @@ function loadConversation() {
     } catch(error) {
         return [];
     }
+}
+
+function createRequestMessages() {
+    const messages = [];
+    let remaining = MAX_REQUEST_HISTORY_LENGTH;
+    const recent = conversation.slice(-MAX_HISTORY);
+
+    for(let index = recent.length - 1; index >= 0 && remaining > 0; index--) {
+        const message = recent[index];
+        let content = message.content.trim();
+        const perMessageLimit = message.role === "assistant" ? MAX_ASSISTANT_HISTORY_LENGTH : 4000;
+        if(content.length > perMessageLimit) {
+            const marker = "\n\n…（较早的回复内容已自动截断）…\n\n";
+            const sideLength = Math.floor((perMessageLimit - marker.length) / 2);
+            content = content.slice(0, sideLength) + marker + content.slice(-sideLength);
+        }
+        if(content.length > remaining) {
+            if(index === recent.length - 1) content = content.slice(0, remaining);
+            else continue;
+        }
+        messages.unshift({role: message.role, content});
+        remaining -= content.length;
+    }
+    return messages;
 }
 
 function createClientId() {
@@ -683,7 +712,7 @@ async function requestAssistant() {
             method: "POST",
             headers: {"Content-Type": "application/json", "Accept": "application/x-ndjson"},
             body: JSON.stringify({
-                messages: conversation.slice(-MAX_HISTORY),
+                messages: createRequestMessages(),
                 conversationId,
                 messageId: lastUserMessage ? lastUserMessage.id : undefined,
                 model: selectedModel
@@ -794,6 +823,16 @@ function closeSidebar() {
     elements.sidebarBackdrop.hidden = true;
 }
 
+function openDonate() {
+    elements.donateModal.hidden = false;
+    elements.closeDonate.focus();
+}
+
+function closeDonate() {
+    elements.donateModal.hidden = true;
+    elements.openDonate.focus();
+}
+
 elements.form.addEventListener("submit", event => {
     event.preventDefault();
     sendMessage(elements.input.value);
@@ -827,6 +866,14 @@ elements.retry.addEventListener("click", () => {
 elements.openSidebar.addEventListener("click", openSidebar);
 elements.closeSidebar.addEventListener("click", closeSidebar);
 elements.sidebarBackdrop.addEventListener("click", closeSidebar);
+elements.openDonate.addEventListener("click", openDonate);
+elements.closeDonate.addEventListener("click", closeDonate);
+elements.donateModal.addEventListener("click", event => {
+    if(event.target === elements.donateModal) closeDonate();
+});
+document.addEventListener("keydown", event => {
+    if(event.key === "Escape" && !elements.donateModal.hidden) closeDonate();
+});
 
 for(const button of document.querySelectorAll(".suggestion")) {
     button.addEventListener("click", () => {
