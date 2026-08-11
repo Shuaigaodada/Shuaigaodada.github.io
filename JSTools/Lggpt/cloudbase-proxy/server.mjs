@@ -7,7 +7,7 @@ const PORT = Number.parseInt(process.env.PORT || "8080", 10);
 const ENV_ID = process.env.TCB_ENV_ID || "laogao-github-pages-d4bk62ce3432";
 const MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
-const BLACKJACK_UPSTREAM = process.env.BLACKJACK_UPSTREAM || "https://blackjack-duel.laogao0113.workers.dev";
+const BLACKJACK_UPSTREAM = process.env.BLACKJACK_UPSTREAM || "https://game-api.laogao.online";
 // Mainland DNS occasionally cannot resolve workers.dev correctly. These Cloudflare
 // anycast addresses are only a TLS fallback; SNI and Host still target the Worker.
 const BLACKJACK_FALLBACK_IPS = (process.env.BLACKJACK_FALLBACK_IPS || "104.21.62.69,172.67.221.15")

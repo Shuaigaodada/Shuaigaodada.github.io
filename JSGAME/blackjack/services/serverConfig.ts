@@ -1,4 +1,4 @@
-export const DEFAULT_SERVER = "https://blackjack-duel.laogao0113.workers.dev";
+export const DEFAULT_SERVER = "https://game-api.laogao.online";
 export const UNIFIED_AUTH_SERVER = "https://laogao-gpt-proxy-295046-9-1403518541.sh.run.tcloudbase.com/api";
 
 export function getGameServer() {
