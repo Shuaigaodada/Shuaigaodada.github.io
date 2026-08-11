@@ -6,8 +6,8 @@
     <meta name="description" content="Laogao GPT — 简洁、安全、支持连续对话的 AI 助手界面。">
     <meta name="theme-color" content="#0b0d12">
     <title>Laogao GPT</title>
-    <link rel="stylesheet" href="./style.css?v=20260811-3">
-    <script src="./script.js?v=20260811-3" defer></script>
+    <link rel="stylesheet" href="./style.css?v=20260811-6">
+    <script src="./script.js?v=20260811-6" defer></script>
 </head>
 <body class="auth-pending">
     <section class="auth-gate" id="auth-gate" aria-labelledby="auth-title">
@@ -60,6 +60,10 @@
             </div>
 
             <div class="sidebar-footer">
+                <button class="donate-button" id="open-donate" type="button">
+                    <span aria-hidden="true">♡</span>
+                    打赏
+                </button>
                 <div class="signed-in-user"><span id="signed-in-email"></span><button id="logout-button" type="button">退出</button></div>
                 <div class="connection-state">
                     <span class="status-dot" id="status-dot" aria-hidden="true"></span>
@@ -144,6 +148,16 @@
                 <p class="disclaimer">AI 可能会出错，请核对重要信息。</p>
             </div>
         </main>
+    </div>
+
+    <div class="donate-modal" id="donate-modal" role="dialog" aria-modal="true" aria-labelledby="donate-title" hidden>
+        <div class="donate-card">
+            <button class="donate-close" id="close-donate" type="button" aria-label="关闭打赏窗口">×</button>
+            <p class="eyebrow">SUPPORT GAO LAB</p>
+            <h2 id="donate-title">感谢投喂喵</h2>
+            <p class="donate-copy">使用微信扫描下方二维码</p>
+            <img src="./donate-wechat.png" alt="Laogao 的微信支付收款二维码" width="828" height="1127">
+        </div>
     </div>
 </body>
 </html>

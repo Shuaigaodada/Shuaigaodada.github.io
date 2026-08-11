@@ -68,6 +68,11 @@ test("Worker validates conversation input", () => {
     assert.match(validateMessages([]).error, /非空数组/);
     assert.match(validateMessages([{role: "system", content: "test"}]).error, /格式不正确/);
     assert.match(validateMessages([{role: "assistant", content: "test"}]).error, /最后一条消息/);
+    assert.equal(validateMessages([
+        {role: "assistant", content: "x".repeat(4001)},
+        {role: "user", content: "继续"}
+    ]).error, undefined);
+    assert.match(validateMessages([{role: "user", content: "x".repeat(4001)}]).error, /4000/);
 });
 
 test("Worker health and CORS only allow configured origins", async () => {

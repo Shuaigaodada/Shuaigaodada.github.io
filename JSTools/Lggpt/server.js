@@ -6,8 +6,9 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna";
 const MAX_MESSAGES = 20;
-const MAX_MESSAGE_LENGTH = 4000;
-const MAX_TOTAL_LENGTH = 24000;
+const MAX_USER_MESSAGE_LENGTH = 4000;
+const MAX_ASSISTANT_MESSAGE_LENGTH = 12000;
+const MAX_TOTAL_LENGTH = 32000;
 const RATE_LIMIT_WINDOW = 60 * 1000;
 const RATE_LIMIT_REQUESTS = Number(process.env.RATE_LIMIT_REQUESTS) || 12;
 const requestCounts = new Map();
@@ -66,8 +67,9 @@ function validateMessages(value) {
             return {error: "消息格式不正确。"};
 
         const content = message.content.trim();
-        if(!content || content.length > MAX_MESSAGE_LENGTH)
-            return {error: `每条消息必须在 1 到 ${MAX_MESSAGE_LENGTH} 个字符之间。`};
+        const messageLimit = message.role === "assistant" ? MAX_ASSISTANT_MESSAGE_LENGTH : MAX_USER_MESSAGE_LENGTH;
+        if(!content || content.length > messageLimit)
+            return {error: `${message.role === "assistant" ? "AI 历史回复" : "用户消息"}必须在 1 到 ${messageLimit} 个字符之间。`};
 
         totalLength += content.length;
         if(totalLength > MAX_TOTAL_LENGTH)
