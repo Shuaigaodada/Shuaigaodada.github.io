@@ -72,9 +72,6 @@ let currentQuota = {limit: 50, used: 0, remaining: 50};
 
 function combineAbortSignals(externalSignal, timeoutSignal) {
     if(!externalSignal) return {signal: timeoutSignal, cleanup() {}};
-    if(typeof AbortSignal.any === "function")
-        return {signal: AbortSignal.any([externalSignal, timeoutSignal]), cleanup() {}};
-
     const controller = new AbortController();
     const abort = () => controller.abort();
     if(externalSignal.aborted || timeoutSignal.aborted) abort();
