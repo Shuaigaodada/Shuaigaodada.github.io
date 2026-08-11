@@ -254,15 +254,15 @@ function setAuthMethod(method) {
     if(!["email", "phone"].includes(method) || authMethod === method) return;
     authMethod = method;
     loginVerificationId = "";
-    if(resendTimer) clearInterval(resendTimer);
-    resendTimer = null;
     elements.authEmail.readOnly = false;
     elements.authPhone.readOnly = false;
     elements.authCode.value = "";
     elements.authCode.disabled = true;
     elements.authSubmit.disabled = true;
-    elements.sendCodeButton.disabled = false;
-    elements.sendCodeButton.textContent = "获取验证码";
+    if(!resendTimer) {
+        elements.sendCodeButton.disabled = false;
+        elements.sendCodeButton.textContent = "获取验证码";
+    }
     elements.authEmailField.hidden = method !== "email";
     elements.authPhoneField.hidden = method !== "phone";
     elements.authEmail.required = method === "email";
@@ -291,7 +291,7 @@ async function sendVerificationCode() {
         elements.authCode.disabled = false;
         elements.authSubmit.disabled = false;
         elements.authCode.focus();
-        startResendCountdown(60);
+        startResendCountdown(Number(payload.cooldownSeconds) || 60);
     } catch(error) {
         showAuthError(error.message);
         elements.sendCodeButton.disabled = false;

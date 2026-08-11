@@ -36,9 +36,16 @@ export function LobbyScreen({ onEnterTable }: LobbyScreenProps) {
   const [displayName, setDisplayName] = useState("");
   const [verificationId, setVerificationId] = useState("");
   const [sendingCode, setSendingCode] = useState(false);
+  const [resendSeconds, setResendSeconds] = useState(0);
   const [verifying, setVerifying] = useState(false);
   const [gameToken, setGameToken] = useState(() => getAuthToken());
   const server = getGameServer();
+
+  useEffect(() => {
+    if (resendSeconds <= 0) return;
+    const timer = window.setTimeout(() => setResendSeconds((seconds) => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendSeconds]);
 
   const exchangeSession = async (sharedToken: string) => {
     const body = await jsonRequest(`${server}/api/auth/sso`, {
@@ -71,6 +78,7 @@ export function LobbyScreen({ onEnterTable }: LobbyScreenProps) {
         body: JSON.stringify(authMethod === "email" ? { email: identity } : { phoneNumber: identity }),
       });
       setVerificationId(body.verificationId); setCode("");
+      setResendSeconds(Number(body.cooldownSeconds) || 60);
     } catch (nextError) { setError(nextError instanceof Error ? nextError.message : "验证码发送失败。"); }
     finally { setSendingCode(false); }
   };
@@ -144,7 +152,7 @@ export function LobbyScreen({ onEnterTable }: LobbyScreenProps) {
               <button type="button" className={authMethod === "phone" ? "is-active" : ""} onClick={() => { setAuthMethod("phone"); setVerificationId(""); }}>手机号</button>
             </div>
             <label>{authMethod === "email" ? "邮箱" : "中国大陆手机号"}<input type={authMethod === "email" ? "email" : "tel"} required value={identity} onChange={(event) => setIdentity(event.target.value)} placeholder={authMethod === "email" ? "name@example.com" : "13800138000"} /></label>
-            <div className="auth-code-row"><label>验证码<input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required value={code} disabled={!verificationId} onChange={(event) => setCode(event.target.value)} placeholder="6 位验证码" /></label><button type="button" disabled={sendingCode} onClick={() => void sendCode()}>{sendingCode ? "发送中…" : "获取验证码"}</button></div>
+            <div className="auth-code-row"><label>验证码<input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required value={code} disabled={!verificationId} onChange={(event) => setCode(event.target.value)} placeholder="6 位验证码" /></label><button type="button" disabled={sendingCode || resendSeconds > 0} onClick={() => void sendCode()}>{sendingCode ? "发送中…" : resendSeconds > 0 ? `${resendSeconds} 秒后重发` : verificationId ? "重新发送" : "获取验证码"}</button></div>
             <label>昵称（首次登录选填）<input maxLength={20} value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="你的昵称" /></label>
             <small>{error}</small><button className="auth-confirm" disabled={verifying || !verificationId}>{verifying ? "验证中…" : "验证并登录"}</button>
           </form>}

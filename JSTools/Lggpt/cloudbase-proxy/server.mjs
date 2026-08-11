@@ -20,6 +20,7 @@ const MAX_MESSAGES = 20;
 const MAX_USER_CONTENT_LENGTH = 4000;
 const MAX_ASSISTANT_CONTENT_LENGTH = 12000;
 const EMAIL_CODE_TTL_SECONDS = 600;
+const VERIFICATION_COOLDOWN_SECONDS = 60;
 const CLOUDBASE_AUTH_URL = `https://${ENV_ID}.api.tcloudbasegateway.com/auth/v1`;
 const ALLOWED_ORIGINS = new Set([
     "https://shuaigaodada.github.io",
@@ -28,6 +29,7 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 const RECORD_ID_PATTERN = /^[a-f0-9-]{32,64}$/i;
 const rateLimits = new Map();
+const verificationCooldowns = new Map();
 
 let cloudbaseApp;
 let database;
@@ -206,7 +208,21 @@ async function sendLoginVerification({email = null, phoneNumber = null}) {
         expires_at: new Date(Date.now() + expiresIn * 1000).toISOString()
     });
     databaseResult(result, "保存验证码凭据失败。");
-    return {verificationId: payload.verification_id, expiresIn};
+    return {verificationId: payload.verification_id, expiresIn, cooldownSeconds: VERIFICATION_COOLDOWN_SECONDS};
+}
+
+async function verificationRetryAfter({email = null, phoneNumber = null}) {
+    const identity = email || phoneNumber;
+    const localExpiry = verificationCooldowns.get(identity) || 0;
+    if(localExpiry > Date.now()) return Math.ceil((localExpiry - Date.now()) / 1000);
+    verificationCooldowns.delete(identity);
+
+    let lookup = getDatabase().from("email_verifications").select("created_at");
+    lookup = email ? lookup.eq("email", email) : lookup.eq("phone_number", phoneNumber);
+    const result = await lookup.order("created_at", {ascending: false}).limit(1);
+    const createdAt = databaseResult(result, "Failed to check verification cooldown.")[0]?.created_at;
+    if(!createdAt) return 0;
+    return Math.max(0, Math.ceil((new Date(createdAt).getTime() + VERIFICATION_COOLDOWN_SECONDS * 1000 - Date.now()) / 1000));
 }
 
 async function verifyLoginAndCreateSession(verificationId, verificationCode, displayName) {
@@ -458,7 +474,18 @@ async function handleAuth(request, response, url, origin) {
             return sendJson(response, 400, {error: "请输入有效邮箱或中国大陆手机号。"}, origin);
         const user = email ? await findUserByEmail(email) : await findUserByPhoneNumber(phoneNumber);
         if(user?.is_disabled) return sendJson(response, 403, {error: "该账号已被管理员禁用。"}, origin);
-        return sendJson(response, 200, await sendLoginVerification({email: email || null, phoneNumber: phoneNumber || null}), origin);
+        const verificationIdentity = {email: email || null, phoneNumber: phoneNumber || null};
+        const retryAfter = await verificationRetryAfter(verificationIdentity);
+        if(retryAfter > 0)
+            return sendJson(response, 429, {error: `请等待 ${retryAfter} 秒后重新获取验证码。`, retryAfter}, origin);
+        const cooldownKey = email || phoneNumber;
+        verificationCooldowns.set(cooldownKey, Date.now() + VERIFICATION_COOLDOWN_SECONDS * 1000);
+        try {
+            return sendJson(response, 200, await sendLoginVerification(verificationIdentity), origin);
+        } catch(error) {
+            verificationCooldowns.delete(cooldownKey);
+            throw error;
+        }
     }
 
     if(request.method === "POST" && url.pathname === "/api/auth/verify-code") {
