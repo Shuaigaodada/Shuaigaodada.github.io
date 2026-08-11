@@ -14,8 +14,16 @@
         "OPENAI_MODEL": "gpt-5.6-luna",
         "ALLOWED_ORIGINS": "https://shuaigaodada.github.io,http://localhost:3000,http://127.0.0.1:3000"
     },
+    "d1_databases": [
+        {
+            "binding": "MESSAGE_DB",
+            "database_name": "laogao-gpt-messages",
+            "database_id": "7576f0d5-e444-4636-8b1d-011cda77a065",
+            "migrations_dir": "migrations"
+        }
+    ],
     "secrets": {
-        "required": ["OPENAI_API_KEY"]
+        "required": ["OPENAI_API_KEY", "ADMIN_TOKEN"]
     },
     "ratelimits": [
         {

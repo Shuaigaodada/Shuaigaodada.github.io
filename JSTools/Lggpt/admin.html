@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#0b0d12">
+    <title>消息管理 · Laogao GPT</title>
+    <link rel="stylesheet" href="./admin.css">
+    <script src="./admin.js" defer></script>
+</head>
+<body>
+    <main class="admin-shell">
+        <header class="admin-header">
+            <div>
+                <a class="back-link" href="./">← 返回聊天</a>
+                <p class="eyebrow">LAOGAO GPT</p>
+                <h1>用户消息记录</h1>
+            </div>
+            <div class="header-actions" id="header-actions" hidden>
+                <button class="secondary-button" id="refresh-button" type="button">刷新</button>
+                <button class="secondary-button" id="logout-button" type="button">退出</button>
+            </div>
+        </header>
+
+        <section class="login-card" id="login-panel">
+            <div class="login-mark" aria-hidden="true">G</div>
+            <div>
+                <h2>管理员验证</h2>
+                <p>输入 Worker 中配置的 <code>ADMIN_TOKEN</code>。令牌只保存在当前标签页。</p>
+            </div>
+            <form id="login-form">
+                <label for="admin-token">管理员令牌</label>
+                <div class="token-row">
+                    <input id="admin-token" type="password" autocomplete="current-password" required>
+                    <button class="primary-button" type="submit">进入面板</button>
+                </div>
+                <p class="form-error" id="login-error" role="alert" hidden></p>
+            </form>
+        </section>
+
+        <section id="dashboard" hidden>
+            <div class="stats-grid" aria-label="消息概览">
+                <article><span>全部消息</span><strong id="stat-total">—</strong></article>
+                <article><span>今日新增</span><strong id="stat-today">—</strong></article>
+                <article><span>独立访客</span><strong id="stat-visitors">—</strong></article>
+            </div>
+
+            <div class="toolbar">
+                <form class="search-form" id="search-form" role="search">
+                    <label class="sr-only" for="search-input">搜索消息或完整访客 ID</label>
+                    <input id="search-input" type="search" maxlength="200" placeholder="搜索消息内容或完整访客 ID">
+                    <button class="primary-button" type="submit">搜索</button>
+                </form>
+                <span class="result-summary" id="result-summary"></span>
+            </div>
+
+            <div class="notice" id="dashboard-error" role="alert" hidden></div>
+            <div class="loading" id="loading" hidden>正在读取消息…</div>
+            <div class="message-list" id="message-list"></div>
+            <div class="empty-state" id="empty-state" hidden>没有找到消息记录。</div>
+
+            <nav class="pagination" aria-label="消息分页">
+                <button class="secondary-button" id="previous-page" type="button">上一页</button>
+                <span id="page-label">第 1 页</span>
+                <button class="secondary-button" id="next-page" type="button">下一页</button>
+            </nav>
+        </section>
+    </main>
+</body>
+</html>

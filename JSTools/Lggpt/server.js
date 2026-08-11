@@ -11,6 +11,9 @@ const MAX_TOTAL_LENGTH = 24000;
 const RATE_LIMIT_WINDOW = 60 * 1000;
 const RATE_LIMIT_REQUESTS = Number(process.env.RATE_LIMIT_REQUESTS) || 12;
 const requestCounts = new Map();
+const messageRecords = [];
+const MAX_LOCAL_RECORDS = 5000;
+const RECORD_ID_PATTERN = /^[a-zA-Z0-9_-]{8,64}$/;
 
 app.disable("x-powered-by");
 if(process.env.TRUST_PROXY === "true") app.set("trust proxy", 1);
@@ -83,6 +86,45 @@ function createSafetyIdentifier(req) {
     return crypto.createHash("sha256").update(`${salt}|${fingerprint}`).digest("hex");
 }
 
+function normalizeRecordId(value) {
+    return typeof value === "string" && RECORD_ID_PATTERN.test(value) ? value : crypto.randomUUID();
+}
+
+function secretsMatch(actual, expected) {
+    if(!actual || !expected) return false;
+    const actualHash = crypto.createHash("sha256").update(actual).digest();
+    const expectedHash = crypto.createHash("sha256").update(expected).digest();
+    return crypto.timingSafeEqual(actualHash, expectedHash);
+}
+
+function requireAdmin(req, res, next) {
+    res.setHeader("Cache-Control", "no-store");
+    if(!process.env.ADMIN_TOKEN)
+        return res.status(503).json({error: "管理员令牌尚未配置。"});
+    const authorization = req.get("authorization") || "";
+    const token = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
+    if(!secretsMatch(token, process.env.ADMIN_TOKEN)) {
+        res.setHeader("WWW-Authenticate", "Bearer");
+        return res.status(401).json({error: "管理员身份验证失败。"});
+    }
+    next();
+}
+
+function recordUserMessage(body, messages, visitorId) {
+    const clientMessageId = normalizeRecordId(body.messageId);
+    const id = crypto.createHash("sha256").update(`${visitorId}|${clientMessageId}`).digest("hex");
+    if(messageRecords.some(record => record.id === id)) return;
+    messageRecords.unshift({
+        id,
+        conversation_id: normalizeRecordId(body.conversationId),
+        visitor_id: visitorId,
+        content: messages[messages.length - 1].content,
+        model: MODEL,
+        created_at: new Date().toISOString()
+    });
+    if(messageRecords.length > MAX_LOCAL_RECORDS) messageRecords.length = MAX_LOCAL_RECORDS;
+}
+
 function writeEvent(res, event) {
     if(!res.writableEnded) res.write(`${JSON.stringify(event)}\n`);
 }
@@ -92,8 +134,44 @@ app.get("/api/health", (req, res) => {
     res.json({
         ok: true,
         configured: Boolean(process.env.OPENAI_API_KEY),
-        model: MODEL
+        model: MODEL,
+        recording: true
     });
+});
+
+app.get("/api/admin/messages", requireAdmin, (req, res) => {
+    const page = Math.max(1, Math.min(100000, Number.parseInt(req.query.page || "1", 10) || 1));
+    const pageSize = Math.max(1, Math.min(100, Number.parseInt(req.query.pageSize || "25", 10) || 25));
+    const search = String(req.query.search || "").trim().slice(0, 200).toLowerCase();
+    const filtered = search
+        ? messageRecords.filter(record => record.content.toLowerCase().includes(search) || record.visitor_id === search)
+        : messageRecords;
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    res.setHeader("Cache-Control", "no-store");
+    res.json({
+        messages: filtered.slice((page - 1) * pageSize, page * pageSize),
+        pagination: {
+            page,
+            pageSize,
+            total: filtered.length,
+            pages: Math.max(1, Math.ceil(filtered.length / pageSize))
+        },
+        stats: {
+            total: messageRecords.length,
+            today: messageRecords.filter(record => new Date(record.created_at) >= today).length,
+            visitors: new Set(messageRecords.map(record => record.visitor_id)).size
+        }
+    });
+});
+
+app.delete("/api/admin/messages/:id", requireAdmin, (req, res) => {
+    if(!RECORD_ID_PATTERN.test(req.params.id)) return res.status(404).json({error: "消息不存在。"});
+    const index = messageRecords.findIndex(record => record.id === req.params.id);
+    if(index < 0) return res.status(404).json({error: "消息不存在。"});
+    messageRecords.splice(index, 1);
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ok: true});
 });
 
 app.post("/api/chat", rateLimit, async (req, res) => {
@@ -101,6 +179,9 @@ app.post("/api/chat", rateLimit, async (req, res) => {
     if(validation.error) return res.status(400).json({error: validation.error});
     if(!process.env.OPENAI_API_KEY)
         return res.status(503).json({error: "服务端尚未配置 OPENAI_API_KEY。"});
+
+    const visitorId = createSafetyIdentifier(req);
+    recordUserMessage(req.body, validation.messages, visitorId);
 
     const controller = new AbortController();
     res.on("close", () => {
@@ -121,7 +202,7 @@ app.post("/api/chat", rateLimit, async (req, res) => {
                 max_output_tokens: 2000,
                 stream: true,
                 store: false,
-                safety_identifier: createSafetyIdentifier(req)
+                safety_identifier: visitorId
             }),
             signal: controller.signal
         });
