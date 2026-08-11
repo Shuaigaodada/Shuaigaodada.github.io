@@ -2,6 +2,8 @@ import http from "node:http";
 import https from "node:https";
 import {createHash, randomBytes, randomUUID, timingSafeEqual} from "node:crypto";
 import cloudbase from "@cloudbase/node-sdk";
+import {WebSocket, WebSocketServer} from "ws";
+import {MainlandBlackjackEngine} from "./blackjack-engine.mjs";
 
 const PORT = Number.parseInt(process.env.PORT || "8080", 10);
 const ENV_ID = process.env.TCB_ENV_ID || "laogao-github-pages-d4bk62ce3432";
@@ -24,12 +26,18 @@ const VERIFICATION_COOLDOWN_SECONDS = 60;
 const CLOUDBASE_AUTH_URL = `https://${ENV_ID}.api.tcloudbasegateway.com/auth/v1`;
 const ALLOWED_ORIGINS = new Set([
     "https://shuaigaodada.github.io",
+    "https://laogao.online",
+    "https://www.laogao.online",
+    "https://laogao.site",
+    "https://www.laogao.site",
     "http://127.0.0.1:3000",
     "http://localhost:3000"
 ]);
 const RECORD_ID_PATTERN = /^[a-f0-9-]{32,64}$/i;
 const rateLimits = new Map();
 const verificationCooldowns = new Map();
+const blackjackTickets = new Map();
+const blackjackProfiles = new Map();
 
 let cloudbaseApp;
 let database;
@@ -293,6 +301,45 @@ async function authenticatedUser(request) {
     const session = databaseResult(sessionResult, "读取登录会话失败。")[0];
     return session ? findUserById(session.user_id) : null;
 }
+
+function blackjackProfile(user) {
+    let profile = blackjackProfiles.get(user.id);
+    if(!profile) {
+        profile = {
+            id: user.id,
+            account: user.email || user.phone_number || user.id,
+            email: user.email || "",
+            phoneNumber: user.phone_number || null,
+            displayName: user.display_name || user.email?.split("@")[0] || user.phone_number || "GAO 玩家",
+            avatarData: null,
+            bankroll: 500,
+            playSeconds: 0
+        };
+        blackjackProfiles.set(user.id, profile);
+    } else if(user.display_name && profile.displayName !== user.display_name) {
+        profile.displayName = user.display_name;
+    }
+    return profile;
+}
+
+function cleanupBlackjackTickets() {
+    const now = Date.now();
+    for(const [ticket, value] of blackjackTickets) if(value.expiresAt <= now) blackjackTickets.delete(ticket);
+}
+
+const mainlandBlackjack = new MainlandBlackjackEngine({
+    consumeTicket: async ticket => {
+        cleanupBlackjackTickets();
+        const record = blackjackTickets.get(ticket);
+        if(!record || record.expiresAt <= Date.now()) return null;
+        blackjackTickets.delete(ticket);
+        return record.profile;
+    },
+    updateBankroll: async (userId, bankroll) => {
+        const profile = blackjackProfiles.get(userId);
+        if(profile) profile.bankroll = bankroll;
+    }
+});
 
 async function quotaStatus(user) {
     const today = quotaDate();
@@ -588,6 +635,69 @@ async function handleAdmin(request, response, url, origin) {
     return sendJson(response, 404, {error: "接口不存在。"}, origin);
 }
 
+async function handleMainlandBlackjack(request, response, url, origin) {
+    const path = url.pathname.slice("/blackjack".length) || "/health";
+    if(path === "/health" && request.method === "GET") {
+        return sendJson(response, 200, {
+            status: "ok", authority: "tencent", region: "mainland", realtime: true,
+            upstream: false, now: Date.now()
+        }, origin);
+    }
+
+    if(path === "/api/auth/sso" && request.method === "POST") {
+        const user = await authenticatedUser(request);
+        if(!user || user.is_disabled) return sendJson(response, 401, {message: "统一登录已过期，请重新登录。"}, origin);
+        return sendJson(response, 200, {token: bearerToken(request), user: blackjackProfile(user), authority: "tencent"}, origin);
+    }
+    if(path === "/api/auth/me" && request.method === "GET") {
+        const user = await authenticatedUser(request);
+        if(!user || user.is_disabled) return sendJson(response, 401, {message: "请先登录。"}, origin);
+        return sendJson(response, 200, {user: blackjackProfile(user), authority: "tencent"}, origin);
+    }
+    if(path === "/api/auth/profile" && (request.method === "GET" || request.method === "POST")) {
+        const user = await authenticatedUser(request);
+        if(!user || user.is_disabled) return sendJson(response, 401, {message: "请先登录。"}, origin);
+        const profile = blackjackProfile(user);
+        if(request.method === "POST") {
+            const body = await readJson(request);
+            if(typeof body.displayName === "string" && body.displayName.trim()) profile.displayName = body.displayName.trim().slice(0, 20);
+            if(typeof body.avatarData === "string" && body.avatarData.length <= 140_000) profile.avatarData = body.avatarData;
+        }
+        return sendJson(response, 200, {user: profile}, origin);
+    }
+    if(path === "/api/auth/claim-bankroll" && request.method === "POST") {
+        const user = await authenticatedUser(request);
+        if(!user || user.is_disabled) return sendJson(response, 401, {message: "请先登录。"}, origin);
+        const profile = blackjackProfile(user);
+        if(profile.bankroll >= 100) return sendJson(response, 400, {message: "赌资不少于 100，暂时不能领取。", user: profile}, origin);
+        profile.bankroll += 100;
+        return sendJson(response, 200, {message: "已领取 100 赌资。", user: profile}, origin);
+    }
+    if(path === "/api/auth/ws-ticket" && request.method === "POST") {
+        const user = await authenticatedUser(request);
+        if(!user || user.is_disabled) return sendJson(response, 401, {message: "请先登录。"}, origin);
+        cleanupBlackjackTickets();
+        const ticket = randomBytes(32).toString("base64url");
+        blackjackTickets.set(ticket, {profile: blackjackProfile(user), expiresAt: Date.now() + 60_000});
+        return sendJson(response, 200, {ticket, authority: "tencent"}, origin);
+    }
+    if(path === "/api/auth/logout" && request.method === "POST") return sendJson(response, 200, {ok: true}, origin);
+
+    const tableMatch = path.match(/^\/(?:api\/)?tables\/([^/]+)\/(state|command)$/);
+    if(!tableMatch) return sendJson(response, 404, {message: "接口不存在。"}, origin);
+    const tableId = decodeURIComponent(tableMatch[1]);
+    if(!mainlandBlackjack.isValidTable(tableId)) return sendJson(response, 403, {message: "该牌桌尚未开放。"}, origin);
+    const clientId = url.searchParams.get("client_id");
+    if(!clientId) return sendJson(response, 400, {message: "缺少客户端标识。"}, origin);
+    if(tableMatch[2] === "state" && request.method === "GET")
+        return sendJson(response, 200, mainlandBlackjack.stateFor(tableId, clientId), origin);
+    if(tableMatch[2] === "command" && request.method === "POST") {
+        const state = await mainlandBlackjack.command(tableId, clientId, await readJson(request), url.searchParams.get("ticket"));
+        return sendJson(response, 200, state, origin);
+    }
+    return sendJson(response, 405, {message: "请求方法不受支持。"}, origin);
+}
+
 async function proxyBlackjack(request, response, url, origin) {
     const suffix = url.pathname.slice("/blackjack".length) || "/health";
     const target = new URL(suffix + url.search, BLACKJACK_UPSTREAM);
@@ -800,7 +910,7 @@ async function handleRequest(request, response) {
             recording: true
         }, origin);
     if(url.pathname === "/blackjack" || url.pathname.startsWith("/blackjack/"))
-        return proxyBlackjack(request, response, url, origin);
+        return handleMainlandBlackjack(request, response, url, origin);
     if(url.pathname.startsWith("/api/auth/")) return handleAuth(request, response, url, origin);
     if(url.pathname === "/api/chat" && request.method === "POST") return handleChat(request, response, origin);
     if(url.pathname === "/api/admin/messages" || url.pathname.startsWith("/api/admin/messages/")
@@ -817,7 +927,44 @@ const server = http.createServer((request, response) => {
     });
 });
 
-server.on("upgrade", (request, socket, head) => proxyBlackjackWebSocket(request, socket, head));
+const blackjackWebSocketServer = new WebSocketServer({noServer: true, maxPayload: 2_048});
+
+server.on("upgrade", (request, socket, head) => {
+    const origin = request.headers.origin || "";
+    if(origin && !ALLOWED_ORIGINS.has(origin)) {
+        socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+        return;
+    }
+    const url = new URL(request.url || "/", "http://localhost");
+    const match = url.pathname.match(/^\/blackjack\/ws\/tables\/([^/]+)$/);
+    const tableId = match ? decodeURIComponent(match[1]) : "";
+    const clientId = url.searchParams.get("client_id") || "";
+    if(!match || !mainlandBlackjack.isValidTable(tableId) || !clientId) {
+        socket.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
+        return;
+    }
+    blackjackWebSocketServer.handleUpgrade(request, socket, head, webSocket => {
+        let ticket = url.searchParams.get("ticket");
+        let commandQueue = Promise.resolve();
+        const dispose = mainlandBlackjack.addConnection(tableId, clientId, payload => {
+            if(webSocket.readyState === WebSocket.OPEN) webSocket.send(JSON.stringify(payload));
+        });
+        webSocket.on("message", data => {
+            commandQueue = commandQueue.then(async () => {
+                const raw = data.toString("utf8");
+                if(Buffer.byteLength(raw) > 2_048) throw new Error("游戏命令过大。");
+                const command = JSON.parse(raw);
+                await mainlandBlackjack.command(tableId, clientId, command, ticket);
+                if(command.type === "SIT_DOWN") ticket = null;
+            }).catch(error => {
+                if(webSocket.readyState === WebSocket.OPEN)
+                    webSocket.send(JSON.stringify({type: "ERROR", payload: {message: error?.message || "无效的游戏命令。"}}));
+            });
+        });
+        webSocket.once("close", dispose);
+        webSocket.once("error", dispose);
+    });
+});
 
 server.listen(PORT, "0.0.0.0", () => {
     console.log(`Lggpt CloudBase backend listening on ${PORT}`);

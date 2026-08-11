@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "test": "node --test blackjack-engine.test.mjs"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "@cloudbase/node-sdk": "3.18.3"
+    "@cloudbase/node-sdk": "3.18.3",
+    "ws": "^8.21.3"
   }
 }
