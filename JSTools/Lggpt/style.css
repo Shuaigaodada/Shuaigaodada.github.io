@@ -18,8 +18,14 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body { height: 100%; }
+html, body { width: 100%; height: 100%; }
 body {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    inset: 0;
     margin: 0;
     overflow: hidden;
     color: var(--text);
@@ -60,13 +66,24 @@ button, a, textarea { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
-.app-shell { display: grid; grid-template-columns: var(--sidebar-width) 1fr; height: 100dvh; }
+.app-shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+}
 .sidebar {
     position: relative;
     z-index: 20;
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
     padding: 22px 16px;
     background: var(--sidebar);
     border-right: 1px solid var(--line);
@@ -136,7 +153,7 @@ button, a, textarea { -webkit-tap-highlight-color: transparent; }
 .signed-in-user span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .signed-in-user button { flex: none; padding: 3px 7px; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
 
-.chat-panel { position: relative; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; min-width: 0; height: 100dvh; background: radial-gradient(circle at 65% -20%, rgba(117, 217, 255, .07), transparent 36rem), var(--bg); }
+.chat-panel { position: relative; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; height: 100%; overflow: hidden; background: radial-gradient(circle at 65% -20%, rgba(117, 217, 255, .07), transparent 36rem), var(--bg); }
 .chat-header {
     position: relative;
     z-index: 5;
@@ -147,6 +164,7 @@ button, a, textarea { -webkit-tap-highlight-color: transparent; }
     padding: 0 28px;
     background: rgba(11, 13, 18, .8);
     border-bottom: 1px solid var(--line);
+    -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
 }
 .chat-header h1 { margin: 0; font-size: 16px; letter-spacing: -.02em; }
@@ -158,7 +176,11 @@ button, a, textarea { -webkit-tap-highlight-color: transparent; }
 .model-network-notice { margin: 0; padding: 8px 24px; color: #ffe0a3; background: rgba(210, 166, 78, .10); border-bottom: 1px solid rgba(210, 166, 78, .22); font-size: 12px; text-align: center; }
 .quota-badge { padding: 5px 8px; color: #d8f9a9; background: rgba(184, 242, 106, .07); border: 1px solid rgba(184, 242, 106, .16); border-radius: 999px; font-size: 10px; white-space: nowrap; }
 
-.messages { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #333843 transparent; }
+.messages { min-height: 0; height: 100%; overflow-x: hidden; overflow-y: scroll; overscroll-behavior: contain; overflow-anchor: none; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: #3b414d transparent; }
+.messages::-webkit-scrollbar { width: 10px; }
+.messages::-webkit-scrollbar-track { background: transparent; }
+.messages::-webkit-scrollbar-thumb { background: #3b414d; border: 3px solid var(--bg); border-radius: 999px; }
+.messages::-webkit-scrollbar-thumb:hover { background: #555d6b; }
 .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; width: min(calc(100% - 40px), var(--content-width)); min-height: 100%; margin: 0 auto; padding: 70px 0 48px; text-align: center; }
 .welcome-mark { display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 24px; color: var(--accent-dark); background: var(--accent); border-radius: 17px; font-size: 21px; font-weight: 850; transform: rotate(-4deg); box-shadow: 0 14px 38px rgba(184, 242, 106, .12); }
 .eyebrow { margin: 0 0 10px; color: var(--accent); font-size: 11px; font-weight: 750; letter-spacing: .15em; text-transform: uppercase; }
@@ -184,11 +206,11 @@ button, a, textarea { -webkit-tap-highlight-color: transparent; }
 .message-content { color: #dfe1dc; font-size: 15px; line-height: 1.72; }
 .message-content p { margin: 0 0 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .message-content p:last-child { margin-bottom: 0; }
-.code-block { position: relative; margin: 15px 0; overflow: hidden; background: #080a0e; border: 1px solid var(--line); border-radius: 13px; }
+.code-block { position: relative; max-width: 100%; margin: 15px 0; overflow: hidden; background: #080a0e; border: 1px solid var(--line); border-radius: 13px; }
 .code-header { display: flex; align-items: center; justify-content: space-between; min-height: 36px; padding: 0 12px; color: #7e8490; background: #11141a; border-bottom: 1px solid var(--line); font-size: 11px; }
 .copy-code { padding: 4px 7px; color: var(--muted); background: transparent; border: 0; border-radius: 5px; cursor: pointer; }
 .copy-code:hover { color: var(--text); background: var(--surface-hover); }
-.code-block pre { margin: 0; padding: 15px; overflow-x: auto; }
+.code-block pre { max-width: 100%; margin: 0; padding: 15px; overflow-x: auto; white-space: pre; tab-size: 4; }
 .code-block code, .inline-code { font: 13px/1.65 "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
 .inline-code { padding: 2px 5px; color: #d8f9a9; background: rgba(184, 242, 106, .08); border: 1px solid rgba(184, 242, 106, .12); border-radius: 5px; }
 .typing-indicator { display: flex; gap: 5px; padding: 7px 0; }
@@ -222,7 +244,7 @@ button, a, textarea { -webkit-tap-highlight-color: transparent; }
     .app-shell { display: block; }
     .sidebar { position: fixed; inset: 0 auto 0 0; width: min(86vw, 310px); transform: translateX(-102%); transition: transform .25s ease; box-shadow: 24px 0 70px rgba(0, 0, 0, .45); }
     .sidebar.open { transform: translateX(0); }
-    .sidebar-backdrop { position: fixed; z-index: 15; inset: 0; display: block; background: rgba(0, 0, 0, .55); backdrop-filter: blur(3px); }
+    .sidebar-backdrop { position: fixed; z-index: 15; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: block; background: rgba(0, 0, 0, .55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
     .sidebar-backdrop[hidden] { display: none; }
     .mobile-close, .menu-button { display: grid; }
     .chat-header { min-height: 66px; padding: 0 14px; }

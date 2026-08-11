@@ -91,7 +91,8 @@ function combineAbortSignals(externalSignal, timeoutSignal) {
 async function fetchApi(path, options = {}) {
     const {timeoutMs = 30000, model = selectedModel, ...fetchOptions} = options;
     let lastError;
-    const productionIndex = MODEL_OPTIONS[model]?.apiIndex ?? MODEL_OPTIONS["deepseek-v4-flash"].apiIndex;
+    const modelOption = MODEL_OPTIONS[model] || MODEL_OPTIONS["deepseek-v4-flash"];
+    const productionIndex = modelOption.apiIndex;
     const indexes = API_BASES.length > 1 ? [productionIndex] : [0];
     for(const index of indexes) {
         const timeoutController = new AbortController();
@@ -103,7 +104,7 @@ async function fetchApi(path, options = {}) {
             const response = await fetch(`${API_BASES[index]}${path}`, {...fetchOptions, headers, signal: combined.signal});
             return response;
         } catch(error) {
-            if(fetchOptions.signal?.aborted) throw error;
+            if(fetchOptions.signal && fetchOptions.signal.aborted) throw error;
             lastError = error;
         } finally {
             clearTimeout(timeout);
@@ -486,21 +487,72 @@ function createCodeBlock(language, code) {
     return wrapper;
 }
 
-function renderSafeContent(container, content) {
-    container.replaceChildren();
-    const fencePattern = /```([\w.+-]*)\n?([\s\S]*?)```/g;
-    let lastIndex = 0;
-    let match;
+function detectUnfencedCode(content) {
+    const normalized = content.replace(/\r/g, "");
+    const lines = normalized.split("\n");
+    if(lines.length < 6) return null;
 
-    while((match = fencePattern.exec(content)) !== null) {
-        if(match.index > lastIndex)
-            renderTextBlocks(container, content.slice(lastIndex, match.index));
-        container.appendChild(createCodeBlock(match[1], match[2]));
-        lastIndex = fencePattern.lastIndex;
+    const htmlStart = lines.findIndex(line => /^\s*(?:<!doctype\s+html|<html(?:\s|>)|<head(?:\s|>)|<body(?:\s|>)|<style(?:\s|>)|<script(?:\s|>))/i.test(line));
+    const htmlSignals = lines.filter(line => /<\/?(?:html|head|body|style|script|div|button|main|section)(?:\s|>)/i.test(line)).length;
+    if(htmlStart >= 0 && (htmlSignals >= 3 || /<!doctype\s+html|<script(?:\s|>)/i.test(normalized))) {
+        return {
+            prefix: lines.slice(0, htmlStart).join("\n"),
+            code: lines.slice(htmlStart).join("\n"),
+            language: "html"
+        };
     }
 
-    if(lastIndex < content.length)
-        renderTextBlocks(container, content.slice(lastIndex));
+    const javascriptStart = lines.findIndex(line => /^\s*(?:import\s|export\s|(?:const|let|var)\s+[A-Za-z_$]|(?:async\s+)?function\s+[A-Za-z_$]|class\s+[A-Za-z_$])/i.test(line));
+    if(javascriptStart >= 0) {
+        const candidate = lines.slice(javascriptStart);
+        const javascriptSignals = candidate.filter(line => /^\s*(?:import\s|export\s|(?:const|let|var)\s+|(?:async\s+)?function\s+|class\s+|if\s*\(|for\s*\(|while\s*\(|return\b|\/\/|[{}]\s*;?$)/.test(line)).length;
+        if(javascriptSignals >= 4) {
+            return {
+                prefix: lines.slice(0, javascriptStart).join("\n"),
+                code: candidate.join("\n"),
+                language: "javascript"
+            };
+        }
+    }
+
+    return null;
+}
+
+function renderTextOrDetectedCode(container, content) {
+    if(!content) return;
+    const detected = detectUnfencedCode(content);
+    if(!detected) {
+        renderTextBlocks(container, content);
+        return;
+    }
+    if(detected.prefix.trim()) renderTextBlocks(container, detected.prefix);
+    container.appendChild(createCodeBlock(detected.language, detected.code));
+}
+
+function clearElement(element) {
+    while(element.firstChild) element.removeChild(element.firstChild);
+}
+
+function renderSafeContent(container, content) {
+    clearElement(container);
+    const openingFence = /```([\w.+-]*)[^\S\r\n]*(?:\r?\n|$)/g;
+    let cursor = 0;
+    let opening;
+
+    while((opening = openingFence.exec(content)) !== null) {
+        renderTextOrDetectedCode(container, content.slice(cursor, opening.index));
+        const codeStart = openingFence.lastIndex;
+        const codeEnd = content.indexOf("```", codeStart);
+        if(codeEnd < 0) {
+            container.appendChild(createCodeBlock(opening[1], content.slice(codeStart)));
+            return;
+        }
+        container.appendChild(createCodeBlock(opening[1], content.slice(codeStart, codeEnd)));
+        cursor = codeEnd + 3;
+        openingFence.lastIndex = cursor;
+    }
+
+    renderTextOrDetectedCode(container, content.slice(cursor));
 }
 
 function createTypingIndicator() {
@@ -544,12 +596,12 @@ function createMessageElement(role, content, pending = false) {
 
 function scrollToBottom(behavior = "smooth") {
     requestAnimationFrame(() => {
-        elements.messages.scrollTo({top: elements.messages.scrollHeight, behavior});
+        elements.messages.scrollTop = elements.messages.scrollHeight;
     });
 }
 
 function renderConversation() {
-    elements.messages.replaceChildren();
+    clearElement(elements.messages);
     if(!conversation.length) {
         elements.messages.appendChild(elements.welcome);
     } else {
@@ -633,7 +685,7 @@ async function requestAssistant() {
             body: JSON.stringify({
                 messages: conversation.slice(-MAX_HISTORY),
                 conversationId,
-                messageId: lastUserMessage?.id,
+                messageId: lastUserMessage ? lastUserMessage.id : undefined,
                 model: selectedModel
             }),
             signal: activeController.signal
@@ -707,7 +759,7 @@ async function sendMessage(text) {
     const message = text.trim();
     if(!message || isGenerating) return;
 
-    if(!conversation.length) elements.messages.replaceChildren();
+    if(!conversation.length) clearElement(elements.messages);
     conversation.push({role: "user", content: message, id: createClientId()});
     conversation = conversation.slice(-MAX_HISTORY);
     saveConversation();

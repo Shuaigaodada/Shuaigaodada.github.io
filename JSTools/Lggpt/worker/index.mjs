@@ -366,7 +366,7 @@ async function handleChat(request, env, ctx) {
         },
         body: JSON.stringify({
             model,
-            instructions: "你是 Laogao GPT，一位友好、准确的中文 AI 助手。直接回答问题；遇到代码时给出清晰、可运行的方案；不确定时明确说明。",
+            instructions: "你是 Laogao GPT，一位友好、准确的中文 AI 助手。直接回答问题；遇到代码时给出清晰、可运行的方案，并将所有代码放入带语言标记的 Markdown 三反引号代码块中；不确定时明确说明。",
             input: validation.messages,
             max_output_tokens: 2000,
             reasoning: {effort: "low", context: "current_turn"},
