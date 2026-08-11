@@ -36,6 +36,11 @@ const elements = {
     modelNetworkNotice: document.getElementById("model-network-notice"),
     authForm: document.getElementById("auth-form"),
     authEmail: document.getElementById("auth-email"),
+    authPhone: document.getElementById("auth-phone"),
+    authEmailField: document.getElementById("auth-email-field"),
+    authPhoneField: document.getElementById("auth-phone-field"),
+    emailMethod: document.getElementById("email-method"),
+    phoneMethod: document.getElementById("phone-method"),
     authCode: document.getElementById("auth-code"),
     sendCodeButton: document.getElementById("send-code-button"),
     authDisplayName: document.getElementById("auth-display-name"),
@@ -60,7 +65,8 @@ let canRetry = false;
 let selectedModel = loadSelectedModel();
 let authToken = loadAuthToken();
 let currentUser = null;
-let emailVerificationId = "";
+let loginVerificationId = "";
+let authMethod = "email";
 let resendTimer = null;
 let currentQuota = {limit: 50, used: 0, remaining: 50};
 
@@ -133,7 +139,7 @@ function updateQuota(quota = currentQuota) {
 
 function showAuth(user, quota) {
     currentUser = user;
-    elements.signedInEmail.textContent = user.email;
+    elements.signedInEmail.textContent = user.email || user.phoneNumber || user.displayName;
     updateQuota(quota);
     document.body.classList.remove("auth-pending", "auth-required");
     document.body.classList.add("authenticated");
@@ -197,17 +203,44 @@ function startResendCountdown(seconds = 60) {
     }, 1000);
 }
 
-async function sendEmailCode() {
-    if(!elements.authEmail.reportValidity()) return;
+function setAuthMethod(method) {
+    if(!["email", "phone"].includes(method) || authMethod === method) return;
+    authMethod = method;
+    loginVerificationId = "";
+    if(resendTimer) clearInterval(resendTimer);
+    resendTimer = null;
+    elements.authEmail.readOnly = false;
+    elements.authPhone.readOnly = false;
+    elements.authCode.value = "";
+    elements.authCode.disabled = true;
+    elements.authSubmit.disabled = true;
+    elements.sendCodeButton.disabled = false;
+    elements.sendCodeButton.textContent = "获取验证码";
+    elements.authEmailField.hidden = method !== "email";
+    elements.authPhoneField.hidden = method !== "phone";
+    elements.authEmail.required = method === "email";
+    elements.authPhone.required = method === "phone";
+    elements.emailMethod.classList.toggle("active", method === "email");
+    elements.phoneMethod.classList.toggle("active", method === "phone");
+    elements.emailMethod.setAttribute("aria-pressed", String(method === "email"));
+    elements.phoneMethod.setAttribute("aria-pressed", String(method === "phone"));
+    showAuthError();
+}
+
+async function sendVerificationCode() {
+    const identityInput = authMethod === "email" ? elements.authEmail : elements.authPhone;
+    if(!identityInput.reportValidity()) return;
     elements.sendCodeButton.disabled = true;
     showAuthError();
     try {
-        const payload = await authRequest("/auth/email-code", {
+        const payload = await authRequest("/auth/send-code", {
             method: "POST",
-            body: JSON.stringify({email: elements.authEmail.value})
+            body: JSON.stringify(authMethod === "email"
+                ? {email: elements.authEmail.value}
+                : {phoneNumber: elements.authPhone.value})
         });
-        emailVerificationId = payload.verificationId;
-        elements.authEmail.readOnly = true;
+        loginVerificationId = payload.verificationId;
+        identityInput.readOnly = true;
         elements.authCode.disabled = false;
         elements.authSubmit.disabled = false;
         elements.authCode.focus();
@@ -223,11 +256,11 @@ async function submitAuth(event) {
     elements.authSubmit.disabled = true;
     elements.authError.hidden = true;
     try {
-        if(!emailVerificationId) throw new Error("请先获取邮箱验证码。");
-        const payload = await authRequest("/auth/verify-email", {
+        if(!loginVerificationId) throw new Error("请先获取验证码。");
+        const payload = await authRequest("/auth/verify-code", {
             method: "POST",
             body: JSON.stringify({
-                verificationId: emailVerificationId,
+                verificationId: loginVerificationId,
                 code: elements.authCode.value,
                 displayName: elements.authDisplayName.value
             })
@@ -698,9 +731,14 @@ elements.form.addEventListener("submit", event => {
 });
 elements.modelSelect.addEventListener("change", () => selectModel(elements.modelSelect.value));
 elements.authForm.addEventListener("submit", submitAuth);
-elements.sendCodeButton.addEventListener("click", sendEmailCode);
+elements.sendCodeButton.addEventListener("click", sendVerificationCode);
+elements.emailMethod.addEventListener("click", () => setAuthMethod("email"));
+elements.phoneMethod.addEventListener("click", () => setAuthMethod("phone"));
 elements.authEmail.addEventListener("input", () => {
-    if(!elements.authEmail.readOnly) emailVerificationId = "";
+    if(!elements.authEmail.readOnly) loginVerificationId = "";
+});
+elements.authPhone.addEventListener("input", () => {
+    if(!elements.authPhone.readOnly) loginVerificationId = "";
 });
 elements.logoutButton.addEventListener("click", logout);
 

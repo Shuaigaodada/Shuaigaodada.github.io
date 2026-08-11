@@ -184,11 +184,11 @@ function createUserCard(user) {
     const heading = document.createElement("div");
     heading.className = "user-heading";
     const identity = document.createElement("div");
-    const email = document.createElement("strong");
-    email.textContent = user.email;
+    const account = document.createElement("strong");
+    account.textContent = user.email || user.phoneNumber || "未设置登录账号";
     const created = document.createElement("span");
     created.textContent = `注册于 ${formatDate(user.createdAt)} · ID ${user.id.slice(0, 8)}…`;
-    identity.append(email, document.createElement("br"), created);
+    identity.append(account, document.createElement("br"), created);
     const status = document.createElement("span");
     status.className = `status-pill${user.disabled ? " disabled" : ""}`;
     status.textContent = user.disabled ? "已禁用" : "正常";

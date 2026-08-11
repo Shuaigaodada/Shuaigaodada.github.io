@@ -138,6 +138,12 @@ function normalizeEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254 ? email : "";
 }
 
+function normalizePhoneNumber(value) {
+    const digits = typeof value === "string" ? value.replace(/\D/g, "") : "";
+    const mainland = digits.startsWith("86") && digits.length === 13 ? digits.slice(2) : digits;
+    return /^1[3-9]\d{9}$/.test(mainland) ? `+86 ${mainland}` : "";
+}
+
 function databaseResult(result, fallback) {
     if(result.error) throw new Error(result.error.message || fallback);
     return result.data || [];
@@ -145,8 +151,15 @@ function databaseResult(result, fallback) {
 
 async function findUserByEmail(email) {
     const result = await getDatabase().from("app_users")
-        .select("id, email, display_name, daily_limit, is_disabled, created_at")
+        .select("id, email, phone_number, display_name, daily_limit, is_disabled, created_at")
         .eq("email", email).limit(1);
+    return databaseResult(result, "读取用户失败。")[0] || null;
+}
+
+async function findUserByPhoneNumber(phoneNumber) {
+    const result = await getDatabase().from("app_users")
+        .select("id, email, phone_number, display_name, daily_limit, is_disabled, created_at")
+        .eq("phone_number", phoneNumber).limit(1);
     return databaseResult(result, "读取用户失败。")[0] || null;
 }
 
@@ -161,7 +174,7 @@ async function cloudbaseAuthRequest(path, body) {
     try { payload = await response.json(); } catch(error) { /* Report a generic delivery error below. */ }
     if(!response.ok || payload.error) {
         const description = payload.error_description || payload.message || payload.error;
-        const error = new Error(description || "邮箱验证码服务暂时不可用。");
+        const error = new Error(description || "验证码服务暂时不可用。");
         error.status = response.status >= 400 && response.status < 500 ? response.status : 502;
         error.code = payload.error || "email_verification_failed";
         throw error;
@@ -169,28 +182,32 @@ async function cloudbaseAuthRequest(path, body) {
     return payload;
 }
 
-async function sendEmailVerification(email) {
-    const payload = await cloudbaseAuthRequest("/verification", {email, target: "ANY"});
+async function sendLoginVerification({email = null, phoneNumber = null}) {
+    const identity = email ? {email} : {phone_number: phoneNumber};
+    const payload = await cloudbaseAuthRequest("/verification", {...identity, target: "ANY"});
     if(typeof payload.verification_id !== "string" || !payload.verification_id)
         throw Object.assign(new Error("验证码服务未返回有效凭据。"), {status: 502});
     const expiresIn = Math.min(EMAIL_CODE_TTL_SECONDS, Math.max(60, Number(payload.expires_in) || EMAIL_CODE_TTL_SECONDS));
-    await getDatabase().from("email_verifications").delete().eq("email", email);
+    const cleanup = getDatabase().from("email_verifications").delete();
+    const cleanupResult = email ? await cleanup.eq("email", email) : await cleanup.eq("phone_number", phoneNumber);
+    databaseResult(cleanupResult, "清理旧验证码凭据失败。");
     const result = await getDatabase().from("email_verifications").insert({
         verification_id: payload.verification_id,
         email,
+        phone_number: phoneNumber,
         expires_at: new Date(Date.now() + expiresIn * 1000).toISOString()
     });
-    databaseResult(result, "保存邮箱验证码凭据失败。");
+    databaseResult(result, "保存验证码凭据失败。");
     return {verificationId: payload.verification_id, expiresIn};
 }
 
-async function verifyEmailAndCreateSession(verificationId, verificationCode, displayName) {
+async function verifyLoginAndCreateSession(verificationId, verificationCode, displayName) {
     const lookup = await getDatabase().from("email_verifications")
-        .select("email, expires_at")
+        .select("email, phone_number, expires_at")
         .eq("verification_id", verificationId)
         .gt("expires_at", new Date().toISOString())
         .limit(1);
-    const pending = databaseResult(lookup, "读取邮箱验证码凭据失败。")[0];
+    const pending = databaseResult(lookup, "读取验证码凭据失败。")[0];
     if(!pending) throw Object.assign(new Error("验证码已过期，请重新获取。"), {status: 400});
 
     await cloudbaseAuthRequest("/verification/verify", {
@@ -198,21 +215,26 @@ async function verifyEmailAndCreateSession(verificationId, verificationCode, dis
         verification_code: verificationCode
     });
     const removed = await getDatabase().from("email_verifications").delete().eq("verification_id", verificationId);
-    databaseResult(removed, "清理邮箱验证码凭据失败。");
+    databaseResult(removed, "清理验证码凭据失败。");
 
-    let user = await findUserByEmail(pending.email);
+    let user = pending.email
+        ? await findUserByEmail(pending.email)
+        : await findUserByPhoneNumber(pending.phone_number);
     if(!user) {
         const name = (typeof displayName === "string" ? displayName.trim() : "").slice(0, 30)
-            || pending.email.split("@")[0].slice(0, 30);
+            || (pending.email ? pending.email.split("@")[0].slice(0, 30) : `手机用户${pending.phone_number.slice(-4)}`);
         const created = await getDatabase().from("app_users").insert({
             id: randomUUID(),
             email: pending.email,
+            phone_number: pending.phone_number,
             display_name: name,
             password_salt: randomBytes(16).toString("base64url"),
             password_hash: randomBytes(64).toString("base64url")
         });
         databaseResult(created, "创建用户失败。");
-        user = await findUserByEmail(pending.email);
+        user = pending.email
+            ? await findUserByEmail(pending.email)
+            : await findUserByPhoneNumber(pending.phone_number);
     }
     if(user.is_disabled)
         throw Object.assign(new Error("该账号已被管理员禁用。"), {status: 403});
@@ -222,7 +244,7 @@ async function verifyEmailAndCreateSession(verificationId, verificationCode, dis
 
 async function findUserById(id) {
     const result = await getDatabase().from("app_users")
-        .select("id, email, display_name, daily_limit, is_disabled, created_at").eq("id", id).limit(1);
+        .select("id, email, phone_number, display_name, daily_limit, is_disabled, created_at").eq("id", id).limit(1);
     return databaseResult(result, "读取用户失败。")[0] || null;
 }
 
@@ -284,6 +306,7 @@ function publicUser(user) {
     return {
         id: user.id,
         email: user.email,
+        phoneNumber: user.phone_number,
         displayName: user.display_name,
         dailyLimit: Number(user.daily_limit ?? DEFAULT_DAILY_QUOTA),
         disabled: Boolean(user.is_disabled)
@@ -349,7 +372,7 @@ async function getAllMessages() {
 async function getAllUsers() {
     const db = getDatabase();
     const usersResult = await db.from("app_users")
-        .select("id, email, display_name, daily_limit, is_disabled, created_at")
+        .select("id, email, phone_number, display_name, daily_limit, is_disabled, created_at")
         .order("created_at", {ascending: false})
         .limit(5000);
     const users = databaseResult(usersResult, "读取用户失败。");
@@ -365,6 +388,7 @@ async function getAllUsers() {
         return {
             id: user.id,
             email: user.email,
+            phoneNumber: user.phone_number,
             displayName: user.display_name,
             dailyLimit,
             usedToday,
@@ -418,23 +442,25 @@ async function updateManagedUser(userId, body) {
 }
 
 async function handleAuth(request, response, url, origin) {
-    if(request.method === "POST" && url.pathname === "/api/auth/email-code") {
+    if(request.method === "POST" && url.pathname === "/api/auth/send-code") {
         const body = await readJson(request);
         const email = normalizeEmail(body.email);
-        if(!email) return sendJson(response, 400, {error: "请输入有效邮箱。"}, origin);
-        const user = await findUserByEmail(email);
+        const phoneNumber = normalizePhoneNumber(body.phoneNumber);
+        if((email ? 1 : 0) + (phoneNumber ? 1 : 0) !== 1)
+            return sendJson(response, 400, {error: "请输入有效邮箱或中国大陆手机号。"}, origin);
+        const user = email ? await findUserByEmail(email) : await findUserByPhoneNumber(phoneNumber);
         if(user?.is_disabled) return sendJson(response, 403, {error: "该账号已被管理员禁用。"}, origin);
-        return sendJson(response, 200, await sendEmailVerification(email), origin);
+        return sendJson(response, 200, await sendLoginVerification({email: email || null, phoneNumber: phoneNumber || null}), origin);
     }
 
-    if(request.method === "POST" && url.pathname === "/api/auth/verify-email") {
+    if(request.method === "POST" && url.pathname === "/api/auth/verify-code") {
         const body = await readJson(request);
         const verificationId = typeof body.verificationId === "string" ? body.verificationId.trim() : "";
         const verificationCode = typeof body.code === "string" ? body.code.trim() : "";
         if(!verificationId || !/^\d{6}$/.test(verificationCode))
-            return sendJson(response, 400, {error: "请输入邮件中的 6 位验证码。"}, origin);
+            return sendJson(response, 400, {error: "请输入收到的 6 位验证码。"}, origin);
         return sendJson(response, 200,
-            await verifyEmailAndCreateSession(verificationId, verificationCode, body.displayName), origin);
+            await verifyLoginAndCreateSession(verificationId, verificationCode, body.displayName), origin);
     }
 
     if(request.method === "GET" && url.pathname === "/api/auth/me") {
@@ -473,7 +499,8 @@ async function handleAdmin(request, response, url, origin) {
         const search = (url.searchParams.get("search") || "").trim().toLowerCase().slice(0, 200);
         const all = await getAllUsers();
         const filtered = search ? all.filter(user =>
-            user.email.toLowerCase().includes(search)
+            (user.email || "").toLowerCase().includes(search)
+            || (user.phoneNumber || "").includes(search)
             || user.displayName.toLowerCase().includes(search)
             || user.id === search
         ) : all;

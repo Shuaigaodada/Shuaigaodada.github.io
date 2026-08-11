@@ -14,10 +14,15 @@
         <div class="auth-card">
             <a class="auth-brand" href="../../index.html"><span class="brand-mark">G</span><strong>GAO LAB</strong></a>
             <p class="eyebrow">LAOGAO GPT</p>
-            <h1 id="auth-title">邮箱验证码登录</h1>
+            <h1 id="auth-title">验证码登录</h1>
             <p class="auth-copy" id="auth-copy">首次验证会自动创建账号，每个账号每天默认拥有 50 次对话额度。</p>
             <form class="auth-form" id="auth-form">
-                <label>邮箱<input id="auth-email" type="email" maxlength="254" autocomplete="email" required placeholder="name@example.com"></label>
+                <div class="auth-methods" role="group" aria-label="登录方式">
+                    <button class="auth-method active" id="email-method" type="button" aria-pressed="true">邮箱验证码</button>
+                    <button class="auth-method" id="phone-method" type="button" aria-pressed="false">手机验证码</button>
+                </div>
+                <label id="auth-email-field">邮箱<input id="auth-email" type="email" maxlength="254" autocomplete="email" required placeholder="name@example.com"></label>
+                <label id="auth-phone-field" hidden>中国大陆手机号<input id="auth-phone" type="tel" inputmode="numeric" maxlength="13" autocomplete="tel-national" placeholder="13800138000"></label>
                 <div class="verification-row">
                     <label>验证码<input id="auth-code" type="text" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" pattern="[0-9]{6}" required disabled placeholder="6 位验证码"></label>
                     <button class="code-button" id="send-code-button" type="button">获取验证码</button>
@@ -26,7 +31,7 @@
                 <p class="auth-error" id="auth-error" role="alert" hidden></p>
                 <button class="auth-submit" id="auth-submit" type="submit" disabled>验证并登录</button>
             </form>
-            <p class="auth-hint">验证码 10 分钟内有效，60 秒后可重新发送。</p>
+            <p class="auth-hint">验证码 10 分钟内有效，60 秒后可重新发送。短信仅支持中国大陆手机号。</p>
         </div>
     </section>
     <div class="app-shell">
