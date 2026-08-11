@@ -3,6 +3,7 @@ import type { GameState } from "../../game/contracts/types";
 import { WebSocketGameGateway } from "../../services/WebSocketGameGateway";
 import { ActionPanel } from "./ActionPanel";
 import { BankrollStacks, BettingChips } from "./BettingChips";
+import { CardCounter } from "./CardCounter";
 import { DeckPile } from "./DeckPile";
 import { PlayerSeat } from "./PlayerSeat";
 import { PlayingCard } from "./PlayingCard";
@@ -30,13 +31,7 @@ interface BattleScreenProps {
   onExit: () => void;
 }
 
-function highestCardId(hand: GameState["players"][number]["hand"]) {
-  const cardValue = (rank: string) => rank === "A" ? 11 : Number(rank);
-  return hand.reduce<{ id: string; value: number } | null>((highest, card) => {
-    const value = cardValue(card.rank);
-    return !highest || value > highest.value ? { id: card.id, value } : highest;
-  }, null);
-}
+const cardValue = (rank: string) => rank === "A" ? 11 : Number(rank);
 
 export function BattleScreen({ tableId, onExit: returnToLobby }: BattleScreenProps) {
   const gateway = useMemo(() => new WebSocketGameGateway(tableId), [tableId]);
@@ -68,14 +63,14 @@ export function BattleScreen({ tableId, onExit: returnToLobby }: BattleScreenPro
     return () => window.clearInterval(timer);
   }, []);
   useEffect(() => {
-    if (game.status !== "finished") {
+    if (game.status !== "showdown" && game.status !== "finished") {
       setShowdownRevealCount(null);
       return;
     }
-    setShowdownRevealCount(0);
+    setShowdownRevealCount(game.status === "showdown" ? 0 : game.players[1].hand.length);
   }, [game.status, game.round]);
   useEffect(() => {
-    if (game.status !== "finished" || showdownRevealCount === null) return;
+    if (game.status !== "showdown" || showdownRevealCount === null) return;
     const cardCount = game.players[1].hand.length;
     if (showdownRevealCount >= cardCount) return;
     const timer = window.setTimeout(() => setShowdownRevealCount((count) => (count ?? 0) + 1), 480);
@@ -256,18 +251,17 @@ export function BattleScreen({ tableId, onExit: returnToLobby }: BattleScreenPro
   }, [game.status, pendingDeal, performAction]);
 
   const [self, opponent] = game.players;
-  const opponentHiddenCardIndexes = game.status === "finished"
+  const opponentHiddenCardIndexes = game.status === "showdown" || game.status === "finished"
     ? opponent.hand.map((_, index) => index >= (showdownRevealCount ?? 0) ? index : -1).filter((index) => index >= 0)
     : opponent.hand.map((card, index) => card.id.startsWith("hidden-") || index > 0 ? index : -1)
     .filter((index) => index >= 0);
   const showdownCardIds = (() => {
     if (game.status !== "finished" || game.winnerId !== null) return { self: [], opponent: [] };
-    const selfHighest = highestCardId(self.hand);
-    const opponentHighest = highestCardId(opponent.hand);
-    if (!selfHighest || !opponentHighest) return { self: [], opponent: [] };
-    if (selfHighest.value > opponentHighest.value) return { self: [selfHighest.id], opponent: [] };
-    if (opponentHighest.value > selfHighest.value) return { self: [], opponent: [opponentHighest.id] };
-    return { self: [selfHighest.id], opponent: [opponentHighest.id] };
+    const maximum = Math.max(...self.hand.map((card) => cardValue(card.rank)), ...opponent.hand.map((card) => cardValue(card.rank)));
+    return {
+      self: self.hand.filter((card) => cardValue(card.rank) === maximum).map((card) => card.id),
+      opponent: opponent.hand.filter((card) => cardValue(card.rank) === maximum).map((card) => card.id),
+    };
   })();
   const openingVisibleCount = (playerId: string) => isOpeningDeal
     ? openingQueue.slice(0, openingStep + 1).filter((deal) => deal.playerId === playerId).length
@@ -286,6 +280,7 @@ export function BattleScreen({ tableId, onExit: returnToLobby }: BattleScreenPro
             <div className="pot"><span>底池 <b>{self.bet + opponent.bet} $</b></span></div>
           </section>
           <PlayerSeat player={self} active={game.status === "playing" && game.activePlayerId === self.id} winner={game.status === "finished" && game.winnerId === self.id} showHandState={game.status !== "betting" && game.status !== "waiting"} turnSeconds={game.activePlayerId === self.id ? game.turnSecondsRemaining : 0} position="bottom" pendingCardId={pendingDeal?.playerId === self.id ? pendingDeal.card.id : undefined} pendingCard={pendingDeal?.playerId === self.id ? pendingDeal.card : undefined} pendingCardHidden={pendingDeal?.playerId === self.id && !pendingDeal.revealed} reservePendingCard={pendingDeal?.playerId === self.id && pendingDeal.settling} animatePendingCard={pendingDeal?.playerId === self.id && pendingDeal.settling && !pendingDeal.serverCardReceived} hideIncomingCard={pendingDeal?.playerId === self.id && !pendingDeal.revealed} pendingHandSizeBefore={pendingDeal?.playerId === self.id ? pendingDeal.handSizeBefore : 0} disableLayoutAnimation={pendingDeal?.playerId === self.id && !pendingDeal.revealed} visibleHandCount={openingVisibleCount(self.id)} arrivingCardId={openingDeal?.playerId === self.id ? openingDeal.cardId : undefined} forceHiddenCardId={openingDeal?.playerId === self.id ? openingDeal.cardId : undefined} showdownCardIds={showdownCardIds.self} />
+          <CardCounter cards={game.deck} />
           <DeckPile disabled={isShuffling || isOpeningDeal || game.status !== "playing" || game.activePlayerId !== game.viewerPlayerId || (pendingDeal !== null && !pendingDeal.dragging)} remaining={game.deck.length} shuffling={isShuffling} onDraw={drawFromDeck} onMove={movePendingCard} onRelease={releasePendingCard} />
           <BankrollStacks playerABankroll={self.bankroll} playerBBankroll={opponent.bankroll} playerAIsBot={self.isBot} playerBIsBot={opponent.isBot} />
           <BettingChips topAmount={opponent.bet} bottomAmount={self.bet} winnerPosition={game.status === "finished" ? game.winnerId === self.id ? "bottom" : game.winnerId === opponent.id ? "top" : null : null} />

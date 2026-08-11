@@ -155,6 +155,26 @@ button { font: inherit; }
 @media (min-width: 601px) and (min-height: 821px) { .deck-pile__cards { width: 118px; height: 190px; } }
 @media (max-width: 600px) { .deck-pile__cards { width: 57px; height: 94px; } }
 
+/* 可收起记牌器：每个点数显示一张缩略牌面与牌堆中的剩余数量。 */
+.card-counter { position: absolute; z-index: 8; top: 86px; left: 12px; display: flex; align-items: stretch; color: #f7e5b2; filter: drop-shadow(0 8px 12px #00150ea0); }
+.card-counter__toggle { width: 26px; padding: 0; cursor: pointer; color: #ffe292; border: 1px solid #b58b42; border-right: 0; border-radius: 8px 0 0 8px; background: #123a2be8; font-size: 23px; }
+.card-counter__body { width: min(360px, calc(100vw - 120px)); padding: 8px 9px 9px; border: 1px solid #b58b42; border-radius: 0 9px 9px 0; background: #092a1fef; backdrop-filter: blur(8px); }
+.card-counter__title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; color: #d8bd7a; font-size: 10px; letter-spacing: .1em; }
+.card-counter__title b { color: #ffe08a; font-size: 11px; }
+.card-counter__grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
+.card-counter__item { display: grid; justify-items: center; gap: 3px; }
+.card-counter__item .playing-card { width: 28px; height: 45px; margin: 0; filter: drop-shadow(0 2px 2px #0008); }
+.card-counter__item .card-face { border-radius: 3px; }
+.card-counter__item strong { color: #ffe08a; font-size: 10px; }
+.card-counter__item.is-empty { opacity: .28; }
+.card-counter.is-collapsed .card-counter__toggle { height: 58px; border-right: 1px solid #b58b42; border-radius: 8px; }
+@media (max-width: 800px) {
+  .card-counter { top: 70px; left: 6px; }
+  .card-counter__body { width: min(245px, calc(100vw - 64px)); }
+  .card-counter__grid { grid-template-columns: repeat(5, 1fr); }
+  .card-counter__item .playing-card { width: 24px !important; height: 39px !important; }
+}
+
 /* 推入底池的筹码与右侧存量筹码使用同一视觉规格。 */
 .bet-chip { width: 38px; height: 38px; border: 4px dashed #fff3d0; box-shadow: inset 0 0 0 2px #6e2024, 0 3px 6px #000b; color: #fff3d0; font-size: 8px; }
 

@@ -61,3 +61,25 @@ test("mainland engine rejects unopened tables and expired tickets", async () => 
     assert.equal(state.viewerPlayerId, null);
     assert.match(state.message, /登录凭证已过期/);
 });
+
+test("mainland engine refills an empty deck without losing bets and does not auto-stand on 21", async () => {
+    const engine = new MainlandBlackjackEngine();
+    const table = engine.getTable("table-1");
+    const [a, b] = table.players;
+    Object.assign(a, {clientId: "client-a", bankroll: 480, bet: 20, hand: [{id: "10-hearts", rank: "10", suit: "hearts"}], hasStood: false});
+    Object.assign(b, {clientId: "client-b", bankroll: 480, bet: 20, hand: [{id: "9-spades", rank: "9", suit: "spades"}], hasStood: false});
+    Object.assign(table, {status: "playing", activePlayerId: a.id, deck: [], turnDeadline: null});
+
+    engine.refillDuringRound(table);
+    const aceIndex = table.deck.findIndex(card => card.id === "A-clubs");
+    table.deck.push(table.deck.splice(aceIndex, 1)[0]);
+    await engine.hit(table, a);
+
+    assert.equal(a.bankroll, 480);
+    assert.equal(b.bankroll, 480);
+    assert.equal(a.bet, 20);
+    assert.equal(a.hasStood, false);
+    assert.equal(table.status, "playing");
+    assert.equal(table.activePlayerId, b.id);
+    assert.ok(table.deck.length > 0);
+});
