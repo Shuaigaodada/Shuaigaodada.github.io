@@ -30,6 +30,7 @@ const DEFAULT_PLAYER_NAMES = ["玩家 A", "玩家 B"] as const;
 const BOT_CLIENT_PREFIX = "bot:";
 // 第一阶段只创建 5 个可用对局；大厅保留 20 个视觉桌位，日后扩容时修改此值即可。
 const OPEN_TABLE_LIMIT = 5;
+const LGGPT_GATEWAY_PREFIX = "/api/lggpt";
 const suits: Suit[] = ["hearts", "diamonds", "clubs", "spades"];
 const ranks: Rank[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 const GAME_TYPE = "blackjack";
@@ -62,11 +63,22 @@ function corsHeaders(request: Request, env: AppEnv) {
   }
   const headers: Record<string, string> = {
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     "Vary": "Origin",
   };
   if (origin && (allowed.has(origin) || localDevelopmentOrigin)) headers["Access-Control-Allow-Origin"] = origin;
   return headers;
+}
+
+function lggptGateway(request: Request, env: AppEnv, url: URL) {
+  const suffix = url.pathname.slice(LGGPT_GATEWAY_PREFIX.length);
+  const allowedPath = suffix === "/health" || suffix === "/chat" || suffix === "/admin/messages" || suffix.startsWith("/admin/messages/");
+  if (!allowedPath) return response(request, env, { message: "Not found" }, 404);
+  const target = new URL(request.url);
+  target.protocol = "https:";
+  target.hostname = "laogao-gpt-api.internal";
+  target.pathname = `/api${suffix}`;
+  return env.LGGPT_API.fetch(new Request(target, request));
 }
 const response = (request: Request, env: AppEnv, data: unknown, status = 200) => Response.json(data, { status, headers: corsHeaders(request, env) });
 const publicUser = (row: UserRow) => ({
@@ -656,6 +668,7 @@ async function handleRequest(request: Request, env: AppEnv): Promise<Response> {
     if (origin && !accessHeaders["Access-Control-Allow-Origin"]) return Response.json({ message: "Origin not allowed" }, { status: 403 });
     if (request.method === "OPTIONS") return new Response(null, { headers: accessHeaders });
     if (url.pathname === "/health") return response(request, env, { status: "ok" });
+    if (url.pathname === LGGPT_GATEWAY_PREFIX || url.pathname.startsWith(`${LGGPT_GATEWAY_PREFIX}/`)) return lggptGateway(request, env, url);
     if (["/api/auth/me", "/api/auth/profile", "/api/auth/login", "/api/auth/register", "/api/auth/claim-bankroll", "/api/auth/ws-ticket", "/api/auth/logout"].includes(url.pathname)) return authApi(request, env, url.pathname);
     const match = url.pathname.match(/^\/(?:api\/)?tables\/([^/]+)\/(state|command)$/) ?? url.pathname.match(/^\/ws\/tables\/([^/]+)$/);
     if (!match) return new Response("Not found", { status: 404 });

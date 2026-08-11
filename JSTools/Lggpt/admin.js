@@ -1,5 +1,8 @@
-const PRODUCTION_API_BASE = "https://laogao-gpt-api.laogao0113.workers.dev/api";
-const API_BASE = location.hostname === "shuaigaodada.github.io" ? PRODUCTION_API_BASE : "/api";
+const PRODUCTION_API_BASES = [
+    "https://blackjack-duel.laogao0113.workers.dev/api/lggpt",
+    "https://laogao-gpt-api.laogao0113.workers.dev/api"
+];
+const API_BASES = location.hostname === "shuaigaodada.github.io" ? PRODUCTION_API_BASES : ["/api"];
 const TOKEN_KEY = "laogao-gpt-admin-token";
 
 const elements = {
@@ -30,6 +33,23 @@ let adminToken = sessionStorage.getItem(TOKEN_KEY) || "";
 let currentPage = 1;
 let totalPages = 1;
 let currentSearch = "";
+let activeApiBaseIndex = 0;
+
+async function fetchApi(path, options = {}) {
+    let lastError;
+    const indexes = [activeApiBaseIndex, ...API_BASES.map((_, index) => index)
+        .filter(index => index !== activeApiBaseIndex)];
+    for(const index of indexes) {
+        try {
+            const response = await fetch(`${API_BASES[index]}${path}`, options);
+            activeApiBaseIndex = index;
+            return response;
+        } catch(error) {
+            lastError = error;
+        }
+    }
+    throw lastError || new Error("所有后端线路均不可用。");
+}
 
 function showLogin(message = "") {
     elements.loginPanel.hidden = false;
@@ -47,7 +67,7 @@ function showDashboard() {
 }
 
 async function apiRequest(path, options = {}) {
-    const response = await fetch(`${API_BASE}${path}`, {
+    const response = await fetchApi(path, {
         ...options,
         headers: {"Authorization": `Bearer ${adminToken}`, "Accept": "application/json", ...options.headers}
     });
