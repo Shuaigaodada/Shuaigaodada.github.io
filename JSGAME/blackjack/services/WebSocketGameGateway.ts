@@ -1,6 +1,6 @@
 import type { GameCommand, GameGateway, GameState, Player, PlayingCard } from "../game/contracts/types";
 import { getAuthToken } from "./authSession";
-import { getGameServer } from "./serverConfig";
+import { getGameServer, MAINLAND_SERVER, selectGameServer } from "./serverConfig";
 
 interface RemotePlayer {
   id: string;
@@ -63,8 +63,10 @@ export class WebSocketGameGateway implements GameGateway {
   private listeners = new Set<(state: GameState) => void>();
   private socket: WebSocket | null = null;
   private reconnectTimer: number | null = null;
+  private connectDeadline: number | null = null;
   private pollTimer: number | null = null;
   private polling = false;
+  private pollInFlight = false;
   private ticket = "";
   private disposeTimer: number | null = null;
   private reconnectAttempts = 0;
@@ -72,8 +74,10 @@ export class WebSocketGameGateway implements GameGateway {
   private disposed = false;
   private readonly tableId: string;
   private readonly clientId: string;
-  private readonly apiBaseUrl: string;
-  private readonly socketBaseUrl: string;
+  private apiBaseUrl: string;
+  private socketBaseUrl: string;
+  private webSocketFailures = 0;
+  private routeOverride: string | null = null;
 
   constructor(tableId = "demo-table") {
     this.tableId = tableId;
@@ -88,6 +92,10 @@ export class WebSocketGameGateway implements GameGateway {
 
   private async connect() {
     if (this.disposed) return;
+    if (!this.polling) {
+      this.apiBaseUrl = this.routeOverride ?? await selectGameServer();
+      this.socketBaseUrl = this.apiBaseUrl.replace(/^http/, "ws");
+    }
     const authToken = getAuthToken();
     let ticket = "";
     if (authToken) {
@@ -100,26 +108,47 @@ export class WebSocketGameGateway implements GameGateway {
       }
     }
     if (this.disposed) return;
-    if (this.apiBaseUrl.includes("tcloudbase.com/blackjack")) {
-      this.polling = true;
-      this.ticket = ticket;
-      await this.pollState();
-      this.pollTimer = window.setInterval(() => void this.pollState(), 1_000);
-      return;
-    }
     const socket = new WebSocket(`${this.socketBaseUrl}/ws/tables/${this.tableId}?client_id=${encodeURIComponent(this.clientId)}${ticket ? `&ticket=${encodeURIComponent(ticket)}` : ""}`);
     this.socket = socket;
-    socket.addEventListener("message", (event) => this.receive(event.data));
+    this.connectDeadline = window.setTimeout(() => {
+      if (this.socket !== socket || socket.readyState === WebSocket.OPEN) return;
+      this.handleSocketFailure(socket, ticket);
+      try { socket.close(); } catch { /* Some older browsers reject close() while CONNECTING. */ }
+    }, 7_000);
+    socket.addEventListener("message", (event) => { if (this.socket === socket) this.receive(event.data); });
     socket.addEventListener("open", () => {
+      if (this.socket !== socket) { socket.close(1000, "superseded route"); return; }
+      if (this.connectDeadline !== null) window.clearTimeout(this.connectDeadline);
+      this.connectDeadline = null;
       this.reconnectAttempts = 0;
+      this.webSocketFailures = 0;
       this.update({ ...this.state, message: "已连接服务器，正在同步牌桌…" });
     });
     socket.addEventListener("close", () => {
-      if (this.disposed || this.socket !== socket) return;
-      this.update({ ...this.state, message: "与服务器断开，正在重连…" });
-      this.scheduleReconnect();
+      this.handleSocketFailure(socket, ticket);
     });
     socket.addEventListener("error", () => this.update({ ...this.state, message: "无法连接游戏服务器，请稍后重试。" }));
+  }
+
+  private handleSocketFailure(socket: WebSocket, ticket: string) {
+    if (this.disposed || this.socket !== socket) return;
+    if (this.connectDeadline !== null) window.clearTimeout(this.connectDeadline);
+    this.connectDeadline = null;
+    this.socket = null;
+    this.webSocketFailures += 1;
+    if (this.webSocketFailures >= 2 && this.apiBaseUrl !== MAINLAND_SERVER) {
+      this.routeOverride = MAINLAND_SERVER;
+      this.apiBaseUrl = MAINLAND_SERVER;
+      this.socketBaseUrl = MAINLAND_SERVER.replace(/^http/, "ws");
+      this.scheduleReconnect();
+      return;
+    }
+    if (this.webSocketFailures >= 2 && this.apiBaseUrl === MAINLAND_SERVER) {
+      void this.startPollingFallback(ticket);
+      return;
+    }
+    this.update({ ...this.state, message: "与服务器断开，正在重连…" });
+    this.scheduleReconnect();
   }
 
   private scheduleReconnect() {
@@ -150,6 +179,14 @@ export class WebSocketGameGateway implements GameGateway {
     };
   };
 
+  private async startPollingFallback(ticket: string) {
+    if (this.disposed || this.polling) return;
+    this.polling = true;
+    this.ticket = ticket;
+    await this.pollState();
+    if (!this.disposed) this.pollTimer = window.setInterval(() => void this.pollState(), 1_200);
+  }
+
   sendAction = (action: GameCommand["type"], amount?: number) => {
     if (this.polling) {
       const commandId = createClientId();
@@ -174,7 +211,8 @@ export class WebSocketGameGateway implements GameGateway {
   };
 
   private async pollState() {
-    if (this.disposed) return;
+    if (this.disposed || this.pollInFlight) return;
+    this.pollInFlight = true;
     try {
       const query = new URLSearchParams({ client_id: this.clientId });
       const response = await fetch(`${this.apiBaseUrl}/api/tables/${this.tableId}/state?${query}`, { cache: "no-store" });
@@ -182,6 +220,8 @@ export class WebSocketGameGateway implements GameGateway {
       this.update(this.toGameState(await response.json() as RemoteTableState));
     } catch {
       this.update({ ...this.state, message: "国内联机线路正在重连…" });
+    } finally {
+      this.pollInFlight = false;
     }
   }
 
@@ -235,8 +275,10 @@ export class WebSocketGameGateway implements GameGateway {
       if (this.listeners.size > 0) return;
       this.disposed = true;
       if (this.reconnectTimer !== null) window.clearTimeout(this.reconnectTimer);
+      if (this.connectDeadline !== null) window.clearTimeout(this.connectDeadline);
       if (this.pollTimer !== null) window.clearInterval(this.pollTimer);
       this.reconnectTimer = null;
+      this.connectDeadline = null;
       this.pollTimer = null;
       this.socket?.close(1000, "leaving table");
       this.socket = null;
