@@ -70,6 +70,27 @@ let authMethod = "email";
 let resendTimer = null;
 let currentQuota = {limit: 50, used: 0, remaining: 50};
 
+function combineAbortSignals(externalSignal, timeoutSignal) {
+    if(!externalSignal) return {signal: timeoutSignal, cleanup() {}};
+    if(typeof AbortSignal.any === "function")
+        return {signal: AbortSignal.any([externalSignal, timeoutSignal]), cleanup() {}};
+
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    if(externalSignal.aborted || timeoutSignal.aborted) abort();
+    else {
+        externalSignal.addEventListener("abort", abort, {once: true});
+        timeoutSignal.addEventListener("abort", abort, {once: true});
+    }
+    return {
+        signal: controller.signal,
+        cleanup() {
+            externalSignal.removeEventListener("abort", abort);
+            timeoutSignal.removeEventListener("abort", abort);
+        }
+    };
+}
+
 async function fetchApi(path, options = {}) {
     const {timeoutMs = 30000, model = selectedModel, ...fetchOptions} = options;
     let lastError;
@@ -78,19 +99,18 @@ async function fetchApi(path, options = {}) {
     for(const index of indexes) {
         const timeoutController = new AbortController();
         const timeout = setTimeout(() => timeoutController.abort(), timeoutMs);
-        const signal = fetchOptions.signal
-            ? AbortSignal.any([fetchOptions.signal, timeoutController.signal])
-            : timeoutController.signal;
+        const combined = combineAbortSignals(fetchOptions.signal, timeoutController.signal);
         try {
             const headers = new Headers(fetchOptions.headers);
             if(authToken) headers.set("Authorization", `Bearer ${authToken}`);
-            const response = await fetch(`${API_BASES[index]}${path}`, {...fetchOptions, headers, signal});
+            const response = await fetch(`${API_BASES[index]}${path}`, {...fetchOptions, headers, signal: combined.signal});
             return response;
         } catch(error) {
             if(fetchOptions.signal?.aborted) throw error;
             lastError = error;
         } finally {
             clearTimeout(timeout);
+            combined.cleanup();
         }
     }
     throw lastError || new Error("所有后端线路均不可用。");
