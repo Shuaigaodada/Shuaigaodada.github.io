@@ -52,7 +52,7 @@ async function createDeepSeekResponse(messages, model, signal) {
         body: JSON.stringify({
             model,
             messages: [
-                {role: "system", content: "你是 Laogao GPT，一位友好、准确的中文 AI 助手。直接回答问题；遇到代码时给出清晰、可运行的方案；不确定时明确说明。"},
+                {role: "system", content: "你是 Laogao GPT，一位友好、准确的中文 AI 助手。直接回答问题；遇到代码时给出清晰、可运行的方案，并将所有代码放入带语言标记的 Markdown 三反引号代码块中；不确定时明确说明。"},
                 ...messages
             ],
             thinking: {type: "disabled"},
