@@ -685,6 +685,70 @@ function requestBlackjackByIp(target, method, headers, body, address) {
     });
 }
 
+function proxyBlackjackWebSocket(request, clientSocket, head) {
+    const origin = request.headers.origin || "";
+    if(origin && !ALLOWED_ORIGINS.has(origin)) {
+        clientSocket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+        return;
+    }
+    const url = new URL(request.url || "/", "https://localhost");
+    if(!url.pathname.startsWith("/blackjack/ws/")) {
+        clientSocket.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
+        return;
+    }
+    const suffix = url.pathname.slice("/blackjack".length);
+    const target = new URL(suffix + url.search, BLACKJACK_UPSTREAM);
+    const addresses = [null, ...BLACKJACK_FALLBACK_IPS];
+    let attemptIndex = 0;
+
+    const attempt = () => {
+        const address = addresses[attemptIndex++];
+        const headers = {...request.headers, host: target.hostname};
+        delete headers["content-length"];
+        const upstreamRequest = https.request({
+            hostname: address || target.hostname,
+            port: 443,
+            servername: target.hostname,
+            rejectUnauthorized: true,
+            path: `${target.pathname}${target.search}`,
+            method: "GET",
+            headers,
+            timeout: 12_000
+        });
+        let upgraded = false;
+        upstreamRequest.on("upgrade", (upstreamResponse, upstreamSocket, upstreamHead) => {
+            upgraded = true;
+            clientSocket.setTimeout(0);
+            const statusLine = `HTTP/1.1 ${upstreamResponse.statusCode || 101} ${upstreamResponse.statusMessage || "Switching Protocols"}\r\n`;
+            const responseHeaders = [];
+            for(let index = 0; index < upstreamResponse.rawHeaders.length; index += 2)
+                responseHeaders.push(`${upstreamResponse.rawHeaders[index]}: ${upstreamResponse.rawHeaders[index + 1]}`);
+            clientSocket.write(`${statusLine}${responseHeaders.join("\r\n")}\r\n\r\n`);
+            if(head?.length) upstreamSocket.write(head);
+            if(upstreamHead?.length) clientSocket.write(upstreamHead);
+            clientSocket.pipe(upstreamSocket);
+            upstreamSocket.pipe(clientSocket);
+            const closeBoth = () => { clientSocket.destroy(); upstreamSocket.destroy(); };
+            clientSocket.on("error", closeBoth);
+            upstreamSocket.on("error", closeBoth);
+        });
+        upstreamRequest.on("response", upstreamResponse => {
+            upstreamResponse.resume();
+            if(!upgraded) clientSocket.end("HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\n\r\n");
+        });
+        upstreamRequest.on("timeout", () => upstreamRequest.destroy(new Error("Blackjack WebSocket upstream timed out")));
+        upstreamRequest.on("error", error => {
+            if(upgraded || clientSocket.destroyed) return;
+            if(attemptIndex < addresses.length) { attempt(); return; }
+            console.error("blackjack_websocket_proxy_failed", error?.message || error);
+            clientSocket.end("HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\n\r\n");
+        });
+        upstreamRequest.end();
+    };
+    clientSocket.setTimeout(15_000, () => clientSocket.destroy());
+    attempt();
+}
+
 async function handleChat(request, response, origin) {
     if(!request.headers["content-type"]?.toLowerCase().startsWith("application/json"))
         return sendJson(response, 415, {error: "Content-Type 必须是 application/json。"}, origin);
@@ -752,6 +816,8 @@ const server = http.createServer((request, response) => {
         else response.end(`${JSON.stringify({type: "error", error: "服务内部错误。"})}\n`);
     });
 });
+
+server.on("upgrade", (request, socket, head) => proxyBlackjackWebSocket(request, socket, head));
 
 server.listen(PORT, "0.0.0.0", () => {
     console.log(`Lggpt CloudBase backend listening on ${PORT}`);
