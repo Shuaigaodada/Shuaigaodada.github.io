@@ -644,6 +644,24 @@ async function handleMainlandBlackjack(request, response, url, origin) {
         }, origin);
     }
 
+    const lobbyJoinMatch = path.match(/^\/api\/lobby\/tables\/([^/]+)\/join$/);
+    if(lobbyJoinMatch && request.method === "POST") {
+        const user = await authenticatedUser(request);
+        if(!user || user.is_disabled) return sendJson(response, 401, {message: "请先登录。"}, origin);
+        const tableId = decodeURIComponent(lobbyJoinMatch[1]);
+        if(!mainlandBlackjack.isValidTable(tableId)) return sendJson(response, 403, {message: "该牌桌尚未开放。"}, origin);
+        const body = await readJson(request);
+        const latency = value => Math.min(10_000, Math.max(1, Math.round(Number(value) || 10_000)));
+        const result = await getDatabase().rpc("claim_blackjack_table_route", {
+            p_table_id: tableId,
+            p_user_id: user.id,
+            p_tencent_ms: latency(body?.latencies?.tencent),
+            p_cloudflare_ms: latency(body?.latencies?.cloudflare)
+        });
+        if(result.error) throw new Error(result.error.message || "无法分配牌桌区域。");
+        return sendJson(response, 200, result.data, origin);
+    }
+
     if(path === "/api/auth/sso" && request.method === "POST") {
         const user = await authenticatedUser(request);
         if(!user || user.is_disabled) return sendJson(response, 401, {message: "统一登录已过期，请重新登录。"}, origin);
