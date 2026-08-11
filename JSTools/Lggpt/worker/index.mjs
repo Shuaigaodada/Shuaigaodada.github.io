@@ -1,5 +1,7 @@
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const DEFAULT_MODEL = "gpt-5.6-luna";
+const ALLOWED_MODELS = new Set(["gpt-5.6-luna", "gpt-5-mini", "gpt-5-nano"]);
+const DEFAULT_AUTH_SERVICE_URL = "https://laogao-gpt-proxy-295046-9-1403518541.sh.run.tcloudbase.com";
 const DEFAULT_ALLOWED_ORIGINS = "https://shuaigaodada.github.io";
 const MAX_BODY_BYTES = 40 * 1024;
 const MAX_MESSAGES = 20;
@@ -27,6 +29,7 @@ function getCorsHeaders(request, env) {
     const headers = new Headers({
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+        "Access-Control-Expose-Headers": "X-Daily-Limit, X-Daily-Remaining",
         "Access-Control-Max-Age": "86400"
     });
 
@@ -63,6 +66,24 @@ async function requireAdmin(request, env) {
     if(!await secretsMatch(getBearerToken(request), env.ADMIN_TOKEN))
         return jsonResponse(request, env, {error: "管理员身份验证失败。"}, 401, {"WWW-Authenticate": "Bearer"});
     return null;
+}
+
+async function authorizeChat(request, env) {
+    const token = getBearerToken(request);
+    if(!token) return {error: jsonResponse(request, env, {error: "请先使用邮箱登录。"}, 401)};
+    try {
+        const authRequest = new Request(`${env.AUTH_SERVICE_URL || DEFAULT_AUTH_SERVICE_URL}/api/auth/authorize-chat`, {
+            method: "POST",
+            headers: {Authorization: `Bearer ${token}`, Accept: "application/json"}
+        });
+        const response = env.AUTH_SERVICE ? await env.AUTH_SERVICE.fetch(authRequest) : await fetch(authRequest);
+        const payload = await response.json();
+        if(!response.ok) return {error: jsonResponse(request, env, payload, response.status)};
+        return payload;
+    } catch(error) {
+        console.error(JSON.stringify({event: "auth_service_failed", message: error.message}));
+        return {error: jsonResponse(request, env, {error: "登录服务暂时不可用，请稍后重试。"}, 503)};
+    }
 }
 
 function isOriginAllowed(request, env) {
@@ -167,7 +188,13 @@ function normalizeRecordId(value) {
     return typeof value === "string" && RECORD_ID_PATTERN.test(value) ? value : crypto.randomUUID();
 }
 
-async function recordUserMessage(env, body, messages, visitorId) {
+function resolveModel(value, env) {
+    const requested = typeof value === "string" ? value : "";
+    const fallback = ALLOWED_MODELS.has(env.OPENAI_MODEL) ? env.OPENAI_MODEL : DEFAULT_MODEL;
+    return ALLOWED_MODELS.has(requested) ? requested : fallback;
+}
+
+async function recordUserMessage(env, body, messages, visitorId, model) {
     if(!env.MESSAGE_DB) return;
     const lastMessage = messages[messages.length - 1];
     const id = await sha256(`${visitorId}|${normalizeRecordId(body.messageId)}`);
@@ -180,7 +207,7 @@ async function recordUserMessage(env, body, messages, visitorId) {
         normalizeRecordId(body.conversationId),
         visitorId,
         lastMessage.content,
-        env.OPENAI_MODEL || DEFAULT_MODEL
+        model
     ).run();
 }
 
@@ -314,15 +341,19 @@ async function handleChat(request, env, ctx) {
 
     const validation = validateMessages(body && body.messages);
     if(validation.error) return jsonResponse(request, env, {error: validation.error}, 400);
+    const model = resolveModel(body && body.model, env);
     if(!env.OPENAI_API_KEY)
         return jsonResponse(request, env, {error: "服务端尚未配置 OPENAI_API_KEY。"}, 503);
+
+    const authorization = await authorizeChat(request, env);
+    if(authorization.error) return authorization.error;
 
     const safetyIdentifier = await createSafetyIdentifier(request, env);
     const rateLimit = await env.API_RATE_LIMITER.limit({key: safetyIdentifier});
     if(!rateLimit.success)
         return jsonResponse(request, env, {error: "请求过于频繁，请稍后再试。"}, 429, {"Retry-After": "60"});
 
-    const recording = recordUserMessage(env, body, validation.messages, safetyIdentifier)
+    const recording = recordUserMessage(env, body, validation.messages, safetyIdentifier, model)
         .catch(error => console.error(JSON.stringify({event: "message_record_failed", message: error.message})));
     if(ctx?.waitUntil) ctx.waitUntil(recording);
     else await recording;
@@ -334,7 +365,7 @@ async function handleChat(request, env, ctx) {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            model: env.OPENAI_MODEL || DEFAULT_MODEL,
+            model,
             instructions: "你是 Laogao GPT，一位友好、准确的中文 AI 助手。直接回答问题；遇到代码时给出清晰、可运行的方案；不确定时明确说明。",
             input: validation.messages,
             max_output_tokens: 2000,
@@ -357,7 +388,9 @@ async function handleChat(request, env, ctx) {
         status: 200,
         headers: {
             "Content-Type": "application/x-ndjson; charset=utf-8",
-            "Cache-Control": "no-cache, no-transform"
+            "Cache-Control": "no-cache, no-transform",
+            "X-Daily-Limit": String(authorization.quota.limit),
+            "X-Daily-Remaining": String(authorization.quota.remaining)
         }
     });
 }
@@ -374,7 +407,9 @@ export async function handleRequest(request, env, ctx) {
         return jsonResponse(request, env, {
             ok: true,
             configured: Boolean(env.OPENAI_API_KEY),
-            model: env.OPENAI_MODEL || DEFAULT_MODEL,
+            model: resolveModel(null, env),
+            models: [...ALLOWED_MODELS],
+            provider: "openai",
             recording: Boolean(env.MESSAGE_DB)
         });
     }

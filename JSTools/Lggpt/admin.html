@@ -40,31 +40,65 @@
         </section>
 
         <section id="dashboard" hidden>
-            <div class="stats-grid" aria-label="消息概览">
-                <article><span>全部消息</span><strong id="stat-total">—</strong></article>
-                <article><span>今日新增</span><strong id="stat-today">—</strong></article>
-                <article><span>独立访客</span><strong id="stat-visitors">—</strong></article>
-            </div>
-
-            <div class="toolbar">
-                <form class="search-form" id="search-form" role="search">
-                    <label class="sr-only" for="search-input">搜索消息或完整访客 ID</label>
-                    <input id="search-input" type="search" maxlength="200" placeholder="搜索消息内容或完整访客 ID">
-                    <button class="primary-button" type="submit">搜索</button>
-                </form>
-                <span class="result-summary" id="result-summary"></span>
-            </div>
-
-            <div class="notice" id="dashboard-error" role="alert" hidden></div>
-            <div class="loading" id="loading" hidden>正在读取消息…</div>
-            <div class="message-list" id="message-list"></div>
-            <div class="empty-state" id="empty-state" hidden>没有找到消息记录。</div>
-
-            <nav class="pagination" aria-label="消息分页">
-                <button class="secondary-button" id="previous-page" type="button">上一页</button>
-                <span id="page-label">第 1 页</span>
-                <button class="secondary-button" id="next-page" type="button">下一页</button>
+            <nav class="dashboard-tabs" aria-label="管理内容">
+                <button class="tab-button active" id="messages-tab" type="button">消息记录</button>
+                <button class="tab-button" id="users-tab" type="button">用户管理</button>
             </nav>
+
+            <section id="messages-view">
+                <div class="stats-grid" aria-label="消息概览">
+                    <article><span>全部消息</span><strong id="stat-total">—</strong></article>
+                    <article><span>今日新增</span><strong id="stat-today">—</strong></article>
+                    <article><span>独立访客</span><strong id="stat-visitors">—</strong></article>
+                </div>
+
+                <div class="toolbar">
+                    <form class="search-form" id="search-form" role="search">
+                        <label class="sr-only" for="search-input">搜索消息或完整访客 ID</label>
+                        <input id="search-input" type="search" maxlength="200" placeholder="搜索消息内容或完整访客 ID">
+                        <button class="primary-button" type="submit">搜索</button>
+                    </form>
+                    <span class="result-summary" id="result-summary"></span>
+                </div>
+
+                <div class="notice" id="dashboard-error" role="alert" hidden></div>
+                <div class="loading" id="loading" hidden>正在读取消息…</div>
+                <div class="message-list" id="message-list"></div>
+                <div class="empty-state" id="empty-state" hidden>没有找到消息记录。</div>
+
+                <nav class="pagination" aria-label="消息分页">
+                    <button class="secondary-button" id="previous-page" type="button">上一页</button>
+                    <span id="page-label">第 1 页</span>
+                    <button class="secondary-button" id="next-page" type="button">下一页</button>
+                </nav>
+            </section>
+
+            <section id="users-view" hidden>
+                <div class="stats-grid two-columns" aria-label="用户概览">
+                    <article><span>注册用户</span><strong id="stat-users">—</strong></article>
+                    <article><span>已禁用用户</span><strong id="stat-disabled-users">—</strong></article>
+                </div>
+
+                <div class="toolbar">
+                    <form class="search-form" id="user-search-form" role="search">
+                        <label class="sr-only" for="user-search-input">搜索邮箱、昵称或用户 ID</label>
+                        <input id="user-search-input" type="search" maxlength="200" placeholder="搜索邮箱、昵称或完整用户 ID">
+                        <button class="primary-button" type="submit">搜索</button>
+                    </form>
+                    <span class="result-summary" id="user-result-summary"></span>
+                </div>
+
+                <div class="notice" id="user-dashboard-error" role="alert" hidden></div>
+                <div class="loading" id="user-loading" hidden>正在读取用户…</div>
+                <div class="user-list" id="user-list"></div>
+                <div class="empty-state" id="user-empty-state" hidden>没有找到用户。</div>
+
+                <nav class="pagination" aria-label="用户分页">
+                    <button class="secondary-button" id="user-previous-page" type="button">上一页</button>
+                    <span id="user-page-label">第 1 页</span>
+                    <button class="secondary-button" id="user-next-page" type="button">下一页</button>
+                </nav>
+            </section>
         </section>
     </main>
 </body>

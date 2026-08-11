@@ -12,6 +12,7 @@
     },
     "vars": {
         "OPENAI_MODEL": "gpt-5.6-luna",
+        "AUTH_SERVICE_URL": "https://laogao-gpt-proxy-295046-9-1403518541.sh.run.tcloudbase.com",
         "ALLOWED_ORIGINS": "https://shuaigaodada.github.io,http://localhost:3000,http://127.0.0.1:3000"
     },
     "d1_databases": [

@@ -28,7 +28,29 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-button, textarea { font: inherit; }
+.auth-gate { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 24px; overflow-y: auto; background: radial-gradient(circle at 50% 0, rgba(184, 242, 106, .10), transparent 34rem), var(--bg); }
+.auth-card { width: min(100%, 430px); padding: 34px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 24px; box-shadow: 0 28px 80px rgba(0, 0, 0, .45); }
+.auth-brand { display: inline-flex; align-items: center; gap: 11px; margin-bottom: 34px; font-size: 13px; }
+.auth-card h1 { margin: 0; font-size: 34px; letter-spacing: -.04em; }
+.auth-copy { margin: 10px 0 24px; color: var(--muted); }
+.auth-form { display: grid; gap: 15px; }
+.auth-form label { display: grid; gap: 7px; color: #c8cbd1; font-size: 12px; font-weight: 650; }
+.auth-form input { width: 100%; padding: 12px 13px; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; outline: 0; }
+.auth-form input:focus { border-color: rgba(184, 242, 106, .5); box-shadow: 0 0 0 3px rgba(184, 242, 106, .06); }
+.auth-submit { margin-top: 5px; padding: 12px; color: var(--accent-dark); background: var(--accent); border: 0; border-radius: 11px; font-weight: 800; cursor: pointer; }
+.auth-submit:disabled { opacity: .5; cursor: wait; }
+.verification-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+.code-button { min-width: 112px; height: 42px; padding: 0 13px; color: var(--accent-dark); background: var(--accent); border: 0; border-radius: 11px; font-weight: 800; cursor: pointer; }
+.code-button:disabled { opacity: .55; cursor: wait; }
+.auth-hint { margin: 16px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
+.auth-switch { width: 100%; margin-top: 18px; padding: 5px; color: var(--muted); background: transparent; border: 0; cursor: pointer; }
+.auth-switch:hover { color: var(--text); }
+.auth-error { margin: 0; padding: 9px 11px; color: #ffd4cf; background: rgba(255, 101, 91, .09); border: 1px solid rgba(255, 138, 128, .2); border-radius: 9px; font-size: 12px; }
+body.authenticated .auth-gate { display: none; }
+body.auth-pending .app-shell, body.auth-required .app-shell { visibility: hidden; }
+body.authenticated .app-shell { visibility: visible; }
+
+button, textarea, select { font: inherit; }
 button { color: inherit; }
 a { color: inherit; text-decoration: none; }
 button, a, textarea { -webkit-tap-highlight-color: transparent; }
@@ -107,8 +129,11 @@ button, a, textarea { -webkit-tap-highlight-color: transparent; }
 .status-dot.online { background: var(--accent); box-shadow: 0 0 0 4px rgba(184, 242, 106, .1); }
 .status-dot.offline { background: var(--danger); box-shadow: 0 0 0 4px rgba(255, 138, 128, .1); }
 .sidebar-footer p { margin: 0; }
+.signed-in-user { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 13px; color: var(--muted); }
+.signed-in-user span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.signed-in-user button { flex: none; padding: 3px 7px; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
 
-.chat-panel { position: relative; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; height: 100dvh; background: radial-gradient(circle at 65% -20%, rgba(117, 217, 255, .07), transparent 36rem), var(--bg); }
+.chat-panel { position: relative; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; min-width: 0; height: 100dvh; background: radial-gradient(circle at 65% -20%, rgba(117, 217, 255, .07), transparent 36rem), var(--bg); }
 .chat-header {
     position: relative;
     z-index: 5;
@@ -123,9 +148,12 @@ button, a, textarea { -webkit-tap-highlight-color: transparent; }
 }
 .chat-header h1 { margin: 0; font-size: 16px; letter-spacing: -.02em; }
 .chat-header p { margin: 1px 0 0; color: var(--muted); font-size: 12px; }
-.model-badge { display: flex; align-items: center; gap: 7px; margin-left: auto; padding: 6px 10px; color: var(--muted); background: rgba(255, 255, 255, .04); border: 1px solid var(--line); border-radius: 999px; font-size: 11px; }
-.model-badge span { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
-.model-badge b { font-weight: 650; }
+.model-picker { display: flex; align-items: center; gap: 7px; margin-left: auto; padding: 5px 9px; color: var(--muted); background: rgba(255, 255, 255, .04); border: 1px solid var(--line); border-radius: 999px; font-size: 11px; }
+.model-picker > span { width: 6px; height: 6px; flex: none; background: var(--accent); border-radius: 50%; }
+.model-picker select { max-width: 210px; color: var(--text); background: transparent; border: 0; outline: 0; cursor: pointer; }
+.model-picker option { color: var(--text); background: var(--surface-2); }
+.model-network-notice { margin: 0; padding: 8px 24px; color: #ffe0a3; background: rgba(210, 166, 78, .10); border-bottom: 1px solid rgba(210, 166, 78, .22); font-size: 12px; text-align: center; }
+.quota-badge { padding: 5px 8px; color: #d8f9a9; background: rgba(184, 242, 106, .07); border: 1px solid rgba(184, 242, 106, .16); border-radius: 999px; font-size: 10px; white-space: nowrap; }
 
 .messages { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #333843 transparent; }
 .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; width: min(calc(100% - 40px), var(--content-width)); min-height: 100%; margin: 0 auto; padding: 70px 0 48px; text-align: center; }
@@ -196,7 +224,9 @@ button, a, textarea { -webkit-tap-highlight-color: transparent; }
     .mobile-close, .menu-button { display: grid; }
     .chat-header { min-height: 66px; padding: 0 14px; }
     .chat-header p { display: none; }
-    .model-badge { padding: 5px 8px; }
+    .model-picker { padding: 4px 7px; }
+    .model-picker select { max-width: 150px; }
+    .quota-badge { padding-inline: 6px; }
     .welcome { width: min(calc(100% - 28px), var(--content-width)); padding-top: 48px; }
     .suggestion-grid { grid-template-columns: 1fr; }
     .suggestion { min-height: 86px; }
@@ -211,7 +241,7 @@ button, a, textarea { -webkit-tap-highlight-color: transparent; }
 
 @media (max-width: 420px) {
     .character-count { display: none; }
-    .model-badge b { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .model-picker select { max-width: 112px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
