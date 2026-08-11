@@ -62,6 +62,9 @@
     nav { display: flex; gap: 26px; color: var(--muted); font-size: 14px; }
     nav a { transition: color .2s ease; }
     nav a:hover { color: var(--text); }
+    .header-actions { display: flex; align-items: center; gap: 22px; }
+    .account-button { padding: 8px 13px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; cursor: pointer; }
+    .account-button:hover { color: #11150b; background: var(--accent); }
 
     .hero { padding: 96px 0 76px; }
     .eyebrow { margin: 0 0 18px; color: var(--accent); font-size: 12px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
@@ -116,6 +119,26 @@
 
     footer { display: flex; justify-content: space-between; gap: 20px; margin-top: 50px; padding: 28px 0 40px; color: var(--muted); border-top: 1px solid var(--line); font-size: 13px; }
 
+    .auth-modal { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; overflow-y: auto; background: rgba(3, 5, 8, .78); backdrop-filter: blur(10px); }
+    .auth-modal[hidden], [hidden] { display: none !important; }
+    .auth-card { position: relative; display: grid; gap: 15px; width: min(100%, 430px); padding: 34px; background: #151820; border: 1px solid rgba(255,255,255,.18); border-radius: 24px; box-shadow: 0 28px 80px rgba(0,0,0,.5); }
+    .auth-close { position: absolute; top: 13px; right: 13px; width: 34px; height: 34px; color: var(--muted); background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 9px; font-size: 21px; cursor: pointer; }
+    .auth-card h2 { margin: 0; font-size: 32px; }
+    .auth-copy, .auth-user-copy { margin: 0; color: var(--muted); }
+    .auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 4px; background: #1b1f29; border: 1px solid var(--line); border-radius: 12px; }
+    .auth-tabs button { padding: 9px; color: var(--muted); background: transparent; border: 0; border-radius: 8px; cursor: pointer; }
+    .auth-tabs button.active { color: #11150b; background: var(--accent); font-weight: 800; }
+    .auth-form { display: grid; gap: 14px; }
+    .auth-form label { display: grid; gap: 6px; color: #c8cbd1; font-size: 12px; }
+    .auth-form input { width: 100%; padding: 12px 13px; color: var(--text); background: #1b1f29; border: 1px solid var(--line); border-radius: 11px; outline: 0; }
+    .auth-form input:focus { border-color: rgba(184,242,106,.5); }
+    .auth-code-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 10px; }
+    .auth-code-row button, .auth-submit, .auth-logout { padding: 11px 13px; color: #11150b; background: var(--accent); border: 0; border-radius: 11px; font-weight: 800; cursor: pointer; }
+    .auth-code-row button { min-width: 112px; height: 43px; }
+    .auth-form button:disabled { opacity: .5; cursor: wait; }
+    .auth-error { min-height: 18px; margin: 0; color: #ffaaa0; font-size: 12px; }
+    .auth-user { display: grid; gap: 18px; }
+
     @media (max-width: 760px) {
       .shell { width: min(calc(100% - 28px), var(--max)); }
       header { height: 68px; }
@@ -127,6 +150,8 @@
       .card.large, .card.small, .card.wide { grid-column: span 12; min-height: 190px; }
       .card.large { min-height: 240px; }
       footer { flex-direction: column; }
+      .header-actions { gap: 10px; }
+      .account-button { max-width: 116px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -139,11 +164,14 @@
   <div class="shell">
     <header>
       <a class="brand" href="#top" aria-label="返回顶部"><span class="brand-mark">G</span>GAO LAB</a>
-      <nav aria-label="主导航">
-        <a href="#games">游戏</a>
-        <a href="#projects">练习</a>
-        <a href="./desc/index.html">关于我</a>
-      </nav>
+      <div class="header-actions">
+        <nav aria-label="主导航">
+          <a href="#games">游戏</a>
+          <a href="#projects">练习</a>
+          <a href="./desc/index.html">关于我</a>
+        </nav>
+        <button class="account-button" id="account-button" type="button">登录</button>
+      </div>
     </header>
 
     <main id="top">
@@ -190,6 +218,43 @@
 
     <footer><span>© <span id="year"></span> GAO LAB</span><span>Built with curiosity and vanilla web.</span></footer>
   </div>
-  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+  <div class="auth-modal" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" hidden>
+    <div class="auth-card">
+      <button class="auth-close" id="auth-close" type="button" aria-label="关闭">×</button>
+      <p class="eyebrow">GAO LAB ACCOUNT</p>
+      <h2 id="auth-title">验证码登录</h2>
+      <div class="auth-user" id="auth-user" hidden><p class="auth-user-copy" id="auth-user-copy"></p><button class="auth-logout" id="auth-logout" type="button">退出统一账号</button></div>
+      <form class="auth-form" id="auth-form">
+        <p class="auth-copy">一次登录即可使用 Laogao GPT 与 Blackjack。</p>
+        <div class="auth-tabs"><button class="active" id="auth-email-tab" type="button">邮箱</button><button id="auth-phone-tab" type="button">手机号</button></div>
+        <label id="auth-identity-label">邮箱<input id="auth-identity" type="email" required placeholder="name@example.com"></label>
+        <div class="auth-code-row"><label>验证码<input id="auth-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required disabled placeholder="6 位验证码"></label><button id="auth-send-code" type="button">获取验证码</button></div>
+        <label>昵称（首次登录选填）<input id="auth-display-name" maxlength="30" placeholder="你的昵称"></label>
+        <p class="auth-error" id="auth-error"></p><button class="auth-submit" id="auth-submit" disabled>验证并登录</button>
+      </form>
+    </div>
+  </div>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    (() => {
+      const API = 'https://laogao-gpt-proxy-295046-9-1403518541.sh.run.tcloudbase.com/api';
+      const KEY = 'gao-lab-auth-token-v1'; const LEGACY_KEY = 'laogao-gpt-auth-token-v1'; const COOKIE = 'gao_lab_session';
+      const elements = Object.fromEntries(['account-button','auth-modal','auth-close','auth-user','auth-user-copy','auth-logout','auth-form','auth-email-tab','auth-phone-tab','auth-identity-label','auth-identity','auth-code','auth-send-code','auth-display-name','auth-error','auth-submit'].map(id => [id, document.getElementById(id)]));
+      let method = 'email'; let verificationId = ''; let token = '';
+      const cookieToken = () => { const prefix = COOKIE + '='; const found = document.cookie.split(';').map(v => v.trim()).find(v => v.startsWith(prefix)); return found ? decodeURIComponent(found.slice(prefix.length)) : ''; };
+      const saveToken = (value) => { token = value; const secure = location.protocol === 'https:' ? '; Secure' : ''; if(value) { localStorage.setItem(KEY,value); localStorage.removeItem(LEGACY_KEY); document.cookie = `${COOKIE}=${encodeURIComponent(value)}; Path=/; Max-Age=${30*86400}; SameSite=Lax${secure}`; } else { localStorage.removeItem(KEY); localStorage.removeItem(LEGACY_KEY); document.cookie = `${COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${secure}`; } };
+      const request = async (path, options={}) => { const headers = new Headers(options.headers); headers.set('Accept','application/json'); if(options.body) headers.set('Content-Type','application/json'); if(token) headers.set('Authorization',`Bearer ${token}`); const response = await fetch(API+path,{...options,headers}); const body = await response.json().catch(()=>({})); if(!response.ok) throw new Error(body.error||'登录服务暂时不可用。'); return body; };
+      const showLoggedIn = (user) => { elements['auth-form'].hidden=true; elements['auth-user'].hidden=false; const name=user.displayName||user.email||user.phoneNumber||'已登录'; elements['auth-user-copy'].textContent=`当前账号：${name}`; elements['account-button'].textContent=name; };
+      const showLoggedOut = () => { elements['auth-form'].hidden=false; elements['auth-user'].hidden=true; elements['account-button'].textContent='登录'; };
+      const setMethod = (next) => { method=next; verificationId=''; elements['auth-code'].disabled=true; elements['auth-submit'].disabled=true; elements['auth-identity'].type=next==='email'?'email':'tel'; elements['auth-identity'].placeholder=next==='email'?'name@example.com':'13800138000'; elements['auth-identity-label'].firstChild.textContent=next==='email'?'邮箱':'中国大陆手机号'; elements['auth-email-tab'].classList.toggle('active',next==='email'); elements['auth-phone-tab'].classList.toggle('active',next==='phone'); };
+      elements['account-button'].onclick=()=>elements['auth-modal'].hidden=false; elements['auth-close'].onclick=()=>elements['auth-modal'].hidden=true;
+      elements['auth-modal'].onclick=(event)=>{ if(event.target===elements['auth-modal']) elements['auth-modal'].hidden=true; };
+      elements['auth-email-tab'].onclick=()=>setMethod('email'); elements['auth-phone-tab'].onclick=()=>setMethod('phone');
+      elements['auth-send-code'].onclick=async()=>{ if(!elements['auth-identity'].reportValidity()) return; elements['auth-error'].textContent=''; elements['auth-send-code'].disabled=true; try { const body=await request('/auth/send-code',{method:'POST',body:JSON.stringify(method==='email'?{email:elements['auth-identity'].value}:{phoneNumber:elements['auth-identity'].value})}); verificationId=body.verificationId; elements['auth-code'].disabled=false; elements['auth-submit'].disabled=false; elements['auth-code'].focus(); } catch(error) { elements['auth-error'].textContent=error.message; } finally { elements['auth-send-code'].disabled=false; } };
+      elements['auth-form'].onsubmit=async(event)=>{ event.preventDefault(); elements['auth-submit'].disabled=true; try { const body=await request('/auth/verify-code',{method:'POST',body:JSON.stringify({verificationId,code:elements['auth-code'].value,displayName:elements['auth-display-name'].value})}); saveToken(body.token); showLoggedIn(body.user); elements['auth-modal'].hidden=true; } catch(error) { elements['auth-error'].textContent=error.message; elements['auth-submit'].disabled=false; } };
+      elements['auth-logout'].onclick=async()=>{ try { await request('/auth/logout',{method:'POST'}); } catch(_) {} saveToken(''); showLoggedOut(); };
+      token=cookieToken()||localStorage.getItem(KEY)||localStorage.getItem(LEGACY_KEY)||''; if(token) { saveToken(token); request('/auth/me').then(body=>showLoggedIn(body.user)).catch(()=>{saveToken('');showLoggedOut();}); } else showLoggedOut();
+    })();
+  </script>
 </body>
 </html>

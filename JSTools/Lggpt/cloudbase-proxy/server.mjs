@@ -1,4 +1,5 @@
 import http from "node:http";
+import https from "node:https";
 import {createHash, randomBytes, randomUUID, timingSafeEqual} from "node:crypto";
 import cloudbase from "@cloudbase/node-sdk";
 
@@ -6,6 +7,11 @@ const PORT = Number.parseInt(process.env.PORT || "8080", 10);
 const ENV_ID = process.env.TCB_ENV_ID || "laogao-github-pages-d4bk62ce3432";
 const MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
+const BLACKJACK_UPSTREAM = process.env.BLACKJACK_UPSTREAM || "https://blackjack-duel.laogao0113.workers.dev";
+// Mainland DNS occasionally cannot resolve workers.dev correctly. These Cloudflare
+// anycast addresses are only a TLS fallback; SNI and Host still target the Worker.
+const BLACKJACK_FALLBACK_IPS = (process.env.BLACKJACK_FALLBACK_IPS || "104.21.62.69,172.67.221.15")
+    .split(",").map(value => value.trim()).filter(Boolean);
 const ALLOWED_MODELS = new Set(["deepseek-v4-flash"]);
 const DEFAULT_DAILY_QUOTA = 50;
 const MAX_DAILY_QUOTA = 500;
@@ -555,6 +561,103 @@ async function handleAdmin(request, response, url, origin) {
     return sendJson(response, 404, {error: "接口不存在。"}, origin);
 }
 
+async function proxyBlackjack(request, response, url, origin) {
+    const suffix = url.pathname.slice("/blackjack".length) || "/health";
+    const target = new URL(suffix + url.search, BLACKJACK_UPSTREAM);
+    const headers = new Headers({Accept: request.headers.accept || "application/json"});
+    if(request.headers.authorization) headers.set("Authorization", request.headers.authorization);
+    if(request.headers["content-type"]) headers.set("Content-Type", request.headers["content-type"]);
+    if(origin) headers.set("Origin", origin);
+    let body;
+    if(request.method !== "GET" && request.method !== "HEAD") {
+        const chunks = [];
+        let size = 0;
+        for await (const chunk of request) {
+            size += chunk.length;
+            if(size > 200_000) throw Object.assign(new Error("请求内容过大。"), {status: 413});
+            chunks.push(chunk);
+        }
+        body = Buffer.concat(chunks);
+    }
+    let upstream;
+    try {
+        upstream = await requestBlackjackUpstream(target, request.method, headers, body);
+    } catch(error) {
+        return sendJson(response, 502, {
+            error: "Blackjack 联机服务暂时不可用。",
+            detail: String(error?.message || error).slice(0, 500)
+        }, origin);
+    }
+    setCorsHeaders(response, origin);
+    response.setHeader("Cache-Control", "no-store");
+    response.setHeader("Content-Type", upstream.contentType || "application/json; charset=utf-8");
+    response.writeHead(upstream.status);
+    response.end(upstream.body);
+}
+
+async function requestBlackjackUpstream(target, method, headers, body) {
+    const failures = [];
+    try {
+        const result = await fetch(target, {method, headers, body, signal: AbortSignal.timeout(12_000)});
+        return {
+            status: result.status,
+            contentType: result.headers.get("content-type"),
+            body: Buffer.from(await result.arrayBuffer())
+        };
+    } catch (error) {
+        failures.push(`dns:${error?.cause?.code || error?.code || error?.message || "failed"}`);
+        console.warn("blackjack_dns_request_failed", error?.message || error);
+    }
+
+    for(const address of BLACKJACK_FALLBACK_IPS) {
+        try {
+            return await requestBlackjackByIp(target, method, headers, body, address);
+        } catch (error) {
+            failures.push(`tls-${address}:${error?.code || error?.message || "failed"}`);
+            console.warn("blackjack_ip_request_failed", address, error?.message || error);
+        }
+    }
+    throw new Error(`Blackjack upstream is unavailable (${failures.join("; ")})`);
+}
+
+function requestBlackjackByIp(target, method, headers, body, address) {
+    const forwardedHeaders = Object.fromEntries(headers.entries());
+    forwardedHeaders.host = target.hostname;
+    forwardedHeaders["content-length"] = body ? String(body.length) : "0";
+    return new Promise((resolve, reject) => {
+        const upstreamRequest = https.request({
+            hostname: address,
+            port: 443,
+            servername: target.hostname,
+            rejectUnauthorized: true,
+            path: `${target.pathname}${target.search}`,
+            method,
+            headers: forwardedHeaders,
+            timeout: 12_000
+        }, upstreamResponse => {
+            const chunks = [];
+            let size = 0;
+            upstreamResponse.on("data", chunk => {
+                size += chunk.length;
+                if(size > 1_000_000) {
+                    upstreamRequest.destroy(new Error("Blackjack upstream response is too large"));
+                    return;
+                }
+                chunks.push(chunk);
+            });
+            upstreamResponse.on("end", () => resolve({
+                status: upstreamResponse.statusCode || 502,
+                contentType: upstreamResponse.headers["content-type"],
+                body: Buffer.concat(chunks)
+            }));
+        });
+        upstreamRequest.on("timeout", () => upstreamRequest.destroy(new Error("Blackjack upstream timed out")));
+        upstreamRequest.on("error", reject);
+        if(body?.length) upstreamRequest.write(body);
+        upstreamRequest.end();
+    });
+}
+
 async function handleChat(request, response, origin) {
     if(!request.headers["content-type"]?.toLowerCase().startsWith("application/json"))
         return sendJson(response, 415, {error: "Content-Type 必须是 application/json。"}, origin);
@@ -605,6 +708,8 @@ async function handleRequest(request, response) {
             models: [...ALLOWED_MODELS],
             recording: true
         }, origin);
+    if(url.pathname === "/blackjack" || url.pathname.startsWith("/blackjack/"))
+        return proxyBlackjack(request, response, url, origin);
     if(url.pathname.startsWith("/api/auth/")) return handleAuth(request, response, url, origin);
     if(url.pathname === "/api/chat" && request.method === "POST") return handleChat(request, response, origin);
     if(url.pathname === "/api/admin/messages" || url.pathname.startsWith("/api/admin/messages/")

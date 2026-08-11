@@ -11,7 +11,9 @@ const MAX_ASSISTANT_HISTORY_LENGTH = 12000;
 const STORAGE_KEY = "laogao-gpt-session-v2";
 const CONVERSATION_ID_KEY = "laogao-gpt-conversation-id-v1";
 const MODEL_KEY = "laogao-gpt-model-v1";
-const AUTH_TOKEN_KEY = "laogao-gpt-auth-token-v1";
+const AUTH_TOKEN_KEY = "gao-lab-auth-token-v1";
+const LEGACY_AUTH_TOKEN_KEY = "laogao-gpt-auth-token-v1";
+const AUTH_COOKIE_KEY = "gao_lab_session";
 const MODEL_OPTIONS = {
     "deepseek-v4-flash": {provider: "deepseek", apiIndex: 1},
     "gpt-5.6-luna": {provider: "openai", apiIndex: 0},
@@ -143,15 +145,37 @@ async function selectModel(model) {
 }
 
 function loadAuthToken() {
-    try { return localStorage.getItem(AUTH_TOKEN_KEY) || ""; }
+    try {
+        const prefix = `${AUTH_COOKIE_KEY}=`;
+        const cookie = document.cookie.split(";").map(part => part.trim()).find(part => part.startsWith(prefix));
+        const token = (cookie ? decodeURIComponent(cookie.slice(prefix.length)) : "")
+            || localStorage.getItem(AUTH_TOKEN_KEY)
+            || localStorage.getItem(LEGACY_AUTH_TOKEN_KEY)
+            || "";
+        if(token) {
+            localStorage.setItem(AUTH_TOKEN_KEY, token);
+            localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+            const secure = location.protocol === "https:" ? "; Secure" : "";
+            document.cookie = `${AUTH_COOKIE_KEY}=${encodeURIComponent(token)}; Path=/; Max-Age=${30 * 86400}; SameSite=Lax${secure}`;
+        }
+        return token;
+    }
     catch(error) { return ""; }
 }
 
 function saveAuthToken(token) {
     authToken = token;
     try {
-        if(token) localStorage.setItem(AUTH_TOKEN_KEY, token);
-        else localStorage.removeItem(AUTH_TOKEN_KEY);
+        const secure = location.protocol === "https:" ? "; Secure" : "";
+        if(token) {
+            localStorage.setItem(AUTH_TOKEN_KEY, token);
+            localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+            document.cookie = `${AUTH_COOKIE_KEY}=${encodeURIComponent(token)}; Path=/; Max-Age=${30 * 86400}; SameSite=Lax${secure}`;
+        } else {
+            localStorage.removeItem(AUTH_TOKEN_KEY);
+            localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+            document.cookie = `${AUTH_COOKIE_KEY}=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
+        }
     } catch(error) { /* Storage may be unavailable. */ }
 }
 

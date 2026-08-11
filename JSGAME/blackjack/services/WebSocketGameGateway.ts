@@ -63,6 +63,9 @@ export class WebSocketGameGateway implements GameGateway {
   private listeners = new Set<(state: GameState) => void>();
   private socket: WebSocket | null = null;
   private reconnectTimer: number | null = null;
+  private pollTimer: number | null = null;
+  private polling = false;
+  private ticket = "";
   private disposeTimer: number | null = null;
   private reconnectAttempts = 0;
   private started = false;
@@ -97,6 +100,13 @@ export class WebSocketGameGateway implements GameGateway {
       }
     }
     if (this.disposed) return;
+    if (this.apiBaseUrl.includes("tcloudbase.com/blackjack")) {
+      this.polling = true;
+      this.ticket = ticket;
+      await this.pollState();
+      this.pollTimer = window.setInterval(() => void this.pollState(), 1_000);
+      return;
+    }
     const socket = new WebSocket(`${this.socketBaseUrl}/ws/tables/${this.tableId}?client_id=${encodeURIComponent(this.clientId)}${ticket ? `&ticket=${encodeURIComponent(ticket)}` : ""}`);
     this.socket = socket;
     socket.addEventListener("message", (event) => this.receive(event.data));
@@ -141,6 +151,20 @@ export class WebSocketGameGateway implements GameGateway {
   };
 
   sendAction = (action: GameCommand["type"], amount?: number) => {
+    if (this.polling) {
+      const commandId = createClientId();
+      const query = new URLSearchParams({ client_id: this.clientId });
+      if (this.ticket) query.set("ticket", this.ticket);
+      const body = amount === undefined ? { type: action, commandId } : { type: action, amount, commandId };
+      void fetch(`${this.apiBaseUrl}/api/tables/${this.tableId}/command?${query}`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+      }).then(async (response) => {
+        if (!response.ok) throw new Error("command failed");
+        if (action === "SIT_DOWN") this.ticket = "";
+        this.update(this.toGameState(await response.json() as RemoteTableState));
+      }).catch(() => this.update({ ...this.state, message: "无法连接游戏服务器，请稍后重试。" }));
+      return;
+    }
     if (this.socket?.readyState !== WebSocket.OPEN) {
       this.update({ ...this.state, message: "服务器尚未连接，请稍后重试。" });
       return;
@@ -148,6 +172,18 @@ export class WebSocketGameGateway implements GameGateway {
     const commandId = createClientId();
     this.socket.send(JSON.stringify(amount === undefined ? { type: action, commandId } : { type: action, amount, commandId }));
   };
+
+  private async pollState() {
+    if (this.disposed) return;
+    try {
+      const query = new URLSearchParams({ client_id: this.clientId });
+      const response = await fetch(`${this.apiBaseUrl}/api/tables/${this.tableId}/state?${query}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("state failed");
+      this.update(this.toGameState(await response.json() as RemoteTableState));
+    } catch {
+      this.update({ ...this.state, message: "国内联机线路正在重连…" });
+    }
+  }
 
   private receive(raw: string) {
     try {
@@ -199,7 +235,9 @@ export class WebSocketGameGateway implements GameGateway {
       if (this.listeners.size > 0) return;
       this.disposed = true;
       if (this.reconnectTimer !== null) window.clearTimeout(this.reconnectTimer);
+      if (this.pollTimer !== null) window.clearInterval(this.pollTimer);
       this.reconnectTimer = null;
+      this.pollTimer = null;
       this.socket?.close(1000, "leaving table");
       this.socket = null;
       this.listeners.clear();
