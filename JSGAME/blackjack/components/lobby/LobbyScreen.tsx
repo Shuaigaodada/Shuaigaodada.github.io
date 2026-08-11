@@ -3,7 +3,10 @@ import {
   clearAuthToken, clearUnifiedAuthToken, getAuthToken, getUnifiedAuthToken,
   setAuthToken, setUnifiedAuthToken,
 } from "../../services/authSession";
-import { getGameServer, getTableAuthority, UNIFIED_AUTH_SERVER } from "../../services/serverConfig";
+import {
+  getGameServer, getTableAuthority, MAINLAND_SERVER, probeGameRegions,
+  setAssignedTableAuthority, UNIFIED_AUTH_SERVER,
+} from "../../services/serverConfig";
 
 interface LobbyScreenProps { onEnterTable: (tableId: string) => void; }
 interface User { account: string; displayName: string; email: string; bankroll: number; playSeconds: number; avatarData?: string | null; }
@@ -39,6 +42,7 @@ export function LobbyScreen({ onEnterTable }: LobbyScreenProps) {
   const [resendSeconds, setResendSeconds] = useState(0);
   const [verifying, setVerifying] = useState(false);
   const [gameToken, setGameToken] = useState(() => getAuthToken());
+  const [joiningTableId, setJoiningTableId] = useState("");
   const server = getGameServer();
 
   useEffect(() => {
@@ -125,6 +129,33 @@ export function LobbyScreen({ onEnterTable }: LobbyScreenProps) {
     clearAuthToken(); clearUnifiedAuthToken(); setGameToken(null); setUser(null); setProfileOpen(true);
   };
 
+  const enterTable = async (tableId: string) => {
+    const sharedToken = getUnifiedAuthToken();
+    if (!sharedToken || joiningTableId) return;
+    setJoiningTableId(tableId); setError("");
+    try {
+      const latencies = await probeGameRegions();
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        const route = await jsonRequest(`${MAINLAND_SERVER}/api/lobby/tables/${tableId}/join`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${sharedToken}` },
+          body: JSON.stringify({ latencies }),
+        }) as { status?: string; authority?: "tencent" | "cloudflare"; expiresAt?: number };
+        if (route.status === "assigned" && route.authority && route.expiresAt) {
+          setAssignedTableAuthority(tableId, route.authority, route.expiresAt);
+          onEnterTable(tableId);
+          return;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 1_000));
+      }
+      throw new Error("牌桌区域分配超时，请重试。");
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "无法分配牌桌区域，请重试。");
+    } finally {
+      setJoiningTableId("");
+    }
+  };
+
   return (
     <main className="lobby-page">
       <header className="lobby-header">
@@ -162,7 +193,7 @@ export function LobbyScreen({ onEnterTable }: LobbyScreenProps) {
         {Array.from({ length: TABLE_CAPACITY }, (_, index) => {
           const number = index + 1; const open = number <= OPEN_TABLES;
           const tableId = `table-${number}`; const authority = getTableAuthority(tableId);
-          return <button className={`lobby-table ${open ? "is-open" : "is-reserved"}`} disabled={!open || !user} onClick={() => onEnterTable(tableId)} key={number}><span className="lobby-table__number">{String(number).padStart(2, "0")}</span>{open && <span className={`lobby-table__region is-${authority}`}>{authority === "tencent" ? "国内桌" : "海外桌"}</span>}<span className="lobby-table__felt"><i>21</i></span><strong>{open ? "进入牌桌" : "预留桌位"}</strong><small>{open ? "最多 2 名玩家" : "即将开放"}</small></button>;
+          return <button className={`lobby-table ${open ? "is-open" : "is-reserved"}`} disabled={!open || !user || Boolean(joiningTableId)} onClick={() => void enterTable(tableId)} key={number}><span className="lobby-table__number">{String(number).padStart(2, "0")}</span>{open && <span className={`lobby-table__region is-${authority}`}>{authority === "tencent" ? "国内桌" : "海外桌"}</span>}<span className="lobby-table__felt"><i>21</i></span><strong>{joiningTableId === tableId ? "正在选择线路" : open ? "进入牌桌" : "预留桌位"}</strong><small>{joiningTableId === tableId ? "等待对手，最多 8 秒" : open ? "最多 2 名玩家" : "即将开放"}</small></button>;
         })}
       </section>
     </main>
