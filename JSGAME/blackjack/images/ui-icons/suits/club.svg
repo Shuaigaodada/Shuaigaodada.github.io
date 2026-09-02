@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">梅花牌型</title>
+  <circle cx="32" cy="18" r="13" fill="currentColor"/>
+  <circle cx="18" cy="36" r="13" fill="currentColor"/>
+  <circle cx="46" cy="36" r="13" fill="currentColor"/>
+  <path d="M27 35c2 10 0 16-8 24h26c-8-8-10-14-8-24Z" fill="currentColor"/>
+  <circle cx="32" cy="31" r="7" fill="#f0dca8" opacity=".28"/>
+</svg>

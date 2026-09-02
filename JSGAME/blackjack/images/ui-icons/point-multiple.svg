@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 64" role="img" aria-labelledby="title">
+  <title id="title">多重点数七和零示例</title>
+  <g id="value-primary" class="value value-active" data-active="true" opacity="1">
+    <text x="3" y="51" fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-size="50" font-weight="700">7</text>
+    <path d="M5 57h25" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <path d="M31 53 50 9" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+  <g id="value-secondary" class="value value-inactive" data-active="false" opacity=".32">
+    <text x="50" y="30" fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-size="27" font-weight="700">0</text>
+  </g>
+</svg>

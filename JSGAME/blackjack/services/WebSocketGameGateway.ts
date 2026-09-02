@@ -97,6 +97,10 @@ export class WebSocketGameGateway implements GameGateway {
     if (!this.polling) {
       this.apiBaseUrl = await selectGameServer(this.tableId);
       this.socketBaseUrl = this.apiBaseUrl.replace(/^http/, "ws");
+      // Do not leave the table blank while a browser or network negotiates the
+      // WebSocket. The read-only state endpoint is safe to use as an immediate
+      // snapshot and also proves that the selected authority is reachable.
+      void this.pollState({ preserveMessageOnFailure: true });
     }
     let authToken = getRegionalAuthToken(this.apiBaseUrl);
     let ticket = "";
@@ -171,7 +175,7 @@ export class WebSocketGameGateway implements GameGateway {
     if (this.webSocketFailures >= 1) {
       // The table authority is fixed for the whole match. Falling back to the
       // other region would create a second table with the same visible number.
-      void this.startPollingFallback(ticket);
+      this.startPollingFallback(ticket);
       return;
     }
     this.update({ ...this.state, message: "与服务器断开，正在重连…" });
@@ -206,12 +210,14 @@ export class WebSocketGameGateway implements GameGateway {
     };
   };
 
-  private async startPollingFallback(ticket: string) {
+  private startPollingFallback(ticket: string) {
     if (this.disposed || this.polling) return;
     this.polling = true;
     this.ticket = ticket;
-    await this.pollState();
-    if (!this.disposed) this.pollTimer = window.setInterval(() => void this.pollState(), 1_200);
+    // Install the retry loop before the first request. If a domestic network
+    // silently stalls one request, later attempts must still be able to run.
+    this.pollTimer = window.setInterval(() => void this.pollState(), 1_200);
+    void this.pollState();
   }
 
   sendAction = (action: GameCommand["type"], amount?: number) => {
@@ -220,13 +226,16 @@ export class WebSocketGameGateway implements GameGateway {
       const query = new URLSearchParams({ client_id: this.clientId });
       if (this.ticket) query.set("ticket", this.ticket);
       const body = amount === undefined ? { type: action, commandId } : { type: action, amount, commandId };
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 8_000);
       void fetch(`${this.apiBaseUrl}/api/tables/${this.tableId}/command?${query}`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: controller.signal,
       }).then(async (response) => {
         if (!response.ok) throw new Error("command failed");
         if (action === "SIT_DOWN") this.ticket = "";
         this.update(this.toGameState(await response.json() as RemoteTableState));
-      }).catch(() => this.update({ ...this.state, message: "无法连接游戏服务器，请稍后重试。" }));
+      }).catch(() => this.update({ ...this.state, message: "操作请求超时，正在重新同步牌桌…" }))
+        .finally(() => window.clearTimeout(timeout));
       return;
     }
     if (this.socket?.readyState !== WebSocket.OPEN) {
@@ -237,17 +246,25 @@ export class WebSocketGameGateway implements GameGateway {
     this.socket.send(JSON.stringify(amount === undefined ? { type: action, commandId } : { type: action, amount, commandId }));
   };
 
-  private async pollState() {
+  private async pollState(options: { preserveMessageOnFailure?: boolean } = {}) {
     if (this.disposed || this.pollInFlight) return;
     this.pollInFlight = true;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 6_000);
     try {
       const query = new URLSearchParams({ client_id: this.clientId });
-      const response = await fetch(`${this.apiBaseUrl}/api/tables/${this.tableId}/state?${query}`, { cache: "no-store" });
+      query.set("_", String(Date.now()));
+      const response = await fetch(`${this.apiBaseUrl}/api/tables/${this.tableId}/state?${query}`, {
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      });
       if (!response.ok) throw new Error("state failed");
       this.update(this.toGameState(await response.json() as RemoteTableState));
     } catch {
-      this.update({ ...this.state, message: "国内联机线路正在重连…" });
+      if (!options.preserveMessageOnFailure) this.update({ ...this.state, message: "国内联机线路正在重连…" });
     } finally {
+      window.clearTimeout(timeout);
       this.pollInFlight = false;
     }
   }

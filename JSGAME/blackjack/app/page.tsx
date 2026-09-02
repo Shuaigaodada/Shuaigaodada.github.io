@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BattleScreen } from "../components/game/BattleScreen";
+import { HellBlackjackDemo } from "../components/game/HellBlackjackDemo";
 import { LobbyScreen } from "../components/lobby/LobbyScreen";
 
 export default function App() {
@@ -16,5 +17,11 @@ export default function App() {
     window.history.pushState({}, "", url);
     setTableId(null);
   };
-  return tableId ? <BattleScreen tableId={tableId} onExit={leaveTable} /> : <LobbyScreen onEnterTable={enterTable} />;
+  const tableNumber = Number(tableId?.replace("table-", ""));
+  const isExperimentalTable = tableNumber >= 6 && tableNumber <= 10;
+
+  if (!tableId) return <LobbyScreen onEnterTable={enterTable} />;
+  return isExperimentalTable
+    ? <HellBlackjackDemo tableId={tableId} onExit={leaveTable} />
+    : <BattleScreen tableId={tableId} onExit={leaveTable} />;
 }

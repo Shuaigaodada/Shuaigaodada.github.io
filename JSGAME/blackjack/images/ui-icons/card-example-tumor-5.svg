@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 336" role="img" aria-labelledby="title desc">
+  <title id="title">肿瘤五觉醒牌样例</title>
+  <desc id="desc">点数五，吞噬二，剥削二</desc>
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4dfaa"/>
+      <stop offset=".55" stop-color="#dcc184"/>
+      <stop offset="1" stop-color="#b98e50"/>
+    </linearGradient>
+  </defs>
+  <path d="M18 7Q8 15 12 34L7 299q3 24 24 29l181-4q18-2 19-23l2-267q0-24-20-27Z" fill="url(#paper)" stroke="#6d3d25" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M25 19 213 17l5 292-192 4Z" fill="none" stroke="#8c5b31" stroke-width="2" opacity=".6"/>
+  <g fill="none" stroke="#9b7244" stroke-width="1" opacity=".16">
+    <path d="M32 91c39-12 79-10 164 2M28 199c58-9 116-6 181 1M43 299c48-5 96-4 147 0"/>
+    <path d="M48 28c-8 66-6 135 0 203M192 27c8 64 7 133 1 202"/>
+  </g>
+  <text x="25" y="73" fill="#24180f" font-family="Georgia, 'Times New Roman', serif" font-size="60" font-weight="700">5</text>
+  <g transform="translate(84 34) scale(.56)" color="#292017">
+    <path d="m32 3 6 10 11-5 1 12 12 2-7 10 7 10-12 2-1 12-11-5-6 10-6-10-11 5-1-12-12-2 7-10-7-10 12-2 1-12 11 5Z" fill="currentColor"/>
+    <circle cx="32" cy="32" r="14" fill="#e7cc91" opacity=".5"/>
+    <circle cx="32" cy="32" r="7" fill="currentColor"/>
+  </g>
+  <g color="#332318" opacity=".82">
+    <circle cx="83" cy="136" r="16" fill="currentColor"/><circle cx="120" cy="118" r="13" fill="currentColor"/><circle cx="157" cy="137" r="16" fill="currentColor"/>
+    <circle cx="101" cy="168" r="14" fill="currentColor"/><circle cx="141" cy="168" r="14" fill="currentColor"/>
+  </g>
+  <path d="M31 218h178" stroke="#79502d" stroke-width="2" opacity=".6"/>
+  <text x="120" y="254" text-anchor="middle" fill="#2a1b12" font-family="'Microsoft YaHei', 'Noto Sans SC', sans-serif" font-size="22" font-weight="700">吞噬 2</text>
+  <text x="120" y="287" text-anchor="middle" fill="#2a1b12" font-family="'Microsoft YaHei', 'Noto Sans SC', sans-serif" font-size="20">剥削 2</text>
+  <text x="120" y="313" text-anchor="middle" fill="#6c4326" font-family="Georgia, serif" font-size="10" letter-spacing="3">AWAKENED</text>
+</svg>

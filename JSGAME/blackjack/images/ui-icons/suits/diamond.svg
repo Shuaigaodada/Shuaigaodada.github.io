@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">方块牌型</title>
+  <path d="M32 4 57 32 32 60 7 32Z" fill="currentColor"/>
+  <path d="m32 11 17 21-17 21-7-21Z" fill="#f0dca8" opacity=".42"/>
+  <path d="M32 4v56M7 32h50" fill="none" stroke="#f0dca8" stroke-width="1.8" opacity=".35"/>
+</svg>

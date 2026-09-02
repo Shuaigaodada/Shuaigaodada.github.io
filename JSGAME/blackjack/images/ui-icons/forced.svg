@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">强制</title>
+  <path d="M32 4v7M32 53v7M4 32h7M53 32h7M12 12l5 5M47 47l5 5M52 12l-5 5M17 47l-5 5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="17" fill="none" stroke="currentColor" stroke-width="3.5"/>
+  <path d="M32 20v16" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="32" cy="44" r="3" fill="currentColor"/>
+</svg>

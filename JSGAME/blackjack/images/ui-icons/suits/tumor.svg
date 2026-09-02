@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">肿瘤牌型</title>
+  <path d="m32 3 6 10 11-5 1 12 12 2-7 10 7 10-12 2-1 12-11-5-6 10-6-10-11 5-1-12-12-2 7-10-7-10 12-2 1-12 11 5Z" fill="currentColor"/>
+  <circle cx="32" cy="32" r="14" fill="#f0dca8" opacity=".42"/>
+  <circle cx="32" cy="32" r="7" fill="currentColor"/>
+  <circle cx="17" cy="28" r="2.5" fill="#f0dca8" opacity=".65"/>
+  <circle cx="44" cy="20" r="2" fill="#f0dca8" opacity=".65"/>
+  <circle cx="43" cy="43" r="3" fill="#f0dca8" opacity=".65"/>
+</svg>
