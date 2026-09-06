@@ -30,4 +30,3 @@ export function renderMarkdown(body, baseUrl) {
   } });
   return { html: markdown.parse(body), headings };
 }
-
