@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="照片、相机、视频、压缩、OBS 与后期处理的系统入门。支持关键词搜索、交互演示和 Markdown 原文阅读。">
+  <meta name="theme-color" content="#f8f7f3">
+  <title>学习文档 · GAO LAB</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23ee623c'/%3E%3Ctext x='11' y='29' fill='white' font-size='27' font-family='sans-serif'%3Eg%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./theme.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <aside class="sidebar">
+    <a class="brand" href="./"><span class="brand-symbol" aria-hidden="true">g<span>·</span></span><span>GAO LAB<small>学习文档</small></span></a>
+    <p class="sidebar-caption">基础原理与实践记录</p>
+    <nav aria-label="学习导航">
+      <a class="nav-home" href="./"><span aria-hidden="true">▦</span> 全部文章 <span class="nav-count">06</span></a>
+    </nav>
+    <p class="nav-label">数字影像</p>
+    <nav class="chapter-nav" id="chapter-nav" aria-label="文章列表"></nav>
+    <div class="sidebar-bottom"><a href="../">← 返回主站</a></div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><div class="breadcrumbs"><a href="./">学习文档</a><span>/</span><span id="breadcrumb">全部文章</span></div><div class="topbar-actions"><a href="../" class="main-site">主站 ↗</a><button id="open-settings" type="button" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="8" cy="7" r="3" fill="var(--paper)"/><circle cx="16" cy="17" r="3" fill="var(--paper)"/></svg>设置</button></div></header>
+    <main id="main" tabindex="-1">
+      <section class="library" id="library">
+        <div class="library-heading"><h1>学习文档</h1><p class="subtitle">从照片与相机开始，逐步理解视频、压缩、录制和后期处理。</p></div>
+        <form class="search" role="search"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="search" type="search" aria-label="搜索文章" placeholder="输入关键词，例如：相机、B 帧、OBS、调色" autocomplete="off" aria-describedby="search-help"><kbd>Ctrl K</kbd></form>
+        <p class="search-help" id="search-help">搜索标题、关键词和正文。多个关键词用空格分隔，同时匹配。</p>
+        <section class="catalog" aria-labelledby="catalog-title">
+          <div class="catalog-heading"><h2 id="catalog-title">文章<span class="article-count">6 篇</span></h2><span class="search-status" id="search-status" role="status">正在加载文章…</span></div>
+          <div class="filters" role="group" aria-label="文章分类"><button type="button" data-filter="all" aria-pressed="true">全部 <span>06</span></button><button type="button" data-filter="basics" aria-pressed="false">基础原理</button><button type="button" data-filter="practice" aria-pressed="false">工具实践</button></div>
+          <div id="article-grid" class="article-grid"></div><div class="empty-state" id="empty-state" hidden><h3>没有匹配的文章</h3><p>可以减少关键词，或调整文章分类。</p><button type="button" id="clear-search">清除筛选</button></div>
+        </section>
+      </section>
+      <section id="reader" class="reader" hidden aria-label="文章阅读区"></section>
+      <noscript><p>请启用 JavaScript 以使用动画和搜索。也可以直接阅读 <a href="./articles/video-basics.md">视频原理 Markdown 文章</a>。</p></noscript>
+    </main>
+    <footer><span>GAO LAB / 学习文档</span><span>Markdown · 交互演示</span></footer>
+  </div>
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <form method="dialog" class="settings-heading"><h2 id="settings-title">阅读设置</h2><button type="submit" aria-label="关闭设置">×</button></form>
+    <p class="settings-description">设置即时生效，并保存在当前浏览器。</p>
+    <fieldset><legend>主题</legend><div class="theme-options"><button type="button" data-theme="light" aria-pressed="true"><span class="theme-swatch swatch-light" aria-hidden="true">Aa</span>浅色</button><button type="button" data-theme="dark" aria-pressed="false"><span class="theme-swatch swatch-dark" aria-hidden="true">Aa</span>深色</button><button type="button" data-theme="eye" aria-pressed="false"><span class="theme-swatch swatch-eye" aria-hidden="true">Aa</span>护眼</button></div></fieldset>
+    <fieldset><legend>自定义颜色 <span id="custom-indicator" hidden>已自定义</span></legend><div class="custom-colors"><div><label for="color-background">页面背景</label><input id="color-background" type="color" value="#f7f8fa"><input id="hex-background" type="text" aria-label="背景色十六进制" value="#f7f8fa" maxlength="7" spellcheck="false"></div><div><label for="color-text">正文文字</label><input id="color-text" type="color" value="#242a32"><input id="hex-text" type="text" aria-label="文字色十六进制" value="#242a32" maxlength="7" spellcheck="false"></div><div><label for="color-accent">强调颜色</label><input id="color-accent" type="color" value="#426b91"><input id="hex-accent" type="text" aria-label="强调色十六进制" value="#426b91" maxlength="7" spellcheck="false"></div></div></fieldset>
+    <p class="theme-status" id="theme-status" role="status">护眼主题使用低饱和背景，属于显示偏好。</p>
+    <div class="settings-footer"><button id="reset-theme" type="button">恢复当前主题</button><form method="dialog"><button type="submit" class="settings-done">完成</button></form></div>
+  </dialog>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
