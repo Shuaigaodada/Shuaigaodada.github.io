@@ -1,0 +1,178 @@
+[
+  {
+    "id": "photo-basics",
+    "title": "照片的原理：像素与颜色",
+    "subtitle": "从成像到文件，说明像素、采样、色彩空间、RAW、缩放与清晰度。",
+    "category": "basics",
+    "label": "基础原理",
+    "tags": [
+      "照片",
+      "像素",
+      "RGB",
+      "色深",
+      "分辨率",
+      "JPEG",
+      "PNG",
+      "RAW",
+      "PPI",
+      "色彩空间",
+      "噪声"
+    ],
+    "related": [
+      "camera-basics",
+      "video-basics",
+      "post-production"
+    ],
+    "series": "数字影像",
+    "seriesOrder": 1,
+    "seriesLabel": "照片与像素"
+  },
+  {
+    "id": "camera-basics",
+    "title": "相机拍摄：镜头、曝光与对焦",
+    "subtitle": "理解焦距、光圈、快门、ISO、白平衡、Log 与现场拍摄的具体取舍。",
+    "category": "basics",
+    "label": "基础原理",
+    "tags": [
+      "相机",
+      "曝光",
+      "光圈",
+      "快门",
+      "ISO",
+      "焦距",
+      "景深",
+      "对焦",
+      "白平衡",
+      "Log",
+      "滚动快门",
+      "ND"
+    ],
+    "related": [
+      "photo-basics",
+      "video-basics",
+      "post-production"
+    ],
+    "series": "数字影像",
+    "seriesOrder": 2,
+    "seriesLabel": "相机拍摄"
+  },
+  {
+    "id": "video-basics",
+    "title": "视频是什么？",
+    "subtitle": "从帧与时间轴开始，理解帧率、快门、音画同步、HDR 与播放流程。",
+    "category": "basics",
+    "label": "基础原理",
+    "tags": [
+      "视频",
+      "帧率",
+      "FPS",
+      "分辨率",
+      "帧",
+      "刷新率",
+      "时间戳",
+      "VFR",
+      "慢动作",
+      "HDR"
+    ],
+    "related": [
+      "camera-basics",
+      "compression",
+      "obs-settings"
+    ],
+    "series": "数字影像",
+    "seriesOrder": 3,
+    "seriesLabel": "视频基础"
+  },
+  {
+    "id": "compression",
+    "title": "视频压缩与 I、P、B 帧",
+    "subtitle": "沿着预测、变换与量化，理解 I/P/B 帧、GOP、码率控制与编码取舍。",
+    "category": "basics",
+    "label": "基础原理",
+    "tags": [
+      "压缩",
+      "I帧",
+      "P帧",
+      "B帧",
+      "GOP",
+      "关键帧",
+      "H.264",
+      "码率",
+      "编码",
+      "量化",
+      "色度采样",
+      "延迟",
+      "代理"
+    ],
+    "related": [
+      "video-basics",
+      "photo-basics",
+      "obs-settings"
+    ],
+    "series": "数字影像",
+    "seriesOrder": 4,
+    "seriesLabel": "视频压缩"
+  },
+  {
+    "id": "obs-settings",
+    "title": "OBS 参数说明",
+    "subtitle": "从画面采集到录制输出，详解编码、声音、多音轨、同步与性能排查。",
+    "category": "practice",
+    "label": "工具实践",
+    "tags": [
+      "OBS",
+      "参数",
+      "CBR",
+      "VBR",
+      "CQP",
+      "CRF",
+      "NVENC",
+      "B帧",
+      "关键帧",
+      "码率",
+      "直播",
+      "录制",
+      "多音轨",
+      "降噪",
+      "音画同步",
+      "渲染延迟"
+    ],
+    "related": [
+      "video-basics",
+      "compression",
+      "post-production"
+    ],
+    "series": "数字影像",
+    "seriesOrder": 5,
+    "seriesLabel": "OBS 参数"
+  },
+  {
+    "id": "post-production",
+    "title": "后期处理：从素材到成片",
+    "subtitle": "从备份与时间轴开始，说明剪辑、代理、调色、声音、字幕和导出检查。",
+    "category": "practice",
+    "label": "工具实践",
+    "tags": [
+      "后期",
+      "剪辑",
+      "调色",
+      "代理",
+      "LUT",
+      "色彩管理",
+      "音频",
+      "字幕",
+      "导出",
+      "备份",
+      "Premiere",
+      "DaVinci Resolve"
+    ],
+    "related": [
+      "camera-basics",
+      "compression",
+      "obs-settings"
+    ],
+    "series": "数字影像",
+    "seriesOrder": 6,
+    "seriesLabel": "后期处理"
+  }
+]
