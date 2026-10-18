@@ -18,6 +18,7 @@ const TABLE_AUTHORITIES: Readonly<Record<string, TableAuthority>> = {
 };
 
 export function getTableAuthority(tableId: string): TableAuthority {
+  if (/^table-(?:[6-9]|1[0-5])$/.test(tableId)) return "tencent";
   if (typeof sessionStorage !== "undefined") {
     try {
       const route = JSON.parse(sessionStorage.getItem(`${ASSIGNED_ROUTE_PREFIX}${tableId}`) || "null") as { authority?: TableAuthority; expiresAt?: number } | null;

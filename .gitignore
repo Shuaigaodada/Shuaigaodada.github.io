@@ -94,3 +94,34 @@ __pycache__/
 *.sqlite3
 *.sqlite-*
 *.sqlite3-*
+
+
+# BEGIN AI-GIT-LOCAL-HYGIENE
+# Local credentials, caches, independent repositories and large files; review before staging.
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.pem
+*.key
+*.pfx
+*.p12
+credentials.json
+credentials.local.*
+secrets.json
+secrets.local.*
+.aws/
+.ssh/
+.wrangler/
+.venv*/
+venv/
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+Thumbs.db
+# END AI-GIT-LOCAL-HYGIENE

@@ -4,6 +4,15 @@
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; height: 100%; overflow: hidden; } body { margin: 0; min-width: 320px; min-height: 100vh; background: #28170f; }
 button { font: inherit; }
+.blackjack-content { width: 100%; height: 100%; }
+.blackjack-rotate { display: none; }
+@media (orientation: portrait) and (max-width: 600px), (orientation: portrait) and (pointer: coarse) {
+  .blackjack-content { visibility: hidden; pointer-events: none; }
+  .blackjack-rotate { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; background: radial-gradient(circle at center, #194634, #061510 75%); color: #f2e3bc; }
+  .blackjack-rotate__phone { display: grid; place-items: center; width: 100px; height: 58px; border: 3px solid #d6ac55; border-radius: 12px; color: #d6ac55; font-size: 36px; }
+  .blackjack-rotate h1 { margin: 28px 0 8px; font-size: 24px; }
+  .blackjack-rotate p { color: #c7c8b3; line-height: 1.9; font-size: 14px; }
+}
 .bankroll-stacks { z-index: 4 !important; }.player-seat { position: relative; z-index: 3; }
 .table-clock { margin-left: auto; color: #f6d57f; font-size: 13px; letter-spacing: .08em; }
 @media (min-width: 1101px) { .action-panel:not(.action-panel--betting) { z-index: 10 !important; top: 56.5% !important; right: auto !important; bottom: auto !important; left: calc(50% + clamp(220px, 13vw, 250px)) !important; flex-direction: column; transform: translateY(-50%) !important; } }

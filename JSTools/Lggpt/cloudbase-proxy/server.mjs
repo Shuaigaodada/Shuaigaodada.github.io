@@ -330,19 +330,43 @@ function cleanupBlackjackTickets() {
     for(const [ticket, value] of blackjackTickets) if(value.expiresAt <= now) blackjackTickets.delete(ticket);
 }
 
+const legacyOwner = randomUUID();
+const legacyWallet = (userId, tableId, action, balance = null) => callCloudBaseRpc({
+    envId: ENV_ID, apiKey: process.env.CLOUDBASE_APIKEY, functionName: "blackjack_legacy_wallet",
+    params: {p_user_id: userId, p_owner: legacyOwner, p_table_id: tableId, p_action: action, p_balance: balance}
+});
 const mainlandBlackjack = new MainlandBlackjackEngine({
+    claimSeat: async (user, tableId) => Number(await legacyWallet(user.id, tableId, "claim")),
+    releaseSeat: (userId, tableId) => legacyWallet(userId, tableId, "release"),
+    loadDuel: async tableId => {
+        const result = await getDatabase().from("blackjack_duel_states").select("state").eq("table_id", tableId).limit(1);
+        return databaseResult(result, "读取牌局失败，请检查牌局迁移是否安装。")[0]?.state || null;
+    },
+    persistDuel: async (tableId, revision, state, deltas) => {
+        const saved = await callCloudBaseRpc({
+            envId: ENV_ID, apiKey: process.env.CLOUDBASE_APIKEY,
+            functionName: "commit_blackjack_duel",
+            params: {p_table_id: tableId, p_revision: revision, p_state: state, p_deltas: deltas}
+        });
+        for(const player of saved.players || []) {
+            const profile = blackjackProfiles.get(player.userId);
+            if(profile) profile.bankroll = player.bankroll;
+        }
+        return saved;
+    },
     consumeTicket: async ticket => {
         cleanupBlackjackTickets();
         const record = blackjackTickets.get(ticket);
         if(!record || record.expiresAt <= Date.now()) return null;
         blackjackTickets.delete(ticket);
-        return record.profile;
+        const user = await findUserById(record.profile.id);
+        if(!user || user.is_disabled) return null;
+        return {...record.profile, bankroll: Number(user.blackjack_bankroll ?? 500)};
     },
     updateBankroll: async (userId, bankroll) => {
+        await legacyWallet(userId, null, "save", bankroll);
         const profile = blackjackProfiles.get(userId);
         if(profile) profile.bankroll = bankroll;
-        const result = await getDatabase().from("app_users").update({blackjack_bankroll: bankroll}).eq("id", userId);
-        databaseResult(result, "保存 Blackjack 赌资失败。");
     },
     updatePlaySeconds: async (userId, seconds) => {
         if(!Number.isSafeInteger(seconds) || seconds <= 0) return;
@@ -677,6 +701,9 @@ async function handleMainlandBlackjack(request, response, url, origin) {
         if(!user || user.is_disabled) return sendJson(response, 401, {message: "请先登录。"}, origin);
         const tableId = decodeURIComponent(lobbyJoinMatch[1]);
         if(!mainlandBlackjack.isValidTable(tableId)) return sendJson(response, 403, {message: "该牌桌尚未开放。"}, origin);
+        // New rule sets have one authority; never route them to the legacy Worker engine.
+        if(Number(tableId.slice(6)) >= 6)
+            return sendJson(response, 200, {status: "assigned", authority: "tencent", expiresAt: Date.now() + 21600000}, origin);
         const body = await readJson(request);
         const latency = value => Math.min(10_000, Math.max(1, Math.round(Number(value) || 10_000)));
         const route = await callCloudBaseRpc({
@@ -726,9 +753,8 @@ async function handleMainlandBlackjack(request, response, url, origin) {
         const user = await authenticatedUser(request);
         if(!user || user.is_disabled) return sendJson(response, 401, {message: "请先登录。"}, origin);
         const profile = blackjackProfile(user);
-        if(profile.bankroll >= 100) return sendJson(response, 400, {message: "赌资不少于 100，暂时不能领取。", user: profile}, origin);
-        profile.bankroll += 100;
-        databaseResult(await getDatabase().from("app_users").update({blackjack_bankroll: profile.bankroll}).eq("id", user.id), "保存 Blackjack 赌资失败。");
+        profile.bankroll = Number(await callCloudBaseRpc({envId: ENV_ID, apiKey: process.env.CLOUDBASE_APIKEY,
+            functionName: "claim_blackjack_bankroll", params: {p_user_id: user.id}}));
         return sendJson(response, 200, {message: "已领取 100 赌资。", user: profile}, origin);
     }
     if(path === "/api/auth/ws-ticket" && request.method === "POST") {
@@ -748,7 +774,7 @@ async function handleMainlandBlackjack(request, response, url, origin) {
     const clientId = url.searchParams.get("client_id");
     if(!clientId) return sendJson(response, 400, {message: "缺少客户端标识。"}, origin);
     if(tableMatch[2] === "state" && request.method === "GET")
-        return sendJson(response, 200, mainlandBlackjack.stateFor(tableId, clientId), origin);
+        return sendJson(response, 200, await mainlandBlackjack.stateFor(tableId, clientId), origin);
     if(tableMatch[2] === "command" && request.method === "POST") {
         const state = await mainlandBlackjack.command(tableId, clientId, await readJson(request), url.searchParams.get("ticket"));
         return sendJson(response, 200, state, origin);

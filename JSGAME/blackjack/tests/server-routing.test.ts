@@ -7,8 +7,8 @@ import {
 
 test("every open table has one deterministic authority", () => {
   assert.deepEqual(
-    Array.from({ length: 5 }, (_, index) => getTableAuthority(`table-${index + 1}`)),
-    ["tencent", "tencent", "tencent", "cloudflare", "cloudflare"],
+    Array.from({ length: 15 }, (_, index) => getTableAuthority(`table-${index + 1}`)),
+    ["tencent", "tencent", "tencent", "cloudflare", "cloudflare", ...Array(10).fill("tencent")],
   );
 });
 

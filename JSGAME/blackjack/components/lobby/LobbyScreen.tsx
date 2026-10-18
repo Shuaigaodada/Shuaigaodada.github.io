@@ -10,7 +10,7 @@ import {
 
 interface LobbyScreenProps { onEnterTable: (tableId: string) => void; }
 interface User { account: string; displayName: string; email: string; bankroll: number; playSeconds: number; avatarData?: string | null; }
-const TABLE_CAPACITY = 20; const OPEN_TABLES = 10;
+const TABLE_CAPACITY = 20; const OPEN_TABLES = 15;
 const DEFAULT_AVATAR = `${window.location.pathname.includes("/dist/") ? "../images" : "/images"}/default.png`;
 
 async function compressAvatar(file: File) {
@@ -146,17 +146,13 @@ export function LobbyScreen({ onEnterTable }: LobbyScreenProps) {
 
   const enterTable = async (tableId: string) => {
     const tableNumber = Number(tableId.replace("table-", ""));
-    if (tableNumber >= 6 && tableNumber <= 10) {
-      onEnterTable(tableId);
-      return;
-    }
     const sharedToken = getUnifiedAuthToken();
     if (!sharedToken || joiningTableId) return;
     setJoiningTableId(tableId); setError("");
     try {
-      const latencies = await probeGameRegions();
+      const latencies = tableNumber >= 6 || import.meta.env.DEV ? {tencent: 1, cloudflare: 10000} : await probeGameRegions();
       for (let attempt = 0; attempt < 12; attempt += 1) {
-        const route = await timedJsonRequest(`${MAINLAND_SERVER}/api/lobby/tables/${tableId}/join`, {
+        const route = await timedJsonRequest(`${import.meta.env.DEV ? getGameServer() : MAINLAND_SERVER}/api/lobby/tables/${tableId}/join`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${sharedToken}` },
           body: JSON.stringify({ latencies }),
@@ -182,7 +178,7 @@ export function LobbyScreen({ onEnterTable }: LobbyScreenProps) {
         <div><p>PRIVATE CLUB · 21</p><h1>BLACKJACK 大厅</h1></div>
         <button className="lobby-account" onClick={() => setProfileOpen(true)}><img src={user?.avatarData || DEFAULT_AVATAR} alt="用户头像" /><span>{user?.displayName ?? "登录 / 注册"}</span></button>
       </header>
-      <section className="lobby-intro"><span>{user ? "选择一张牌桌入座" : "登录后进入正式桌；实验桌可直接体验"}</span><strong>01–05 经典模式 · 06–10 觉醒牌 Demo</strong></section>
+      <section className="lobby-intro"><span>{user ? "选择一张牌桌入座" : "登录后选择一张真人对战桌"}</span><strong>01–05 自由 21 点 · 06–10 觉醒 PvP · 11–15 传统 Blackjack</strong></section>
       {profileOpen && (
         <section className="account-modal" role="dialog" aria-modal="true" aria-label={user ? "账号资料" : "GAO LAB 登录"}>
           {user ? <form className="account-card" onSubmit={(event) => event.preventDefault()}>
@@ -211,9 +207,9 @@ export function LobbyScreen({ onEnterTable }: LobbyScreenProps) {
       )}
       <section className="lobby-grid">
         {Array.from({ length: TABLE_CAPACITY }, (_, index) => {
-          const number = index + 1; const open = number <= OPEN_TABLES; const experimental = number >= 6 && number <= 10;
+          const number = index + 1; const open = number <= OPEN_TABLES; const experimental = number >= 6 && number <= 10; const classic = number >= 11 && number <= 15;
           const tableId = `table-${number}`; const authority = getTableAuthority(tableId);
-          return <button className={`lobby-table ${open ? "is-open" : "is-reserved"}${experimental ? " is-experimental" : ""}`} disabled={!open || (!experimental && !user) || Boolean(joiningTableId)} onClick={() => void enterTable(tableId)} key={number}><span className="lobby-table__number">{String(number).padStart(2, "0")}</span>{open && <span className={`lobby-table__region ${experimental ? "is-experimental" : `is-${authority}`}`}>{experimental ? "觉醒实验" : authority === "tencent" ? "国内桌" : "海外桌"}</span>}<span className="lobby-table__felt"><i>{experimental ? "∞" : "21"}</i></span><strong>{joiningTableId === tableId ? "正在选择线路" : experimental ? "进入觉醒 Demo" : open ? "进入牌桌" : "预留桌位"}</strong><small>{experimental ? "本地演示 · 不扣赌资" : joiningTableId === tableId ? "等待对手，最多 8 秒" : open ? "最多 2 名玩家" : "即将开放"}</small></button>;
+          return <button className={`lobby-table ${open ? "is-open" : "is-reserved"}${experimental ? " is-experimental" : ""}`} disabled={!open || !user || Boolean(joiningTableId)} onClick={() => void enterTable(tableId)} key={number}><span className="lobby-table__number">{String(number).padStart(2, "0")}</span>{open && <span className={`lobby-table__region ${experimental ? "is-experimental" : `is-${authority}`}`}>{experimental ? "觉醒 PvP" : classic ? "传统规则" : authority === "tencent" ? "国内桌" : "海外桌"}</span>}<span className="lobby-table__felt"><i>{experimental ? "∞" : "21"}</i></span><strong>{joiningTableId === tableId ? "正在选择线路" : experimental ? "进入觉醒对决" : classic ? "进入 Blackjack" : open ? "进入牌桌" : "预留桌位"}</strong><small>{experimental ? "真人对战 · 80 张觉醒牌" : joiningTableId === tableId ? "等待对手，最多 8 秒" : classic ? "真人轮庄 · 52 张标准牌" : open ? "最多 2 名玩家" : "即将开放"}</small></button>;
         })}
       </section>
     </main>

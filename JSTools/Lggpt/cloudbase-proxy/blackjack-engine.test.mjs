@@ -7,6 +7,20 @@ test("mainland deck uses 40 unique cards", () => {
     assert.equal(deck.length, 40);
     assert.equal(new Set(deck.map(card => card.id)).size, 40);
 });
+test("legacy concurrent joins keep separate seats and storage failure preserves the wallet", async () => {
+    const engine = new MainlandBlackjackEngine({
+        consumeTicket: async id => ({id,bankroll:500}),
+        claimSeat: async user => { await new Promise(resolve=>setTimeout(resolve,5)); return user.bankroll; },
+        updateBankroll: async () => { throw Error('storage unavailable'); }
+    });
+    await Promise.all(['alice','bob'].map(id=>engine.command('table-1',id,{type:'SIT_DOWN',commandId:id},id)));
+    const table=engine.getTable('table-1');
+    assert.deepEqual(table.players.map(p=>p.userId),['alice','bob']);
+    await assert.rejects(engine.changeWallet(table.players[0],-50),/storage/);
+    assert.equal(table.players[0].bankroll,500);
+    assert.equal(engine.isValidTable('table-06'),false);
+    engine.duels.close();
+});
 
 test("mainland engine owns a complete two-player round", async () => {
     const tickets = new Map([

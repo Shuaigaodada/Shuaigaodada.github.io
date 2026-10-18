@@ -1,4 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
+import { DuelRooms } from "./duel-rooms.mjs";
+import { modeFor } from "./awakened-rules.mjs";
 
 const CHIP_START = 500;
 const BOT_BANKROLL = Number.MAX_SAFE_INTEGER;
@@ -6,7 +8,7 @@ const TURN_LIMIT_MS = 60_000;
 const BOT_ACTION_MIN_MS = 1_500;
 const BOT_ACTION_MAX_MS = 2_401;
 const SHOWDOWN_CARD_MS = 480;
-const OPEN_TABLE_LIMIT = 5;
+const OPEN_TABLE_LIMIT = 15;
 const BOT_CLIENT_PREFIX = "bot:";
 const suits = ["hearts", "diamonds", "clubs", "spades"];
 const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
@@ -58,7 +60,7 @@ function initialTable(tableId) {
 }
 
 function validTableId(tableId) {
-    const match = /^table-(\d+)$/.exec(tableId);
+    const match = /^table-([1-9]\d*)$/.exec(tableId);
     return Boolean(match && Number(match[1]) >= 1 && Number(match[1]) <= OPEN_TABLE_LIMIT);
 }
 
@@ -70,13 +72,16 @@ function calculateRaise(available, committed, currentBet, target) {
 }
 
 export class MainlandBlackjackEngine {
-    constructor({consumeTicket, updateBankroll, updatePlaySeconds, onStateChange} = {}) {
+    constructor({consumeTicket, updateBankroll, updatePlaySeconds, onStateChange, loadDuel, persistDuel, claimSeat, releaseSeat} = {}) {
+        this.duels = new DuelRooms({consumeTicket, loadDuel, persistDuel});
         this.tables = new Map();
         this.connections = new Map();
         this.consumeTicket = consumeTicket || (async () => null);
         this.updateBankroll = updateBankroll || (async () => undefined);
         this.updatePlaySeconds = updatePlaySeconds || (async () => undefined);
         this.onStateChange = onStateChange || (async () => undefined);
+        this.claimSeat = claimSeat || (async user => user.bankroll);
+        this.releaseSeat = releaseSeat || (async () => undefined);
     }
 
     isValidTable(tableId) { return validTableId(tableId); }
@@ -88,6 +93,7 @@ export class MainlandBlackjackEngine {
     }
 
     stateFor(tableId, clientId = null) {
+        if(modeFor(tableId)) return this.duels.stateFor(tableId, clientId);
         const table = this.getTable(tableId);
         const viewer = clientId ? this.playerFor(table, clientId) : null;
         const ordered = viewer ? [viewer, this.other(table, viewer)] : table.players;
@@ -115,6 +121,7 @@ export class MainlandBlackjackEngine {
     }
 
     addConnection(tableId, clientId, send) {
+        if(modeFor(tableId)) return this.duels.addConnection(tableId, clientId, send);
         this.getTable(tableId);
         const tableConnections = this.connections.get(tableId) || new Set();
         const connection = {clientId, send};
@@ -130,22 +137,28 @@ export class MainlandBlackjackEngine {
     }
 
     disconnectIfGone(tableId, clientId) {
+        return this.duels.serial(tableId, async () => {
         const hasReplacement = [...(this.connections.get(tableId) || [])].some(connection => connection.clientId === clientId);
         if(hasReplacement) return;
         const table = this.getTable(tableId);
         const player = this.playerFor(table, clientId);
         if(!player) return;
-        this.leave(table, player).then(() => this.commit(table));
+        await this.leave(table, player);
+        await this.commit(table);
+        });
     }
 
     async command(tableId, clientId, command, ticket = null) {
+        if(modeFor(tableId)) return this.duels.command(tableId, clientId, command, ticket);
+        return this.duels.serial(tableId, () => this.legacyCommand(tableId, clientId, command, ticket));
+    }
+
+    async legacyCommand(tableId, clientId, command, ticket) {
         const table = this.getTable(tableId);
         if(!command || typeof command.type !== "string") throw Object.assign(new Error("无效的游戏命令。"), {status: 400});
         const commandId = typeof command.commandId === "string" ? command.commandId.slice(0, 100) : randomUUID();
         const dedupeKey = `${clientId}:${commandId}`;
         if(table.processedCommands.has(dedupeKey)) return this.stateFor(tableId, clientId);
-        table.processedCommands.add(dedupeKey);
-        if(table.processedCommands.size > 256) table.processedCommands.delete(table.processedCommands.values().next().value);
 
         if(command.type === "SIT_DOWN") await this.join(table, clientId, ticket);
         else if(command.type === "LEAVE_SEAT") {
@@ -166,6 +179,8 @@ export class MainlandBlackjackEngine {
             else if(command.type === "STAND") await this.stand(table, player);
         }
         await this.advanceBots(table);
+        table.processedCommands.add(dedupeKey);
+        if(table.processedCommands.size > 256) table.processedCommands.delete(table.processedCommands.values().next().value);
         await this.commit(table);
         return this.stateFor(tableId, clientId);
     }
@@ -196,12 +211,13 @@ export class MainlandBlackjackEngine {
         const user = ticket ? await this.consumeTicket(ticket) : null;
         if(!user) { table.message = "登录凭证已过期，请返回大厅后重试。"; return; }
         const existing = this.playerForUser(table, user.id);
-        if(existing) { existing.clientId = clientId; existing.bankroll = user.bankroll; return; }
+        if(existing) { existing.clientId = clientId; return; }
         const seat = table.players.find(player => player.clientId === null);
         if(!seat) { table.message = "牌桌座位已满，你正在观战。"; return; }
+        const bankroll = await this.claimSeat(user, table.tableId);
         Object.assign(seat, {
             clientId, userId: user.id, name: user.displayName || "GAO 玩家", avatarData: user.avatarData || null,
-            bankroll: Number.isSafeInteger(user.bankroll) ? user.bankroll : CHIP_START, isBot: false, joinedAt: Date.now()
+            bankroll: Number.isSafeInteger(bankroll) ? bankroll : CHIP_START, isBot: false, joinedAt: Date.now()
         });
         if(table.players.every(player => player.clientId)) {
             table.status = "betting";
@@ -226,6 +242,7 @@ export class MainlandBlackjackEngine {
             await this.finish(table, this.other(table, player).id, `${player.name} 离开牌桌，对方获得底池。`);
         }
         if(player.userId && player.joinedAt) await this.updatePlaySeconds(player.userId, Math.max(0, Math.floor((Date.now() - player.joinedAt) / 1000)));
+        if(player.userId) await this.releaseSeat(player.userId, table.tableId);
         this.resetSeat(player);
         if(!table.players.some(seat => seat.clientId && !seat.isBot)) {
             for(const seat of table.players) if(seat.isBot) this.resetSeat(seat);
@@ -246,8 +263,8 @@ export class MainlandBlackjackEngine {
         if(!Number.isSafeInteger(amount) || amount === 0 || player.isBot) return;
         const next = player.bankroll + amount;
         if(next < 0) throw new Error("赌资不足。");
-        player.bankroll = next;
         if(player.userId) await this.updateBankroll(player.userId, next);
+        player.bankroll = next;
     }
 
     async callBot(table, player) {
@@ -268,7 +285,7 @@ export class MainlandBlackjackEngine {
             : null;
         const bot = bettingBot?.isBot ? bettingBot : activeBot?.isBot ? activeBot : readyBot;
         if(!bot || table.botTimer) return;
-        table.botTimer = windowlessTimeout(async () => {
+        table.botTimer = windowlessTimeout(() => this.duels.serial(table.tableId, async () => {
             table.botTimer = null;
             const currentBettingBot = table.status === "betting" ? this.byId(table, table.bettingPlayerId) : null;
             const currentActiveBot = table.status === "playing" ? this.byId(table, table.activePlayerId) : null;
@@ -283,7 +300,7 @@ export class MainlandBlackjackEngine {
             }
             await this.advanceBots(table);
             await this.commit(table);
-        }, randomInt(BOT_ACTION_MIN_MS, BOT_ACTION_MAX_MS));
+        }), randomInt(BOT_ACTION_MIN_MS, BOT_ACTION_MAX_MS));
     }
 
     async placeBet(table, player, amount) {
@@ -407,12 +424,13 @@ export class MainlandBlackjackEngine {
         table.message = "双方已停牌，正在翻开手牌…";
         if(table.showdownTimer) clearTimeout(table.showdownTimer);
         const cardCount = Math.max(...table.players.map(player => player.hand.length), 1);
-        table.showdownTimer = windowlessTimeout(async () => {
+        table.showdownTimer = windowlessTimeout(() => this.duels.serial(table.tableId, async () => {
             table.showdownTimer = null;
+            if(table.status !== "showdown") return;
             await this.resolveRound(table);
             await this.advanceBots(table);
             await this.commit(table);
-        }, cardCount * SHOWDOWN_CARD_MS + 350);
+        }), cardCount * SHOWDOWN_CARD_MS + 350);
     }
 
     async resolveRound(table) {
@@ -439,7 +457,7 @@ export class MainlandBlackjackEngine {
         table.activePlayerId = playerId;
         table.turnDeadline = playerId ? Date.now() + TURN_LIMIT_MS : null;
         if(!playerId) return;
-        table.turnTimer = windowlessTimeout(async () => {
+        table.turnTimer = windowlessTimeout(() => this.duels.serial(table.tableId, async () => {
             if(table.activePlayerId !== playerId || table.status !== "playing") return;
             const player = this.byId(table, playerId);
             if(!player) return;
@@ -447,12 +465,12 @@ export class MainlandBlackjackEngine {
             await this.nextTurn(table, player, `${player.name} 行动超时，自动停牌。`);
             await this.advanceBots(table);
             await this.commit(table);
-        }, TURN_LIMIT_MS + 25);
+        }), TURN_LIMIT_MS + 25);
     }
 }
 
 function windowlessTimeout(callback, delay) {
-    const timer = setTimeout(callback, delay);
+    const timer = setTimeout(() => Promise.resolve().then(callback).catch(error => console.error("Blackjack timer failed:", error.message)), delay);
     timer.unref?.();
     return timer;
 }
